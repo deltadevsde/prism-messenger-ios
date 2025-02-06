@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		DD0CC76E2D54B96900DAC02D /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = DD0CC76D2D54B96400DAC02D /* .gitignore */; };
+		DD0CC7712D54E36400DAC02D /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = DD0CC7702D54E36400DAC02D /* KeychainAccess */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,6 +58,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DD0CC7712D54E36400DAC02D /* KeychainAccess in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -118,6 +120,7 @@
 			);
 			name = PrismMessenger;
 			packageProductDependencies = (
+				DD0CC7702D54E36400DAC02D /* KeychainAccess */,
 			);
 			productName = PrismMessenger;
 			productReference = DD0CC65C2D4B88E600DAC02D /* PrismMessenger.app */;
@@ -202,6 +205,9 @@
 			);
 			mainGroup = DD0CC6532D4B88E600DAC02D;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				DD0CC76F2D54E36400DAC02D /* XCRemoteSwiftPackageReference "KeychainAccess" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DD0CC65D2D4B88E600DAC02D /* Products */;
 			projectDirPath = "";
@@ -560,6 +566,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		DD0CC76F2D54E36400DAC02D /* XCRemoteSwiftPackageReference "KeychainAccess" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kishikawakatsumi/KeychainAccess.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.1.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		DD0CC7702D54E36400DAC02D /* KeychainAccess */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DD0CC76F2D54E36400DAC02D /* XCRemoteSwiftPackageReference "KeychainAccess" */;
+			productName = KeychainAccess;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = DD0CC6542D4B88E600DAC02D /* Project object */;
 }

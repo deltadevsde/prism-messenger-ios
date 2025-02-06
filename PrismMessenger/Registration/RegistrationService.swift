@@ -18,16 +18,18 @@ struct RegisterRequest: Encodable {
     var key: CryptoPayload
 }
 
-struct CreateAccountResponse: Decodable {
-
-}
-
 class RegistrationService: ObservableObject {
 
     private let restClient: RestClient
 
-    init(restClient: RestClient) {
+    private let keyManager: KeyManager
+
+    init(
+        restClient: RestClient,
+        keyManager: KeyManager
+    ) {
         self.restClient = restClient
+        self.keyManager = keyManager
     }
 
     func checkUsernameAvailability(_ username: String) async -> Bool {
@@ -38,14 +40,19 @@ class RegistrationService: ObservableObject {
 
     func register(username: String) async throws {
         guard
-            let key = (try? await KeyManager.fetchKeyFromKeyChain())
-                ?? (try? KeyManager.createKeyPair())
+            let key = (try? await keyManager.fetchIdentityKeyFromKeychain())
+                ?? (try? keyManager.createIdentityKeyPair())
         else {
             throw RegistrationError.unableToAcquireKey
         }
 
         let req = RegisterRequest(
-            username: username, key: CryptoPayload(algorithm: .secp256r1, bytes: try key.toBytes()))
+            username: username,
+            key: CryptoPayload(
+                algorithm: .secp256r1,
+                bytes: key.compressedRepresentation
+            )
+        )
         do {
             try await restClient.post(req, to: "/register")
         } catch RestClientError.httpError(let httpStatusCode) {
