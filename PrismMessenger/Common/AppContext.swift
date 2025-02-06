@@ -12,6 +12,7 @@ class AppContext: ObservableObject {
     
     init() throws {
         let restClient = try RestClient(baseURLStr: "http://127.0.0.1:48080")
-        signupService = RegistrationService(restClient: restClient)
+        let keyManager = KeyManager()
+        signupService = RegistrationService(restClient: restClient, keyManager: keyManager)
     }
 }

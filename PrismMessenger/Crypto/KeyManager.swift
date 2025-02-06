@@ -5,79 +5,66 @@
 //  Copyright © 2025 prism. All rights reserved.
 //
 
+import CryptoKit
+import KeychainAccess
+import LocalAuthentication
 import Security
 
 enum KeyServiceError: Error {
-    case fetchingFromKeychainFailed(OSStatus)
+    case fetchingFromKeychainFailed
     case publicKeyDerivationFailed
 }
 
-struct KeyManager {
-    private static let tag = "xyz.prism.messenger".data(using: .utf8)!
-    
-    static func fetchKeyFromKeyChain() async throws -> SecKey {
-        let attributes: [String: Any] = [
-            kSecClass as String: kSecClassKey,
-            kSecAttrApplicationTag as String: KeyManager.tag,
-            kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
-            kSecReturnRef as String: true,
-        ]
-        
-        let (item, result) = await withCheckedContinuation { continuation in
-            // Dispatch to other queue, because this is a blocking operation
-            DispatchQueue.global(qos: .utility).async {
-                var item: CFTypeRef?
-                let result = SecItemCopyMatching(attributes as CFDictionary, &item)
-                continuation.resume(returning: (item, result))
-            }
-        }
-        guard result == errSecSuccess else {
-            throw KeyServiceError.fetchingFromKeychainFailed(result)
-        }
-        
-        let privateKey = item as! SecKey
-        
-        guard let publicKey = SecKeyCopyPublicKey(privateKey) else {
-            throw KeyServiceError.publicKeyDerivationFailed
-        }
-        
-        return publicKey
+class KeyManager {
+    private static let serviceTag = "xyz.prism.messenger"
+    private static let identityPrivateKeyTag = "xyz.prism.messenger.identityPrivateKey"
+
+    private let keychain: KeychainAccess.Keychain
+
+    init() {
+        self.keychain = .init(service: Self.serviceTag)
     }
-    
-    static func createKeyPair() throws -> SecKey {
+
+    func fetchIdentityKeyFromKeychain() async throws -> P256.Signing.PublicKey {
+        guard let data = try keychain.getData(Self.identityPrivateKeyTag) else {
+            throw KeyServiceError.fetchingFromKeychainFailed
+        }
+
+        let privateKey = try SecureEnclave.P256.Signing.PrivateKey.init(dataRepresentation: data)
+
+        return privateKey.publicKey
+    }
+
+    func createIdentityKeyPair() throws -> P256.Signing.PublicKey {
         var error: Unmanaged<CFError>?
-        
+
+        let authenticationContext = LAContext()
+
+        #if targetEnvironment(simulator)
+            let accessControlFlags: SecAccessControlCreateFlags = [.privateKeyUsage]
+        #else
+            let accessControlFlags: SecAccessControlCreateFlags = [
+                .privateKeyUsage, .biometryCurrentSet,
+            ]
+        #endif
+
         guard
-            let access = SecAccessControlCreateWithFlags(
+            let accessControl = SecAccessControlCreateWithFlags(
                 kCFAllocatorDefault,
                 kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
-                [.privateKeyUsage, .biometryAny],
+                accessControlFlags,
                 &error)
         else {
             throw error!.takeRetainedValue() as Error
         }
-        
-        let attributes: [String: Any] = [
-            kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
-            kSecAttrKeySizeInBits as String: 256,
-            kSecAttrTokenID as String: kSecAttrTokenIDSecureEnclave,
-            kSecPrivateKeyAttrs as String: [
-                kSecAttrIsPermanent as String: true,
-                kSecAttrApplicationTag as String: KeyManager.tag,
-                kSecAttrAccessControl as String: access,
-            ],
-        ]
-        
-        guard let privateKey = SecKeyCreateRandomKey(attributes as CFDictionary, &error) else {
-            throw error!.takeRetainedValue() as Error
-        }
-        
-        guard let publicKey = SecKeyCopyPublicKey(privateKey) else {
-            throw KeyServiceError.publicKeyDerivationFailed
-        }
-        
-        return publicKey
+
+        let privateKey = try SecureEnclave.P256.Signing.PrivateKey.init(
+            accessControl: accessControl,
+            authenticationContext: authenticationContext
+        )
+
+        try keychain.set(privateKey.dataRepresentation, key: Self.identityPrivateKeyTag)
+
+        return privateKey.publicKey
     }
-
 }
-
