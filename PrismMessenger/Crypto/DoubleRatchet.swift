@@ -29,7 +29,6 @@ func deriveRatchetKeys(rootKey: Data, dhSharedSecret: Data) -> (newRoot: Data, c
 func deriveMessageKey(from chainKey: Data) -> (messageKey: Data, newChainKey: Data) {
     let keyMaterial = hkdf(
         inputKeyingMaterial: chainKey,
-        // TODO(@distractedm1nd): How do we want to do salt?
         salt: Data(),
         info: Data("DoubleRatchetMessage".utf8),
         outputLength: 64
@@ -69,6 +68,15 @@ final class DoubleRatchetSession {
     /// The last message number from the previous sending chain.
     private(set) var previousSendMessageNumber: UInt64 = 0
     
+    // MARK: Errors
+    
+    enum DoubleRatchetError: Error {
+        case missingSendChainKey
+        case missingRecvChainKey
+        case invalidCiphertext(length: Int)
+        case remoteEphemeralNotAvailable
+    }
+
     // MARK: Initialization
     
     /// Initializes a Double Ratchet session.
@@ -131,8 +139,7 @@ final class DoubleRatchetSession {
     /// - Parameter target: The target message number to skip keys until.
     private func skipRecvMessageKeys(until target: UInt64) throws {
         guard var chainKey = self.recvChainKey else {
-            throw NSError(domain: "DoubleRatchet", code: -1,
-                          userInfo: [NSLocalizedDescriptionKey: "Receive chain key not available"])
+            throw DoubleRatchetError.missingRecvChainKey
         }
         while self.recvMessageNumber < target {
             let (mk, newChainKey) = deriveMessageKey(from: chainKey)
@@ -161,8 +168,8 @@ final class DoubleRatchetSession {
             self.sendMessageNumber = 0
         }
         
-        guard var chainKey = self.sendChainKey else {
-            fatalError("Send chain key not available")
+        guard let chainKey = self.sendChainKey else {
+            throw DoubleRatchetError.missingSendChainKey
         }
         
         // Derive the message key for the current sendMessageNumber.
@@ -239,8 +246,7 @@ final class DoubleRatchetSession {
         
         // Now, derive the message key for the current recvMessageNumber.
         guard let currentRecvChain = self.recvChainKey else {
-            throw NSError(domain: "DoubleRatchet", code: -1,
-                          userInfo: [NSLocalizedDescriptionKey: "Receive chain key not available"])
+            throw DoubleRatchetError.missingRecvChainKey
         }
         let (messageKey, newChainKey) = deriveMessageKey(from: currentRecvChain)
         self.recvChainKey = newChainKey
@@ -255,8 +261,7 @@ final class DoubleRatchetSession {
     private func decryptCiphertext(_ ciphertext: Data, using symmetricKey: SymmetricKey, nonce: AES.GCM.Nonce) throws -> Data {
         // AES-GCM produces a 16-byte tag; ensure ciphertext is long enough.
         guard ciphertext.count >= 16 else {
-            throw NSError(domain: "DoubleRatchet", code: -1,
-                          userInfo: [NSLocalizedDescriptionKey: "Ciphertext too short"])
+            throw DoubleRatchetError.invalidCiphertext(length: ciphertext.count)
         }
         let ct = ciphertext.prefix(ciphertext.count - 16)
         let tag = ciphertext.suffix(16)
@@ -269,8 +274,7 @@ final class DoubleRatchetSession {
     func forceRotateLocalEphemeralForTesting() throws {
         // Ensure we have a remote ephemeral key to use.
         guard let remoteEphemeral = self.remoteEphemeral else {
-            throw NSError(domain: "DoubleRatchet", code: -1,
-                          userInfo: [NSLocalizedDescriptionKey: "Remote ephemeral not available"])
+            throw DoubleRatchetError.remoteEphemeralNotAvailable
         }
         // Create a new ephemeral key.
         let newLocalEphemeral = P256.KeyAgreement.PrivateKey()

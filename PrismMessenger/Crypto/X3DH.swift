@@ -18,7 +18,7 @@ import CryptoKit
 ///             || DH(initiatorEphemeral, responderIdentity)
 ///             || DH(initiatorEphemeral, responderSignedPreKey)
 ///             [ || DH(initiatorEphemeral, responderOneTimePreKey) ] )
-public struct X3DH {
+struct X3DH {
     /// Performs the X3DH key agreement from the initiator’s side.
     ///
     /// - Parameters:
@@ -56,7 +56,6 @@ public struct X3DH {
         }
         
         // Derive the final key via HKDF.
-        // TODO(@distractedm1nd): Figure out how we want to do salt
         let salt = Data()
         let info = Data("X3DH".utf8)
         let derivedKeyData = hkdf(inputKeyingMaterial: combinedSecret, salt: salt, info: info, outputLength: 32)

@@ -1,5 +1,5 @@
 //
-//  Message.swift
+//  DoubleRatchetMessage.swift
 //  PrismMessenger
 //
 //  Copyright © 2025 prism. All rights reserved.

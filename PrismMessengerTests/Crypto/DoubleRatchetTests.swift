@@ -1,5 +1,5 @@
 //
-//  DoubleRatchetTest.swift
+//  DoubleRatchetTests.swift
 //  PrismMessenger
 //
 //  Copyright © 2025 prism. All rights reserved.

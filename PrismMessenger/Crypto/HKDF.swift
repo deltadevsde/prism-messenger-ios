@@ -12,7 +12,7 @@ import CryptoKit
 
 /// Returns the pseudorandom key (PRK) by performing HKDF-Extract.
 /// If no salt is provided (i.e. an empty Data), a salt of zeros is used.
-public func hkdfExtract(salt: Data, inputKeyingMaterial ikm: Data) -> Data {
+func hkdfExtract(salt: Data, inputKeyingMaterial ikm: Data) -> Data {
     // If salt is empty, use a salt of HashLen (32 bytes for SHA256) zeros.
     let effectiveSalt = salt.isEmpty ? Data(repeating: 0, count: Int(SHA256.byteCount)) : salt
     let saltKey = SymmetricKey(data: effectiveSalt)
@@ -21,7 +21,7 @@ public func hkdfExtract(salt: Data, inputKeyingMaterial ikm: Data) -> Data {
 }
 
 /// Expands the pseudorandom key (PRK) into output keying material (OKM).
-public func hkdfExpand(prk: Data, info: Data, outputLength: Int) -> Data {
+func hkdfExpand(prk: Data, info: Data, outputLength: Int) -> Data {
     var okm = Data()
     var previousBlock = Data()
     var counter: UInt8 = 1
@@ -44,7 +44,7 @@ public func hkdfExpand(prk: Data, info: Data, outputLength: Int) -> Data {
 }
 
 /// HKDF that takes input keying material, salt, and info and returns derived key material.
-public func hkdf(inputKeyingMaterial ikm: Data, salt: Data, info: Data, outputLength: Int) -> Data {
+func hkdf(inputKeyingMaterial ikm: Data, salt: Data, info: Data, outputLength: Int) -> Data {
     let prk = hkdfExtract(salt: salt, inputKeyingMaterial: ikm)
     let okm = hkdfExpand(prk: prk, info: info, outputLength: outputLength)
     return okm
