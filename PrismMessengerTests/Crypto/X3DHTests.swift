@@ -59,4 +59,47 @@ final class X3DHTests: XCTestCase {
         // Assert that both parties derive the same shared key.
         XCTAssertEqual(aliceKeyData, bobKeyData, "The shared keys must be equal.")
     }
+    
+    func testX3DHWithoutOneTimePrekey() throws {
+        // === Initiator (Alice) Key Generation ===
+        let aliceIdentity = P256.KeyAgreement.PrivateKey()    // Alice's long-term identity key
+        let aliceEphemeral = P256.KeyAgreement.PrivateKey()   // Alice's ephemeral key
+        
+        // === Responder (Bob) Key Generation ===
+        let bobIdentity = P256.KeyAgreement.PrivateKey()        // Bob's long-term identity key
+        let bobSignedPreKey = P256.KeyAgreement.PrivateKey()    // Bob's signed pre-key (published)
+        
+        // Alice performs X3DH key agreement using Bob's public keys.
+        let sharedKeyAlice = try X3DH.perform(
+            initiatorIdentity: aliceIdentity,
+            initiatorEphemeral: aliceEphemeral,
+            responderIdentity: bobIdentity.publicKey,
+            responderSignedPreKey: bobSignedPreKey.publicKey,
+            responderOneTimePreKey: nil
+        )
+        
+        // --- Bob's Perspective ---
+        // Bob computes the shared key using his private keys and Alice's public keys.
+        let dh1_Bob = try bobSignedPreKey.sharedSecretFromKeyAgreement(with: aliceIdentity.publicKey)
+        let dh2_Bob = try bobIdentity.sharedSecretFromKeyAgreement(with: aliceEphemeral.publicKey)
+        let dh3_Bob = try bobSignedPreKey.sharedSecretFromKeyAgreement(with: aliceEphemeral.publicKey)
+        
+        var combinedBob = Data()
+        combinedBob.append(dh1_Bob.withUnsafeBytes { Data($0) })
+        combinedBob.append(dh2_Bob.withUnsafeBytes { Data($0) })
+        combinedBob.append(dh3_Bob.withUnsafeBytes { Data($0) })
+        
+        let derivedBob = hkdf(inputKeyingMaterial: combinedBob,
+                              salt: Data(),
+                              info: Data("X3DH".utf8),
+                              outputLength: 32)
+        let sharedKeyBob = SymmetricKey(data: derivedBob)
+        
+        // Convert keys to Data for comparison.
+        let aliceKeyData = sharedKeyAlice.withUnsafeBytes { Data($0) }
+        let bobKeyData   = sharedKeyBob.withUnsafeBytes { Data($0) }
+        
+        // Assert that both parties derive the same shared key.
+        XCTAssertEqual(aliceKeyData, bobKeyData, "The shared keys must be equal.")
+    }
 }
