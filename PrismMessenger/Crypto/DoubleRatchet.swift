@@ -41,7 +41,7 @@ func deriveMessageKey(from chainKey: Data) -> (messageKey: Data, newChainKey: Da
 // MARK: - Double Ratchet Session
 
 /// A simplified Double Ratchet session that caches skipped (out-of-order) message keys.
-final class DoubleRatchetSession {
+final class DoubleRatchetSession: Codable {
     
     // MARK: Session State Properties
     

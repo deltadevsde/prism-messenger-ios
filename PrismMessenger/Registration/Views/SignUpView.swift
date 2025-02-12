@@ -13,6 +13,7 @@ import SwiftUI
 struct SignUpView: View {
     @Environment(\.modelContext) var context
     
+    @EnvironmentObject var appLaunch: AppLaunch
     @EnvironmentObject var signupService: RegistrationService
     @EnvironmentObject var keyService: KeyService
 
@@ -79,6 +80,7 @@ struct SignUpView: View {
                 try await signupService.register(username: username)
                 
                 let (keybundle, user) = try await keyService.initializeKeyBundle(username: username)
+                
                 context.insert(user)
                 try context.save()
                 
@@ -87,6 +89,7 @@ struct SignUpView: View {
                 // Handle success
                 // TODO How to proceed from here?
                 // Wait until settled on prism?
+                await appLaunch.setRegistered()
             } catch let error {
                 print(error)
             }

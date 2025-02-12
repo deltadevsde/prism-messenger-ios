@@ -25,6 +25,14 @@ protocol CryptoConvertible {
 }
 
 extension CryptoPayload {
+    func toP256KAPrivateKey() throws -> P256.KeyAgreement.PrivateKey {
+        return try P256.KeyAgreement.PrivateKey(derRepresentation: self.bytes)
+    }
+    
+    func toP256KAPublicKey() throws -> P256.KeyAgreement.PublicKey {
+        return try P256.KeyAgreement.PublicKey(compressedRepresentation: self.bytes)
+    }
+    
     func toP256PrivateKey() throws -> P256.Signing.PrivateKey {
         return try P256.Signing.PrivateKey(derRepresentation: self.bytes)
     }
@@ -35,6 +43,18 @@ extension CryptoPayload {
 
     func toP256Signature() throws -> P256.Signing.ECDSASignature {
         return try P256.Signing.ECDSASignature(rawRepresentation: self.bytes)
+    }
+}
+
+extension P256.KeyAgreement.PublicKey: CryptoConvertible {
+    func toCryptoPayload() -> CryptoPayload {
+        CryptoPayload(algorithm: .secp256r1, bytes: self.compressedRepresentation)
+    }
+}
+
+extension P256.KeyAgreement.PrivateKey: CryptoConvertible {
+    func toCryptoPayload() -> CryptoPayload {
+        CryptoPayload(algorithm: .secp256r1, bytes: self.derRepresentation)
     }
 }
 

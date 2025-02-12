@@ -14,15 +14,24 @@ enum KeyError: Error {
     case networkFailure(Int)
 }
 
+struct PrivatePrekey: Codable {
+    var key_idx: UInt64
+    var key: P256.Signing.PrivateKey
+}
+
 struct Prekey: Codable {
     var key_idx: UInt64
-    var key: CryptoPayload
+    var key: P256.Signing.PublicKey
+    
+    func fromPrivatePrekey(_ prekey: PrivatePrekey) -> Prekey {
+        Prekey(key_idx: prekey.key_idx, key: prekey.key.publicKey)
+    }
 }
 
 struct KeyBundle: Codable {
-    var identity_key: CryptoPayload
-    var signed_prekey: CryptoPayload
-    var signed_prekey_signature: CryptoPayload
+    var identity_key: P256.Signing.PublicKey
+    var signed_prekey: P256.Signing.PublicKey
+    var signed_prekey_signature: P256.Signing.ECDSASignature
     var prekeys: [Prekey]
 }
 
@@ -54,9 +63,9 @@ class KeyService: ObservableObject {
         let prekeys = try user.getPublicPrekeys()
         
         return (KeyBundle(
-            identity_key: idKey.toCryptoPayload(),
-            signed_prekey: signedPrekey.publicKey.toCryptoPayload(),
-            signed_prekey_signature: signedPrekeySignature.toCryptoPayload(),
+            identity_key: idKey,
+            signed_prekey: signedPrekey.publicKey,
+            signed_prekey_signature: signedPrekeySignature,
             prekeys: prekeys
         ), user)
     }
