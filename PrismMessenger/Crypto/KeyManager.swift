@@ -67,4 +67,30 @@ class KeyManager {
 
         return privateKey.publicKey
     }
+    
+    func createPrekeys(count: UInt) async throws -> [P256.Signing.PrivateKey] {
+        var prekeys: [P256.Signing.PrivateKey] = []
+        for _ in 0..<count {
+            let prekey = P256.Signing.PrivateKey();
+            prekeys.append(prekey)
+        }
+        return prekeys
+    }
+    
+    func createSignedPrekey() async throws -> (signed_prekey: P256.Signing.PrivateKey, prekey_signature: P256.Signing.ECDSASignature) {
+        let signed_prekey_priv = P256.Signing.PrivateKey();
+        let prekey_sig = try await requestIdentitySignature(dataToSign: Data(signed_prekey_priv.publicKey.compressedRepresentation))
+        
+        return (signed_prekey: signed_prekey_priv, prekey_signature: prekey_sig)
+    }
+    
+    func requestIdentitySignature(dataToSign: Data) async throws -> P256.Signing.ECDSASignature {
+        guard let data = try keychain.getData(Self.identityPrivateKeyTag) else {
+            throw KeyServiceError.fetchingFromKeychainFailed
+        }
+
+        let privateKey = try SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: data)
+        
+        return try privateKey.signature(for: dataToSign)
+    }
 }

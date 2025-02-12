@@ -19,7 +19,6 @@ struct MainView: View {
                 LoadingView()
             case .unregistered:
                 FeaturesView(path: $path)
-                    .environmentObject(appDependencies.signupService)
             case .ready:
                 TabView {
                     ChatsView()
@@ -37,6 +36,7 @@ struct MainView: View {
             await appLaunch.initialize()
         }
         .environmentObject(appDependencies.signupService)
+        .environmentObject(appDependencies.keyService)
     }
 }
 
