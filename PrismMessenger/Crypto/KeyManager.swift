@@ -79,7 +79,7 @@ class KeyManager {
     
     func createSignedPrekey() async throws -> (signed_prekey: P256.Signing.PrivateKey, prekey_signature: P256.Signing.ECDSASignature) {
         let signed_prekey_priv = P256.Signing.PrivateKey();
-        let prekey_sig = try await requestIdentitySignature(dataToSign: Data(signed_prekey_priv.publicKey.compressedRepresentation))
+        let prekey_sig = try await requestIdentitySignature(dataToSign: Data(signed_prekey_priv.publicKey.derRepresentation))
         
         return (signed_prekey: signed_prekey_priv, prekey_signature: prekey_sig)
     }

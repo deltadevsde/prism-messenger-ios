@@ -7,6 +7,9 @@
 
 import XCTest
 import CryptoKit
+import KeychainAccess
+import LocalAuthentication
+import Security
 @testable import PrismMessenger
 
 final class DoubleRatchetTests: XCTestCase {
