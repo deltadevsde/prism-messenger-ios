@@ -89,6 +89,7 @@ struct SignUpView: View {
                 // Handle success
                 // TODO How to proceed from here?
                 // Wait until settled on prism?
+                print(context.sqliteCommand)
                 await appLaunch.setRegistered()
             } catch let error {
                 print(error)

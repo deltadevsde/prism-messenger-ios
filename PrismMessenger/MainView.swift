@@ -12,10 +12,6 @@ struct MainView: View {
     @State private var path = NavigationPath()
     @StateObject private var appDependencies = try! AppContext()
     @StateObject private var appLaunch = AppLaunch()
-
-    
-    @Environment(\.modelContext) var context
-    @Query var users: [UserData]
     
     var body: some View {
             NavigationStack(path: $path) {
@@ -26,10 +22,10 @@ struct MainView: View {
                     FeaturesView(path: $path)
                 case .ready:
                     TabView {
-                        ChatsView()
+                        ChatsView().tabItem{Text("Chats")}
+                        ProfileView().tabItem{Text("Profile")}
                         // ContactsView() ?
                         // CallsView() ?
-                        // ProfileView() ?
                     }
                 case .error:
                     Text("Error loading content")
@@ -43,7 +39,6 @@ struct MainView: View {
             .environmentObject(appDependencies.signupService)
             .environmentObject(appDependencies.keyService)
             .environmentObject(appLaunch)
-            .modelContext(context)
     }
 }
 

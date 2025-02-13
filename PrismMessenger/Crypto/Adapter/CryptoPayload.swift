@@ -26,7 +26,7 @@ protocol CryptoConvertible {
 
 extension CryptoPayload {
     func toP256KAPrivateKey() throws -> P256.KeyAgreement.PrivateKey {
-        return try P256.KeyAgreement.PrivateKey(derRepresentation: self.bytes)
+        return try P256.KeyAgreement.PrivateKey(rawRepresentation: self.bytes)
     }
     
     func toP256KAPublicKey() throws -> P256.KeyAgreement.PublicKey {
@@ -34,7 +34,7 @@ extension CryptoPayload {
     }
     
     func toP256PrivateKey() throws -> P256.Signing.PrivateKey {
-        return try P256.Signing.PrivateKey(derRepresentation: self.bytes)
+        return try P256.Signing.PrivateKey(rawRepresentation: self.bytes)
     }
     
     func toP256PublicKey() throws -> P256.Signing.PublicKey {
@@ -54,7 +54,7 @@ extension P256.KeyAgreement.PublicKey: CryptoConvertible {
 
 extension P256.KeyAgreement.PrivateKey: CryptoConvertible {
     func toCryptoPayload() -> CryptoPayload {
-        CryptoPayload(algorithm: .secp256r1, bytes: self.derRepresentation)
+        CryptoPayload(algorithm: .secp256r1, bytes: self.rawRepresentation)
     }
 }
 
@@ -66,7 +66,7 @@ extension P256.Signing.PublicKey: CryptoConvertible {
 
 extension P256.Signing.PrivateKey: CryptoConvertible {
     func toCryptoPayload() -> CryptoPayload {
-        CryptoPayload(algorithm: .secp256r1, bytes: self.derRepresentation)
+        CryptoPayload(algorithm: .secp256r1, bytes: self.rawRepresentation)
     }
 }
 

@@ -16,15 +16,15 @@ enum KeyError: Error {
 
 struct PrivatePrekey: Codable {
     var key_idx: UInt64
-    var key: P256.Signing.PrivateKey
+    var key: CryptoPayload
 }
 
 struct Prekey: Codable {
     var key_idx: UInt64
     var key: P256.Signing.PublicKey
     
-    func fromPrivatePrekey(_ prekey: PrivatePrekey) -> Prekey {
-        Prekey(key_idx: prekey.key_idx, key: prekey.key.publicKey)
+    func fromPrivatePrekey(_ prekey: PrivatePrekey) throws -> Prekey {
+        try Prekey(key_idx: prekey.key_idx, key: prekey.key.toP256PrivateKey().publicKey)
     }
 }
 

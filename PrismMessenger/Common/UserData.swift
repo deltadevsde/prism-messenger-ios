@@ -12,12 +12,12 @@ import CryptoKit
 final class UserData: Identifiable {
     @Attribute(.unique) var username: String
     
-    private(set) var signedPrekey: P256.Signing.PrivateKey
+    private(set) var signedPrekey: CryptoPayload
     private var prekeys: [PrivatePrekey]
     private var prekeyCounter: UInt64 = 0
     
     init(signedPrekey: P256.Signing.PrivateKey, username: String) {
-        self.signedPrekey = signedPrekey
+        self.signedPrekey = signedPrekey.toCryptoPayload()
         self.prekeys = []
         self.prekeyCounter = 0
         self.username = username
@@ -25,7 +25,7 @@ final class UserData: Identifiable {
     
     func addPrekeys(keys: [P256.Signing.PrivateKey]) throws {
         for key in keys {
-            prekeys.append(PrivatePrekey(key_idx: prekeyCounter, key: key))
+            prekeys.append(PrivatePrekey(key_idx: prekeyCounter, key: key.toCryptoPayload()))
             prekeyCounter += 1
         }
     }
@@ -33,7 +33,7 @@ final class UserData: Identifiable {
     func getPrekey(keyIdx: UInt64) throws -> P256.Signing.PrivateKey? {
         for prekey in prekeys {
             if prekey.key_idx == keyIdx {
-                return prekey.key
+                return try prekey.key.toP256PrivateKey()
             }
         }
         return nil
@@ -47,8 +47,18 @@ final class UserData: Identifiable {
     func getPublicPrekeys() throws -> [Prekey] {
         var publicPrekeys: [Prekey] = []
         for prekey in prekeys {
-            publicPrekeys.append(Prekey(key_idx: prekey.key_idx, key: prekey.key.publicKey))
+            publicPrekeys.append(Prekey(key_idx: prekey.key_idx, key: try prekey.key.toP256PrivateKey().publicKey))
         }
         return publicPrekeys
+    }
+}
+
+extension ModelContext {
+    var sqliteCommand: String {
+        if let url = container.configurations.first?.url.path(percentEncoded: false) {
+            "sqlite3 \"\(url)\""
+        } else {
+            "No SQLite database found."
+        }
     }
 }
