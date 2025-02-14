@@ -7,7 +7,6 @@
 
 import CryptoKit
 import Foundation
-import Security
 
 enum CryptoAlgorithm: String, Codable {
     case ed25519
@@ -18,10 +17,6 @@ enum CryptoAlgorithm: String, Codable {
 struct CryptoPayload: Codable {
     var algorithm: CryptoAlgorithm
     var bytes: Data
-}
-
-protocol CryptoConvertible {
-    func toCryptoPayload() -> CryptoPayload
 }
 
 extension CryptoPayload {
@@ -46,31 +41,31 @@ extension CryptoPayload {
     }
 }
 
-extension P256.KeyAgreement.PublicKey: CryptoConvertible {
+extension P256.KeyAgreement.PublicKey {
     func toCryptoPayload() -> CryptoPayload {
         CryptoPayload(algorithm: .secp256r1, bytes: self.compressedRepresentation)
     }
 }
 
-extension P256.KeyAgreement.PrivateKey: CryptoConvertible {
+extension P256.KeyAgreement.PrivateKey {
     func toCryptoPayload() -> CryptoPayload {
         CryptoPayload(algorithm: .secp256r1, bytes: self.rawRepresentation)
     }
 }
 
-extension P256.Signing.PublicKey: CryptoConvertible {
+extension P256.Signing.PublicKey {
     func toCryptoPayload() -> CryptoPayload {
         CryptoPayload(algorithm: .secp256r1, bytes: self.compressedRepresentation)
     }
 }
 
-extension P256.Signing.PrivateKey: CryptoConvertible {
+extension P256.Signing.PrivateKey {
     func toCryptoPayload() -> CryptoPayload {
         CryptoPayload(algorithm: .secp256r1, bytes: self.rawRepresentation)
     }
 }
 
-extension P256.Signing.ECDSASignature: CryptoConvertible {
+extension P256.Signing.ECDSASignature {
     func toCryptoPayload() -> CryptoPayload {
         CryptoPayload(algorithm: .secp256r1, bytes: self.rawRepresentation)
     }

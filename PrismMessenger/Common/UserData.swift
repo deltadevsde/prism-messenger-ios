@@ -31,12 +31,8 @@ final class UserData: Identifiable {
     }
     
     func getPrekey(keyIdx: UInt64) throws -> P256.Signing.PrivateKey? {
-        for prekey in prekeys {
-            if prekey.key_idx == keyIdx {
-                return try prekey.key.toP256PrivateKey()
-            }
-        }
-        return nil
+        let prekey = prekeys.first { $0.key_idx == keyIdx }
+        return try prekey?.key.toP256PrivateKey()
     }
     
     /// Deletes the `Prekey` with the given index. To be called when a prekey is used by a conversation partner to initiate a conversation.
