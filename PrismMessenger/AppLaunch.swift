@@ -29,4 +29,8 @@ class AppLaunch: ObservableObject {
             state = .error
         }
     }
+    
+    func setRegistered() async {
+        state = .ready
+    }
 }
