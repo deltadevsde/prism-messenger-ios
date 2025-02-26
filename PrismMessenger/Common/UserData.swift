@@ -11,16 +11,18 @@ import CryptoKit
 @Model
 final class UserData: Identifiable {
     @Attribute(.unique) var username: String
+    var displayName: String?
     
     private(set) var signedPrekey: CryptoPayload
     private var prekeys: [PrivatePrekey]
     private var prekeyCounter: UInt64 = 0
     
-    init(signedPrekey: P256.Signing.PrivateKey, username: String) {
+    init(signedPrekey: P256.Signing.PrivateKey, username: String, displayName: String? = nil) {
         self.signedPrekey = signedPrekey.toCryptoPayload()
         self.prekeys = []
         self.prekeyCounter = 0
         self.username = username
+        self.displayName = displayName
     }
     
     func addPrekeys(keys: [P256.Signing.PrivateKey]) throws {
