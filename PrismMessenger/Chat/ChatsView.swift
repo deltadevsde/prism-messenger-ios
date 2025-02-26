@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct ChatsView: View {
+    @State private var showingNewChatSheet = false
+    
     var body: some View {
         VStack(alignment: .leading) {
             HStack {
@@ -15,8 +17,12 @@ struct ChatsView: View {
                     .font(.title)
                     .fontWeight(.bold)
                 Spacer()
-                Image(systemName: "square.and.pencil")
-                    .foregroundColor(Color.blue)
+                Button(action: {
+                    showingNewChatSheet = true
+                }) {
+                    Image(systemName: "square.and.pencil")
+                        .foregroundColor(Color.blue)
+                }
             }.padding(.horizontal)
             Divider()
             
@@ -30,6 +36,9 @@ struct ChatsView: View {
                 }.padding(.horizontal)
                 Divider()
             }
+        }
+        .sheet(isPresented: $showingNewChatSheet) {
+            NewChatView()
         }
     }
 }
@@ -71,6 +80,92 @@ struct ChatPreview: View {
     }
 }
 
+struct NewChatView: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var appContext: AppContext
+    
+    @State private var username = ""
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                Text("Start a New Chat")
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .padding(.top)
+                
+                // Username input field
+                TextField("Enter username", text: $username)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                    .padding(.horizontal)
+                
+                // Error message if any
+                if let errorMessage = errorMessage {
+                    Text(errorMessage)
+                        .foregroundColor(.red)
+                        .font(.caption)
+                }
+                
+                // Start chat button
+                Button("Start Chat") {
+                    startChat()
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(username.isEmpty || isLoading)
+                
+                if isLoading {
+                    ProgressView()
+                        .padding()
+                }
+                
+                Spacer()
+            }
+            .padding()
+            .navigationBarItems(trailing: Button("Cancel") {
+                dismiss()
+            })
+        }
+    }
+    
+    private func startChat() {
+        isLoading = true
+        errorMessage = nil
+        
+        Task {
+            do {
+                // Try to get the key bundle
+                let keyBundle = try await appContext.keyService.getKeyBundle(username: username)
+                
+                // Successfully retrieved key bundle - we'll continue with this key bundle later
+                print("Successfully retrieved key bundle for user: \(username)")
+                print("Identity key: \(keyBundle.identity_key)")
+                
+                // This is where we would initialize the session with the user
+                // For now, just close the sheet
+                DispatchQueue.main.async {
+                    isLoading = false
+                    dismiss()
+                }
+            } catch KeyError.userNotFound {
+                DispatchQueue.main.async {
+                    errorMessage = "User not found. Please check the username."
+                    isLoading = false
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    errorMessage = "Failed to connect: \(error.localizedDescription)"
+                    isLoading = false
+                }
+            }
+        }
+    }
+}
+
 #Preview {
     ChatsView()
+        .environmentObject(try! AppContext())
 }

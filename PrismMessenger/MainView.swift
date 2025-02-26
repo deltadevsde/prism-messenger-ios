@@ -39,6 +39,7 @@ struct MainView: View {
             .environmentObject(appDependencies.signupService)
             .environmentObject(appDependencies.keyService)
             .environmentObject(appLaunch)
+            .environmentObject(appDependencies)
     }
 }
 
