@@ -77,13 +77,19 @@ struct SignUpView: View {
     private func handleCreateAccount() {
         Task {
             do {
-                try await signupService.register(username: username)
+                // Step 1: Request registration and get challenge
+                let challenge = try await signupService.requestRegistration(username: username)
                 
+                // Step 2: Sign challenge and finalize registration
+                try await signupService.finalizeRegistration(username: username, challenge: challenge)
+                
+                // Step 3: Initialize key bundle and create user
                 let (keybundle, user) = try await keyService.initializeKeyBundle(username: username)
                 
                 context.insert(user)
                 try context.save()
                 
+                // Step 4: Submit key bundle
                 try await keyService.submitKeyBundle(username: username, keyBundle: keybundle)
 
                 // Handle success
