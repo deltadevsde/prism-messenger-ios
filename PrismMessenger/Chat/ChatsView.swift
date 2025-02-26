@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import CryptoKit
 
 struct ChatsView: View {
     @State private var showingNewChatSheet = false
@@ -137,14 +138,24 @@ struct NewChatView: View {
         
         Task {
             do {
-                // Try to get the key bundle
+                // 1. Try to get the key bundle
                 let keyBundle = try await appContext.keyService.getKeyBundle(username: username)
                 
-                // Successfully retrieved key bundle - we'll continue with this key bundle later
-                print("Successfully retrieved key bundle for user: \(username)")
-                print("Identity key: \(keyBundle.identity_key)")
+                // 2. Initialize X3DH with our key manager
+                let x3dh = try appContext.createX3DHSession()
                 
-                // This is where we would initialize the session with the user
+                // 3. Perform the X3DH handshake
+                let (sharedSecret, ephemeralPublicKey, usedPrekeyId) = try await x3dh.initiateHandshake(with: keyBundle)
+                
+                print("Successfully performed X3DH handshake with user: \(username)")
+                print("Used prekey ID: \(String(describing: usedPrekeyId))")
+                
+                // TODO: Store this session for future encrypted communication
+                // We would typically:
+                // 1. Initialize a Double Ratchet session with the shared secret
+                // 2. Store the session in a local database
+                // 3. Send an initial message to the recipient with our ephemeral key
+                
                 // For now, just close the sheet
                 DispatchQueue.main.async {
                     isLoading = false

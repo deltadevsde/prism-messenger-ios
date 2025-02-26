@@ -9,10 +9,12 @@ import CryptoKit
 import KeychainAccess
 import LocalAuthentication
 import Security
+import Foundation
 
 enum KeyServiceError: Error {
     case fetchingFromKeychainFailed
     case publicKeyDerivationFailed
+    case keyConversionFailed
 }
 
 class KeyManager {
@@ -26,10 +28,7 @@ class KeyManager {
     }
 
     func fetchIdentityKeyFromKeychain() async throws -> P256.Signing.PublicKey {
-        guard let data = try keychain.getData(Self.identityPrivateKeyTag) else {
-            throw KeyServiceError.fetchingFromKeychainFailed
-        }
-
+        let data = try getPrivateKeyData()
         let privateKey = try SecureEnclave.P256.Signing.PrivateKey.init(dataRepresentation: data)
 
         return privateKey.publicKey
@@ -85,12 +84,65 @@ class KeyManager {
     }
     
     func requestIdentitySignature(dataToSign: Data) async throws -> P256.Signing.ECDSASignature {
-        guard let data = try keychain.getData(Self.identityPrivateKeyTag) else {
-            throw KeyServiceError.fetchingFromKeychainFailed
-        }
-
+        let data = try getPrivateKeyData()
         let privateKey = try SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: data)
         
         return try privateKey.signature(for: dataToSign)
+    }
+    
+    private func getPrivateKeyData() throws -> Data {
+        guard let data = try keychain.getData(Self.identityPrivateKeyTag) else {
+            throw KeyServiceError.fetchingFromKeychainFailed
+        }
+        return data
+    }
+    
+    
+    /// Performs the X3DH key agreement protocol using the identity key in the secure enclave
+    /// This method keeps private key operations inside the KeyManager while allowing X3DH protocol to work
+    ///
+    /// - Parameters:
+    ///   - ephemeralKey: The ephemeral key generated for this session
+    ///   - responderIdentity: The responder's identity key (converted to KeyAgreement type)
+    ///   - responderSignedPreKey: The responder's signed prekey (converted to KeyAgreement type)
+    ///   - responderOneTimePreKey: Optional one-time prekey (converted to KeyAgreement type)
+    /// - Returns: The symmetric key derived from the X3DH protocol
+    func performX3DH(
+        ephemeralKey: P256.KeyAgreement.PrivateKey,
+        responderIdentity: P256.KeyAgreement.PublicKey,
+        responderSignedPreKey: P256.KeyAgreement.PublicKey,
+        responderOneTimePreKey: P256.KeyAgreement.PublicKey? = nil
+    ) async throws -> SymmetricKey {
+        // Get the identity key for key agreement
+        let data = try getPrivateKeyData()
+
+        let identityKAPrivateKey = try SecureEnclave.P256.KeyAgreement.PrivateKey.init(dataRepresentation: data)
+        
+        // DH1: between our derived identity key and responder's signed pre-key
+        let dh1 = try identityKAPrivateKey.sharedSecretFromKeyAgreement(with: responderSignedPreKey)
+        
+        // DH2: between our ephemeral key and responder's identity key
+        let dh2 = try ephemeralKey.sharedSecretFromKeyAgreement(with: responderIdentity)
+        
+        // DH3: between our ephemeral key and responder's signed pre-key
+        let dh3 = try ephemeralKey.sharedSecretFromKeyAgreement(with: responderSignedPreKey)
+        
+        // Convert each shared secret to Data and combine
+        var combinedSecret = Data()
+        combinedSecret.append(dh1.withUnsafeBytes { Data($0) })
+        combinedSecret.append(dh2.withUnsafeBytes { Data($0) })
+        combinedSecret.append(dh3.withUnsafeBytes { Data($0) })
+        
+        // Optionally include DH4: between our ephemeral key and responder's one-time pre-key
+        if let responderOPK = responderOneTimePreKey {
+            let dh4 = try ephemeralKey.sharedSecretFromKeyAgreement(with: responderOPK)
+            combinedSecret.append(dh4.withUnsafeBytes { Data($0) })
+        }
+        
+        // Derive the final key via HKDF
+        let salt = Data()
+        let info = Data("X3DH".utf8)
+        let derivedKeyData = hkdf(inputKeyingMaterial: combinedSecret, salt: salt, info: info, outputLength: 32)
+        return SymmetricKey(data: derivedKeyData)
     }
 }
