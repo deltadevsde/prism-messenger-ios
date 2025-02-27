@@ -10,8 +10,8 @@ import SwiftData
 
 struct MainView: View {
     @State private var path = NavigationPath()
-    @StateObject private var appDependencies = try! AppContext()
     @StateObject private var appLaunch = AppLaunch()
+    @Environment(\.modelContext) private var modelContext
     
     var body: some View {
             NavigationStack(path: $path) {
@@ -22,8 +22,15 @@ struct MainView: View {
                     FeaturesView(path: $path)
                 case .ready:
                     TabView {
-                        ChatsView().tabItem{Text("Chats")}
-                        ProfileView().tabItem{Text("Profile")}
+                        ChatsView()
+                            .tabItem { 
+                                Label("Chats", systemImage: "message.fill") 
+                            }
+                        
+                        ProfileView()
+                            .tabItem { 
+                                Label("Profile", systemImage: "person.fill") 
+                            }
                         // ContactsView() ?
                         // CallsView() ?
                     }
@@ -36,13 +43,20 @@ struct MainView: View {
             .task {
                 await appLaunch.initialize()
             }
-            .environmentObject(appDependencies.signupService)
-            .environmentObject(appDependencies.keyService)
             .environmentObject(appLaunch)
-            .environmentObject(appDependencies)
+            // We'll inject the appContext from PrismMessengerApp instead
     }
 }
 
 #Preview {
-    MainView()
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: UserData.self, ChatData.self, MessageData.self, configurations: config)
+    let context = ModelContext(container)
+    
+    // Create a context for preview
+    let appContext = try! AppContext(modelContext: context)
+    
+    return MainView()
+        .modelContainer(container)
+        .environmentObject(appContext)
 }

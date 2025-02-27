@@ -22,8 +22,9 @@ class AppLaunch: ObservableObject {
     func initialize() async {
         state = .loading
         do {
-            try await Task.sleep(nanoseconds: 1500000000)
-            // For now, we just assume
+            try await Task.sleep(nanoseconds: 1000000000)
+            // TODO: Check if already registered by checking KeyManager or UserData
+            // For now, we simply use unregistered as the starting state
             state = .unregistered
         } catch {
             state = .error

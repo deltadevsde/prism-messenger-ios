@@ -51,6 +51,78 @@ final class UserData: Identifiable {
     }
 }
 
+@Model
+final class ChatData: Identifiable {
+    @Attribute(.unique) var id: UUID
+    var participantUsername: String
+    var displayName: String?
+    var imageURL: String?
+    var lastMessage: String?
+    var lastMessageTimestamp: Date?
+    var unreadCount: Int
+    
+    // Crypto session state (serialized)
+    var doubleRatchetSession: Data
+    
+    // Messages in this chat
+    @Relationship(deleteRule: .cascade) var messages: [MessageData] = []
+    
+    init(participantUsername: String, 
+         displayName: String? = nil,
+         imageURL: String? = nil,
+         doubleRatchetSession: Data) {
+        self.id = UUID()
+        self.participantUsername = participantUsername
+        self.displayName = displayName
+        self.imageURL = imageURL
+        self.doubleRatchetSession = doubleRatchetSession
+        self.unreadCount = 0
+    }
+    
+    func addMessage(_ message: MessageData) {
+        messages.append(message)
+        lastMessage = message.content
+        lastMessageTimestamp = message.timestamp
+        
+        // Increment unread count if message is from other user
+        if !message.isFromMe {
+            unreadCount += 1
+        }
+    }
+    
+    func markAsRead() {
+        unreadCount = 0
+    }
+}
+
+@Model
+final class MessageData: Identifiable {
+    @Attribute(.unique) var id: UUID
+    var content: String
+    var timestamp: Date
+    var isFromMe: Bool
+    var status: MessageStatus
+    
+    // Reference back to parent chat
+    var chat: ChatData?
+    
+    init(content: String, isFromMe: Bool, status: MessageStatus = .sent) {
+        self.id = UUID()
+        self.content = content
+        self.timestamp = Date()
+        self.isFromMe = isFromMe
+        self.status = status
+    }
+}
+
+enum MessageStatus: String, Codable {
+    case sending
+    case sent
+    case delivered
+    case read
+    case failed
+}
+
 extension ModelContext {
     var sqliteCommand: String {
         if let url = container.configurations.first?.url.path(percentEncoded: false) {

@@ -68,6 +68,54 @@ final class DoubleRatchetSession: Codable {
     /// The last message number from the previous sending chain.
     private(set) var previousSendMessageNumber: UInt64 = 0
     
+    // MARK: - Codable Conformance
+    
+    enum CodingKeys: String, CodingKey {
+        case rootKey, sendChainKey, recvChainKey
+        case sendMessageNumber, recvMessageNumber
+        case skippedMessageKeys
+        case localEphemeralData, remoteEphemeralData
+        case previousSendMessageNumber
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        
+        try container.encode(rootKey, forKey: .rootKey)
+        try container.encode(sendChainKey, forKey: .sendChainKey)
+        try container.encode(recvChainKey, forKey: .recvChainKey)
+        try container.encode(sendMessageNumber, forKey: .sendMessageNumber)
+        try container.encode(recvMessageNumber, forKey: .recvMessageNumber)
+        try container.encode(skippedMessageKeys, forKey: .skippedMessageKeys)
+        try container.encode(previousSendMessageNumber, forKey: .previousSendMessageNumber)
+        
+        // Encode the keys to their raw representation
+        try container.encode(localEphemeral.rawRepresentation, forKey: .localEphemeralData)
+        try container.encode(remoteEphemeral?.rawRepresentation, forKey: .remoteEphemeralData)
+    }
+    
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        rootKey = try container.decode(Data.self, forKey: .rootKey)
+        sendChainKey = try container.decode(Data?.self, forKey: .sendChainKey)
+        recvChainKey = try container.decode(Data?.self, forKey: .recvChainKey)
+        sendMessageNumber = try container.decode(UInt64.self, forKey: .sendMessageNumber)
+        recvMessageNumber = try container.decode(UInt64.self, forKey: .recvMessageNumber)
+        skippedMessageKeys = try container.decode([UInt64: Data].self, forKey: .skippedMessageKeys)
+        previousSendMessageNumber = try container.decode(UInt64.self, forKey: .previousSendMessageNumber)
+        
+        // Decode the keys from their raw representation
+        let localEphemeralData = try container.decode(Data.self, forKey: .localEphemeralData)
+        localEphemeral = try P256.KeyAgreement.PrivateKey(rawRepresentation: localEphemeralData)
+        
+        if let remoteEphemeralData = try container.decode(Data?.self, forKey: .remoteEphemeralData) {
+            remoteEphemeral = try P256.KeyAgreement.PublicKey(rawRepresentation: remoteEphemeralData)
+        } else {
+            remoteEphemeral = nil
+        }
+    }
+    
     // MARK: Errors
     
     enum DoubleRatchetError: Error {
