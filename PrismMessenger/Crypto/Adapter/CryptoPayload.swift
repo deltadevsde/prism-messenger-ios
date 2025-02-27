@@ -33,7 +33,7 @@ extension CryptoPayload {
     }
     
     func toP256PublicKey() throws -> P256.Signing.PublicKey {
-        return try P256.Signing.PublicKey(compressedRepresentation: self.bytes)
+        return try P256.Signing.PublicKey(x963Representation: self.bytes)
     }
 
     func toP256Signature() throws -> P256.Signing.ECDSASignature {

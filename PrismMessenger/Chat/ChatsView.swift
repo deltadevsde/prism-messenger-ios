@@ -222,12 +222,20 @@ struct NewChatView: View {
                 // 1. Try to get the key bundle
                 let keyBundle = try await appContext.keyService.getKeyBundle(username: username)
                 
+                if keyBundle == nil {
+                    DispatchQueue.main.async {
+                        errorMessage = "User does not exist"
+                        isLoading = false
+                    }
+                    return
+                }
+
                 // 2. Initialize X3DH with our key manager
                 let x3dh = try appContext.createX3DHSession()
-                
+
                 // 3. Perform the X3DH handshake
-                let (sharedSecret, ephemeralPublicKey, usedPrekeyId) = try await x3dh.initiateHandshake(with: keyBundle)
-                
+                let (sharedSecret, ephemeralPublicKey, usedPrekeyId) = try await x3dh.initiateHandshake(with: keyBundle!)
+
                 print("Successfully performed X3DH handshake with user: \(username)")
                 print("Used prekey ID: \(String(describing: usedPrekeyId))")
                 
@@ -249,6 +257,11 @@ struct NewChatView: View {
             } catch KeyError.userNotFound {
                 DispatchQueue.main.async {
                     errorMessage = "User not found. Please check the username."
+                    isLoading = false
+                }
+            } catch X3DHError.keyConversionFailed {
+                DispatchQueue.main.async {
+                    errorMessage = "Key conversion failed"
                     isLoading = false
                 }
             } catch {

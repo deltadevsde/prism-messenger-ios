@@ -30,14 +30,12 @@ struct RegistrationChallenge: Decodable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
-        // The server returns a Vec<u8> which is encoded as a base64 string in JSON
-        if let challengeString = try? container.decode(String.self, forKey: .challenge),
-           let data = Data(base64Encoded: challengeString) {
-            self.challenge = data
-        } else {
-            // Try to decode directly as Data
-            self.challenge = try container.decode(Data.self, forKey: .challenge)
+        if let challengeArray = try? container.decode([UInt8].self, forKey: .challenge) {
+            self.challenge = Data(challengeArray)
+            return
         }
+        
+        throw DecodingError.dataCorruptedError(forKey: .challenge, in: container, debugDescription: "Invalid challenge format")
     }
 }
 
@@ -84,7 +82,7 @@ class RegistrationService: ObservableObject {
         )
         
         do {
-            return try await restClient.post(req, to: "/register/request")
+            return try await restClient.post(req, to: "/registration/request")
         } catch RestClientError.httpError(let httpStatusCode) {
             throw RegistrationError.networkFailure(httpStatusCode)
         }
@@ -114,7 +112,7 @@ class RegistrationService: ObservableObject {
         )
         
         do {
-            try await restClient.post(req, to: "/register/finalize")
+            try await restClient.post(req, to: "/registration/finalize")
         } catch RestClientError.httpError(let httpStatusCode) {
             throw RegistrationError.networkFailure(httpStatusCode)
         }

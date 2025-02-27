@@ -36,6 +36,11 @@ struct KeyBundle: Codable {
     var prekeys: [Prekey]
 }
 
+struct KeyBundleResponse: Codable {
+    var key_bundle: KeyBundle?
+    // TODO: Account and HashedMerkleProof
+}
+
 struct UploadKeyBundleRequest: Codable {
     var user_id: String
     var keybundle: KeyBundle
@@ -82,10 +87,10 @@ class KeyService: ObservableObject {
     }
     
     /// Fetches a key bundle for a specific user from the server
-    func getKeyBundle(username: String) async throws -> KeyBundle {
+    func getKeyBundle(username: String) async throws -> KeyBundle? {
         do {
-            let keyBundle: KeyBundle = try await restClient.fetch(from: "/bundle/\(username)")
-            return keyBundle
+            let keyBundle: KeyBundleResponse = try await restClient.fetch(from: "/keys/bundle/\(username)")
+            return keyBundle.key_bundle
         } catch RestClientError.httpError(let httpStatusCode) {
             if httpStatusCode == 404 {
                 throw KeyError.userNotFound
