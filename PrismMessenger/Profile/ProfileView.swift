@@ -10,13 +10,17 @@ import SwiftData
 import CryptoKit
 
 struct ProfileView: View {
-    @Query var users: [UserData]
+    @EnvironmentObject private var appLaunch: AppLaunch
     @Environment(\.modelContext) private var modelContext
     @State private var isEditingDisplayName = false
     @State private var newDisplayName = ""
+    @State private var currentUser: UserData?
+    @State private var showingAccountSelection = false
+    @Query private var allUsers: [UserData]
     
     var body: some View {
-        if let user = users.first {
+        Group {
+            if let user = currentUser {
             ScrollView {
                 VStack(spacing: 20) {
                     // Header
@@ -81,13 +85,160 @@ struct ProfileView: View {
                             .padding(.top, 1)
                     }
                     
+                    Divider()
+                        .padding(.vertical)
+                    
+                    // Account switcher button
+                    Button(action: {
+                        showingAccountSelection = true
+                    }) {
+                        HStack {
+                            Image(systemName: "person.2.fill")
+                                .font(.system(size: 18))
+                            Text("Change Account")
+                                .font(.headline)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                    }
+                    .padding(.horizontal)
+                    
                     Spacer()
                 }
                 .padding(.bottom)
+                .sheet(isPresented: $showingAccountSelection) {
+                    accountSelectionView
+                }
             }
         } else {
             LoadingView()
         }
+        }
+        .onAppear {
+            loadCurrentUser()
+        }
+        .onChange(of: appLaunch.selectedUsername) { _ in
+            loadCurrentUser()
+        }
+    }
+    
+    private func loadCurrentUser() {
+        Task {
+            do {
+                // Try with selectedUsername first if available
+                if let selectedUsername = appLaunch.selectedUsername {
+                    let userDescriptor = FetchDescriptor<UserData>(
+                        predicate: #Predicate<UserData> { user in
+                            user.username == selectedUsername
+                        }
+                    )
+                    
+                    let users = try modelContext.fetch(userDescriptor)
+                    if let user = users.first {
+                        currentUser = user
+                        return
+                    }
+                }
+                
+                // If selectedUsername is nil or not found, try to get the first user
+                let allUserDescriptor = FetchDescriptor<UserData>()
+                let allUsers = try modelContext.fetch(allUserDescriptor)
+                
+                if let firstUser = allUsers.first {
+                    currentUser = firstUser
+                    
+                    // Update AppLaunch selectedUsername to match
+                    appLaunch.selectAccount(username: firstUser.username)
+                } else {
+                    currentUser = nil
+                }
+            } catch {
+                currentUser = nil
+            }
+        }
+    }
+    
+    // Account selection view shown in sheet
+    private var accountSelectionView: some View {
+        VStack(spacing: 20) {
+            Text("Choose an Account")
+                .font(.title)
+                .fontWeight(.bold)
+                .padding(.top)
+            
+            if allUsers.isEmpty {
+                Text("No accounts found")
+                    .foregroundStyle(.secondary)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 10) {
+                        ForEach(allUsers) { user in
+                            Button(action: {
+                                appLaunch.selectAccount(username: user.username)
+                                showingAccountSelection = false
+                            }) {
+                                HStack {
+                                    ProfileImageView(username: user.username, size: 40)
+                                    
+                                    VStack(alignment: .leading) {
+                                        Text(user.displayName ?? user.username)
+                                            .font(.headline)
+                                        Text(user.username)
+                                            .font(.subheadline)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    if user.username == appLaunch.selectedUsername {
+                                        Image(systemName: "checkmark")
+                                            .foregroundColor(.blue)
+                                    }
+                                }
+                                .padding()
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(Color(.systemGray6))
+                                )
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .padding(.horizontal)
+                        }
+                    }
+                }
+            }
+            
+            Divider()
+                .padding(.vertical)
+            
+            // Create new account button
+            Button(action: {
+                appLaunch.createNewAccount()
+                showingAccountSelection = false
+            }) {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 18))
+                    Text("Create New Account")
+                        .font(.headline)
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.blue)
+                .foregroundColor(.white)
+                .cornerRadius(10)
+            }
+            .padding(.horizontal)
+            
+            Button("Close") {
+                showingAccountSelection = false
+            }
+            .padding(.top, 10)
+        }
+        .padding()
     }
     
     private func formatPublicKeyPreview(from user: UserData) -> String {

@@ -239,7 +239,7 @@ final class DoubleRatchetSession: Codable {
         
         // Construct the header using our local ephemeral public key.
         let header = DoubleRatchetHeader(
-            ephemeralKey: localEphemeral.publicKey.rawRepresentation,
+            ephemeralKey: localEphemeral.publicKey.compressedRepresentation,
             messageNumber: currentMessageNumber,
             previousMessageNumber: self.previousSendMessageNumber,
             oneTimePrekeyID: nil

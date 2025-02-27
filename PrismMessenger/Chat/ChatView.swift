@@ -266,37 +266,53 @@ struct MessageBubble: View {
     }
 }
 
-#Preview {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: UserData.self, ChatData.self, MessageData.self, configurations: config)
-    let context = ModelContext(container)
-    
-    // Create sample data for the preview
-    let chatData = ChatData(participantUsername: "johndoe", displayName: "John Doe", doubleRatchetSession: Data())
-    
-    // Add a few sample messages
-    let message1 = MessageData(content: "Hey there! How's it going?", isFromMe: false)
-    message1.chat = chatData
-    chatData.addMessage(message1)
-    
-    let message2 = MessageData(content: "Not bad! Just working on this app. How about you?", isFromMe: true)
-    message2.chat = chatData
-    chatData.addMessage(message2)
-    
-    let message3 = MessageData(content: "That's cool! I've been exploring some new hiking trails nearby.", isFromMe: false)
-    message3.chat = chatData
-    chatData.addMessage(message3)
-    
-    let message4 = MessageData(content: "That sounds awesome! Which trails did you check out?", isFromMe: true, status: .delivered)
-    message4.chat = chatData
-    chatData.addMessage(message4)
-    
-    context.insert(chatData)
-    
-    let appContext = try! AppContext(modelContext: context)
-    
-    return NavigationStack {
-        ChatView(chat: chatData)
-            .environmentObject(appContext)
+struct ChatViewPreview: PreviewProvider {
+    static var previews: some View {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try! ModelContainer(for: UserData.self, ChatData.self, MessageData.self, configurations: config)
+        let context = ModelContext(container)
+        
+        // Create data preparation function
+        func prepareData() -> (ChatData, AppContext) {
+            // Create sample data for the preview
+            let chatData = ChatData(
+                participantUsername: "johndoe", 
+                ownerUsername: "alice", 
+                displayName: "John Doe", 
+                doubleRatchetSession: Data()
+            )
+            
+            // Add a few sample messages
+            let message1 = MessageData(content: "Hey there! How's it going?", isFromMe: false)
+            message1.chat = chatData
+            chatData.addMessage(message1)
+            
+            let message2 = MessageData(content: "Not bad! Just working on this app. How about you?", isFromMe: true)
+            message2.chat = chatData
+            chatData.addMessage(message2)
+            
+            let message3 = MessageData(content: "That's cool! I've been exploring some new hiking trails nearby.", isFromMe: false)
+            message3.chat = chatData
+            chatData.addMessage(message3)
+            
+            let message4 = MessageData(content: "That sounds awesome! Which trails did you check out?", isFromMe: true, status: .delivered)
+            message4.chat = chatData
+            chatData.addMessage(message4)
+            
+            context.insert(chatData)
+            
+            let appContext = try! AppContext(modelContext: context)
+            return (chatData, appContext)
+        }
+        
+        // Get the prepared data
+        let (chatData, appContext) = prepareData()
+        
+        // Return the preview
+        return NavigationStack {
+            ChatView(chat: chatData)
+                .environmentObject(appContext)
+        }
+        .modelContainer(container)
     }
 }

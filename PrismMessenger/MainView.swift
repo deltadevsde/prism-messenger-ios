@@ -37,9 +37,8 @@ struct MainView: View {
                 }
             }
         }
-        .task {
-            await appLaunch.initialize(modelContext: modelContext)
-        }
+        // We're now initializing in PrismMessengerApp instead
+        // to ensure proper initialization order
     }
     
     private var mainContentView: some View {

@@ -11,6 +11,7 @@ import CryptoKit
 
 class ChatManager {
     private let modelContext: ModelContext
+    weak var appLaunch: AppLaunch?
     
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
@@ -23,12 +24,16 @@ class ChatManager {
     ///   - ephemeralPublicKey: The ephemeral public key used in X3DH
     ///   - usedPrekeyId: The ID of the prekey that was used
     /// - Returns: The created ChatData object
+    @MainActor
     func createChat(
         username: String,
         sharedSecret: SymmetricKey,
         ephemeralPublicKey: P256.KeyAgreement.PublicKey,
         usedPrekeyId: UInt64?
     ) throws -> ChatData {
+        // 0. Get the current user
+        let currentUsername = try getCurrentUsername()
+        
         // 1. Create a Double Ratchet session with the shared secret
         let session = try createDoubleRatchetSession(
             sharedSecret: sharedSecret,
@@ -42,6 +47,7 @@ class ChatManager {
         // 3. Create and save the chat
         let chat = ChatData(
             participantUsername: username,
+            ownerUsername: currentUsername,
             displayName: username, // Default to username for display until we get more info
             doubleRatchetSession: sessionData
         )
@@ -63,21 +69,31 @@ class ChatManager {
         return chat
     }
     
-    /// Retrieves a chat with a specific participant, if it exists
+    /// Retrieves a chat with a specific participant for the current user, if it exists
     /// - Parameter username: The participant's username
     /// - Returns: The ChatData object if found, nil otherwise
+    @MainActor
     func getChat(with username: String) throws -> ChatData? {
+        let currentUsername = try getCurrentUsername()
+        
         let descriptor = FetchDescriptor<ChatData>(
-            predicate: #Predicate { $0.participantUsername == username }
+            predicate: #Predicate { 
+                $0.participantUsername == username && 
+                $0.ownerUsername == currentUsername 
+            }
         )
         let chats = try modelContext.fetch(descriptor)
         return chats.first
     }
     
-    /// Gets a list of all chats, sorted by last message timestamp
-    /// - Returns: Array of all chats
+    /// Gets a list of all chats for the current user, sorted by last message timestamp
+    /// - Returns: Array of all chats owned by the current user
+    @MainActor
     func getAllChats() throws -> [ChatData] {
+        let currentUsername = try getCurrentUsername()
+        
         let descriptor = FetchDescriptor<ChatData>(
+            predicate: #Predicate { $0.ownerUsername == currentUsername },
             sortBy: [SortDescriptor(\.lastMessageTimestamp, order: .reverse)]
         )
         return try modelContext.fetch(descriptor)
@@ -152,7 +168,7 @@ class ChatManager {
         if let messageService = messageService {
             do {
                 // Get username from a userData context (this would come from your app's auth context)
-                let selfUserName = try getCurrentUsername()
+                let selfUserName = try await MainActor.run { try self.getCurrentUsername() }
                 
                 // Send message to server
                 let response = try await messageService.sendMessage(
@@ -221,19 +237,20 @@ class ChatManager {
         return message
     }
     
-    /// Get the current user's username from the model context
+    /// Get the current user's username from appLaunch
     /// - Returns: The current user's username
+    @MainActor
     private func getCurrentUsername() throws -> String {
-        let descriptor = FetchDescriptor<UserData>(
-            predicate: nil,
-            sortBy: []
-        )
-        
-        let users = try modelContext.fetch(descriptor)
-        guard let currentUser = users.first else {
-            throw MessageError.unauthorized
+        if let username = appLaunch?.selectedUsername, !username.isEmpty {
+            return username
         }
         
-        return currentUser.username
+        // Try to get any user from the database
+        let descriptor = FetchDescriptor<UserData>()
+        let users = try modelContext.fetch(descriptor)
+        if let firstUser = users.first {
+            return firstUser.username
+        }
+        throw MessageError.unauthorized
     }
 }

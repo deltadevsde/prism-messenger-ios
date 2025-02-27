@@ -12,7 +12,10 @@ import CryptoKit
 struct ChatsView: View {
     @State private var showingNewChatSheet = false
     @EnvironmentObject private var appContext: AppContext
-    @Query private var chats: [ChatData]
+    @EnvironmentObject private var appLaunch: AppLaunch
+    @State private var currentChats: [ChatData] = []
+    @Environment(\.modelContext) private var modelContext
+    @State private var refreshTrigger = false // Refresh trigger for manual refreshes
     
     var body: some View {
         NavigationStack {
@@ -33,7 +36,7 @@ struct ChatsView: View {
             
             ScrollView {
                 LazyVStack(spacing: 16) {
-                    if chats.isEmpty {
+                    if currentChats.isEmpty {
                         VStack(spacing: 20) {
                             Spacer()
                             Image(systemName: "message.fill")
@@ -51,7 +54,7 @@ struct ChatsView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .padding(.top, 50)
                     } else {
-                        ForEach(chats) { chat in
+                        ForEach(currentChats) { chat in
                             NavigationLink(destination: ChatView(chat: chat)) {
                                 ChatPreview(
                                     username: chat.displayName ?? chat.participantUsername,
@@ -68,9 +71,63 @@ struct ChatsView: View {
                 Divider()
             }
         }
-        .sheet(isPresented: $showingNewChatSheet) {
+        .sheet(isPresented: $showingNewChatSheet, onDismiss: {
+            // Refresh the chats list when the sheet is dismissed
+            refreshTrigger.toggle()
+        }) {
             NewChatView()
         }
+        .onAppear {
+            loadChats()
+        }
+        .onChange(of: appLaunch.selectedUsername) { _ in
+            loadChats()
+        }
+        .onChange(of: refreshTrigger) { _ in
+            loadChats()
+        }
+        .refreshable {
+            loadChats()
+        }
+        }
+    }
+    
+    private func loadChats() {
+        Task {
+            do {
+                // First try to get the selected username
+                var username: String
+                if let selected = appLaunch.selectedUsername, !selected.isEmpty {
+                    username = selected
+                } else {
+                    // Fall back to first user in database
+                    let userDescriptor = FetchDescriptor<UserData>()
+                    let users = try modelContext.fetch(userDescriptor)
+                    guard let firstUser = users.first else {
+                        self.currentChats = []
+                        return
+                    }
+                    username = firstUser.username
+                }
+                
+                // Get chats that have the current user as the owner
+                let descriptor = FetchDescriptor<ChatData>(
+                    predicate: #Predicate<ChatData> { chat in
+                        chat.ownerUsername == username
+                    },
+                    sortBy: [SortDescriptor(\.lastMessageTimestamp, order: .reverse)]
+                )
+                
+                let userChats = try modelContext.fetch(descriptor)
+                
+                DispatchQueue.main.async {
+                    self.currentChats = userChats
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.currentChats = []
+                }
+            }
         }
     }
 }
@@ -296,12 +353,22 @@ struct NewChatView: View {
     let context = ModelContext(container)
     
     // Create sample data for the preview
-    let chatData1 = ChatData(participantUsername: "johndoe", displayName: "John Doe", doubleRatchetSession: Data())
+    let chatData1 = ChatData(
+        participantUsername: "johndoe", 
+        ownerUsername: "alice",
+        displayName: "John Doe", 
+        doubleRatchetSession: Data()
+    )
     let message1 = MessageData(content: "Hello there!", isFromMe: false)
     message1.chat = chatData1
     chatData1.addMessage(message1)
     
-    let chatData2 = ChatData(participantUsername: "sarahsmith", displayName: "Sarah Smith", doubleRatchetSession: Data())
+    let chatData2 = ChatData(
+        participantUsername: "sarahsmith", 
+        ownerUsername: "alice",
+        displayName: "Sarah Smith", 
+        doubleRatchetSession: Data()
+    )
     let message2 = MessageData(content: "Can't wait to see you tomorrow!", isFromMe: true)
     message2.chat = chatData2
     chatData2.addMessage(message2)
@@ -310,8 +377,11 @@ struct NewChatView: View {
     context.insert(chatData2)
     
     let appContext = try! AppContext(modelContext: context)
+    let appLaunch = AppLaunch()
+    appLaunch.selectAccount(username: "alice")
     
     return ChatsView()
         .modelContainer(container)
         .environmentObject(appContext)
+        .environmentObject(appLaunch)
 }

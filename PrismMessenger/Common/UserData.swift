@@ -61,6 +61,9 @@ final class ChatData: Identifiable {
     var lastMessageTimestamp: Date?
     var unreadCount: Int
     
+    // Owner of this chat (the user who created it)
+    var ownerUsername: String
+    
     // Crypto session state (serialized)
     var doubleRatchetSession: Data
     
@@ -68,11 +71,13 @@ final class ChatData: Identifiable {
     @Relationship(deleteRule: .cascade) var messages: [MessageData] = []
     
     init(participantUsername: String, 
+         ownerUsername: String,
          displayName: String? = nil,
          imageURL: String? = nil,
          doubleRatchetSession: Data) {
         self.id = UUID()
         self.participantUsername = participantUsername
+        self.ownerUsername = ownerUsername
         self.displayName = displayName
         self.imageURL = imageURL
         self.doubleRatchetSession = doubleRatchetSession

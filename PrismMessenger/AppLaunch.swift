@@ -22,6 +22,8 @@ class AppLaunch: ObservableObject {
     @Published private(set) var state: LoadingState = .loading
     @Published var selectedUsername: String?
     
+    // Reserved for future use if needed
+    
     func initialize(modelContext: ModelContext) async {
         state = .loading
         do {
@@ -34,12 +36,15 @@ class AppLaunch: ObservableObject {
             if users.isEmpty {
                 // No registered users, show the onboarding flow
                 state = .unregistered
+                // Keep the default username to prevent unauthorized errors
             } else if users.count == 1 {
                 // Only one user, automatically select it
                 selectedUsername = users[0].username
                 state = .ready
             } else {
                 // Multiple users, show account selection screen
+                // Still select the first user to prevent unauthorized errors
+                selectedUsername = users[0].username
                 state = .accountSelection
             }
         } catch {

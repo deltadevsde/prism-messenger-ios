@@ -49,14 +49,14 @@ struct MarkDeliveredRequest: Encodable {
 
 /// API model for header structure used in API requests/responses
 struct APIDoubleRatchetHeader: Codable {
-    var ephemeral_key: Data
+    var ephemeral_key: P256.Signing.PublicKey
     var message_number: UInt64
     var previous_message_number: UInt64
     var one_time_prekey_id: UInt64?
     
     // Convert from our local model to API model
-    init(from header: DoubleRatchetHeader) {
-        self.ephemeral_key = header.ephemeralKey
+    init(from header: DoubleRatchetHeader) throws {
+        self.ephemeral_key = try P256.Signing.PublicKey(compressedRepresentation: header.ephemeralKey)
         self.message_number = header.messageNumber
         self.previous_message_number = header.previousMessageNumber
         self.one_time_prekey_id = header.oneTimePrekeyID
@@ -65,7 +65,7 @@ struct APIDoubleRatchetHeader: Codable {
     // Convert from API model to our local model
     func toDoubleRatchetHeader() -> DoubleRatchetHeader {
         return DoubleRatchetHeader(
-            ephemeralKey: ephemeral_key,
+            ephemeralKey: ephemeral_key.compressedRepresentation,
             messageNumber: message_number,
             previousMessageNumber: previous_message_number,
             oneTimePrekeyID: one_time_prekey_id
@@ -76,12 +76,12 @@ struct APIDoubleRatchetHeader: Codable {
 /// API model for double ratchet message used in API requests/responses
 struct APIDoubleRatchetMessage: Codable {
     var header: APIDoubleRatchetHeader
-    var ciphertext: Data
+    var ciphertext: [UInt8]
     
     // Convert from our local model to API model
-    init(from message: DoubleRatchetMessage) {
-        self.header = APIDoubleRatchetHeader(from: message.header)
-        self.ciphertext = message.ciphertext
+    init(from message: DoubleRatchetMessage) throws {
+        self.header = try APIDoubleRatchetHeader(from: message.header)
+        self.ciphertext = [UInt8](message.ciphertext)
     }
     
     // Try to convert from API model to our local model
@@ -89,14 +89,14 @@ struct APIDoubleRatchetMessage: Codable {
         // Create a nonce from the header data
         // Note: In a real implementation, the nonce should be part of the API message
         // This is a simplification for demo purposes
-        let nonceData = Data(header.ephemeral_key.prefix(12))
+        let nonceData = Data(repeating: 0, count: 12) // Create a 12-byte zero nonce
         guard let nonce = try? AES.GCM.Nonce(data: nonceData) else {
             throw MessageError.messageDecodingFailed
         }
         
         return DoubleRatchetMessage(
             header: header.toDoubleRatchetHeader(),
-            ciphertext: ciphertext,
+            ciphertext: Data(ciphertext),
             nonce: nonce
         )
     }
@@ -106,6 +106,7 @@ struct APIDoubleRatchetMessage: Codable {
 class MessageService: ObservableObject {
     private let restClient: RestClient
     private let modelContext: ModelContext
+    weak var appLaunch: AppLaunch?
     
     init(restClient: RestClient, modelContext: ModelContext) {
         self.restClient = restClient
@@ -122,11 +123,11 @@ class MessageService: ObservableObject {
         let request = SendMessageRequest(
             sender_id: sender,
             recipient_id: recipient,
-            message: APIDoubleRatchetMessage(from: message)
+            message: try APIDoubleRatchetMessage(from: message)
         )
         
         do {
-            let response: SendMessageResponse = try await restClient.post(request, to: "/messaging/send")
+            let response: SendMessageResponse = try await restClient.post(request, to: "/messages/send")
             return response
         } catch RestClientError.httpError(let statusCode) {
             switch statusCode {
@@ -140,12 +141,30 @@ class MessageService: ObservableObject {
         }
     }
     
+    /// Gets the current username from appLaunch or database
+    /// - Returns: The current username
+    @MainActor
+    private func getCurrentUsername() throws -> String {
+        // First try appLaunch
+        if let username = appLaunch?.selectedUsername, !username.isEmpty {
+            return username
+        }
+        
+        // Then try the database directly
+        let descriptor = FetchDescriptor<UserData>()
+        let users = try modelContext.fetch(descriptor)
+        if let firstUser = users.first {
+            return firstUser.username
+        }
+        throw MessageError.unauthorized
+    }
+    
     /// Fetches all available messages for the current user
     /// - Parameter username: The username to fetch messages for
     /// - Returns: Array of received messages
     func fetchMessages(for username: String) async throws -> [APIMessage] {
         do {
-            let messages: [APIMessage] = try await restClient.fetch(from: "/messaging/get/\(username)")
+            let messages: [APIMessage] = try await restClient.fetch(from: "/messages/get/\(username)")
             return messages
         } catch RestClientError.httpError(let statusCode) {
             switch statusCode {
@@ -173,7 +192,7 @@ class MessageService: ObservableObject {
         )
         
         do {
-            try await restClient.post(request, to: "/messaging/mark-delivered")
+            try await restClient.post(request, to: "/messages/mark-delivered")
         } catch RestClientError.httpError(let statusCode) {
             switch statusCode {
             case 401:
@@ -212,7 +231,7 @@ class MessageService: ObservableObject {
                 
                 // Get or create the chat for this sender
                 var chat: ChatData
-                if let existingChat = try chatManager.getChat(with: apiMessage.sender_id) {
+                if let existingChat = try await chatManager.getChat(with: apiMessage.sender_id) {
                     chat = existingChat
                 } else {
                     // TODO: Properly handle new chats that are started by the other person
