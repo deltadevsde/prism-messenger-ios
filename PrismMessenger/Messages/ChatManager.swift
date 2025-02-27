@@ -119,26 +119,99 @@ class ChatManager {
     /// - Parameters:
     ///   - content: The message content
     ///   - chat: The chat to send the message in
+    ///   - messageService: Optional MessageService to send the message to the server
     /// - Returns: The created MessageData object
-    func sendMessage(content: String, in chat: ChatData) throws -> MessageData {
+    func sendMessage(
+        content: String, 
+        in chat: ChatData,
+        messageService: MessageService? = nil
+    ) async throws -> MessageData {
         // 1. Deserialize the Double Ratchet session
         let session = try deserializeDoubleRatchetSession(from: chat.doubleRatchetSession)
         
         // 2. Encrypt the message content
         let contentData = Data(content.utf8)
-        let encrypted = try session.encrypt(plaintext: contentData)
+        let encryptedMessage = try session.encrypt(plaintext: contentData)
         
-        // TODO: Send the encrypted message to the server
-        // let success = await sendToServer(encrypted, recipient: chat.participantUsername)
-        
-        // 3. Re-serialize the updated session state
-        chat.doubleRatchetSession = try serializeDoubleRatchetSession(session)
-        
-        // 4. Create and save the message
+        // 3. Create the message with initial status of sending
         let message = MessageData(
             content: content,
             isFromMe: true,
-            status: .sent
+            status: .sending
+        )
+        message.chat = chat
+        chat.addMessage(message)
+        
+        // 4. Re-serialize the updated session state after encryption
+        chat.doubleRatchetSession = try serializeDoubleRatchetSession(session)
+        
+        // Save initial state with "sending" status
+        try modelContext.save()
+        
+        // 5. Send the encrypted message to the server if a MessageService is provided
+        if let messageService = messageService {
+            do {
+                // Get username from a userData context (this would come from your app's auth context)
+                let selfUserName = try getCurrentUsername()
+                
+                // Send message to server
+                let response = try await messageService.sendMessage(
+                    encryptedMessage,
+                    from: selfUserName,
+                    to: chat.participantUsername
+                )
+                
+                // Update message status to "sent" after server confirms receipt
+                message.status = .sent
+                message.serverId = response.message_id
+                message.serverTimestamp = Date(timeIntervalSince1970: TimeInterval(response.timestamp) / 1000)
+                
+                try modelContext.save()
+            } catch {
+                // If sending fails, mark message as failed
+                message.status = .failed
+                try modelContext.save()
+                throw error
+            }
+        }
+        
+        return message
+    }
+    
+    /// Receive and process an incoming message
+    /// - Parameters:
+    ///   - drMessage: The encrypted DoubleRatchetMessage
+    ///   - chat: The chat this message belongs to
+    ///   - sender: The sender's username
+    /// - Returns: The created MessageData object if successful
+    func receiveMessage(
+        _ drMessage: DoubleRatchetMessage,
+        in chat: ChatData,
+        from sender: String
+    ) async throws -> MessageData? {
+        // 1. Deserialize the Double Ratchet session
+        let session = try deserializeDoubleRatchetSession(from: chat.doubleRatchetSession)
+        
+        // 2. Decrypt the message content
+        let decryptedData = try session.decrypt(
+            ciphertext: drMessage.ciphertext,
+            header: drMessage.header,
+            nonce: drMessage.nonce
+        )
+        
+        // 3. Convert decrypted data to a string
+        guard let content = String(data: decryptedData, encoding: .utf8) else {
+            throw MessageError.messageDecodingFailed
+        }
+        
+        // 4. Re-serialize the updated session state after decryption
+        chat.doubleRatchetSession = try serializeDoubleRatchetSession(session)
+        
+        // 5. Create and save the message
+        let message = MessageData(
+            content: content,
+            isFromMe: false,
+            status: .delivered
         )
         message.chat = chat
         chat.addMessage(message)
@@ -146,5 +219,21 @@ class ChatManager {
         try modelContext.save()
         
         return message
+    }
+    
+    /// Get the current user's username from the model context
+    /// - Returns: The current user's username
+    private func getCurrentUsername() throws -> String {
+        let descriptor = FetchDescriptor<UserData>(
+            predicate: nil,
+            sortBy: []
+        )
+        
+        let users = try modelContext.fetch(descriptor)
+        guard let currentUser = users.first else {
+            throw MessageError.unauthorized
+        }
+        
+        return currentUser.username
     }
 }

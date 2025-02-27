@@ -48,36 +48,46 @@ final class DoubleRatchetSession: Codable {
     /// The evolving root key.
     private(set) var rootKey: Data
     
-    /// Sending chain key.
+    /// The sending chain key.
     private(set) var sendChainKey: Data?
-    /// Receiving chain key.
+    
+    /// The receiving chain key.
     private(set) var recvChainKey: Data?
     
-    /// Message number counters.
+    /// The next message number for the sending chain.
     private(set) var sendMessageNumber: UInt64 = 0
+    
+    /// The next expected message number for the receiving chain.
     private(set) var recvMessageNumber: UInt64 = 0
     
-    /// Cache for skipped (derived but not yet used) receiving message keys.
+    /// Message keys for skipped out-of-order messages.
     private var skippedMessageKeys: [UInt64: Data] = [:]
     
-    /// Our current local ephemeral key pair.
+    /// The previous sending chain's last message number (for header).
+    private(set) var previousSendMessageNumber: UInt64 = 0
+    
+    /// Our current ephemeral private key for the DH ratchet.
     private(set) var localEphemeral: P256.KeyAgreement.PrivateKey
+    
     /// The remote party's current ephemeral public key.
     private(set) var remoteEphemeral: P256.KeyAgreement.PublicKey?
     
-    /// The last message number from the previous sending chain.
-    private(set) var previousSendMessageNumber: UInt64 = 0
+    // MARK: Codable
     
-    // MARK: - Codable Conformance
-    
-    enum CodingKeys: String, CodingKey {
-        case rootKey, sendChainKey, recvChainKey
-        case sendMessageNumber, recvMessageNumber
+    // Coding keys for Codable implementation.
+    private enum CodingKeys: String, CodingKey {
+        case rootKey
+        case sendChainKey
+        case recvChainKey
+        case sendMessageNumber
+        case recvMessageNumber
         case skippedMessageKeys
-        case localEphemeralData, remoteEphemeralData
         case previousSendMessageNumber
+        case localEphemeralData // We need to store the raw representation since the Key types are not Codable.
+        case remoteEphemeralData
     }
     
+    // Encode to a JSON representation.
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         
@@ -89,12 +99,13 @@ final class DoubleRatchetSession: Codable {
         try container.encode(skippedMessageKeys, forKey: .skippedMessageKeys)
         try container.encode(previousSendMessageNumber, forKey: .previousSendMessageNumber)
         
-        // Encode the keys to their raw representation
+        // Convert the keys to their raw representation.
         try container.encode(localEphemeral.rawRepresentation, forKey: .localEphemeralData)
         try container.encode(remoteEphemeral?.rawRepresentation, forKey: .remoteEphemeralData)
     }
     
-    required init(from decoder: Decoder) throws {
+    // Decode from a JSON representation.
+    init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
         rootKey = try container.decode(Data.self, forKey: .rootKey)
@@ -132,7 +143,7 @@ final class DoubleRatchetSession: Codable {
     /// - Parameters:
     ///   - initialRootKey: The initial root key (e.g. derived from X3DH).
     ///   - localEphemeral: Your starting ephemeral key pair.
-    ///   - remoteEphemeral: The remote party’s starting ephemeral public key (if available).
+    ///   - remoteEphemeral: The remote party's starting ephemeral public key (if available).
     init(initialRootKey: Data,
          localEphemeral: P256.KeyAgreement.PrivateKey,
          remoteEphemeral: P256.KeyAgreement.PublicKey?) {
@@ -145,7 +156,7 @@ final class DoubleRatchetSession: Codable {
     
     /// Performs a DH ratchet step when a new remote ephemeral key is received.
     ///
-    /// This updates the root key, resets the receiving chain, caches the previous send chain’s
+    /// This updates the root key, resets the receiving chain, caches the previous send chain's
     /// last message number for header purposes, and sets up a new sending chain.
     ///
     /// - Parameter newRemoteEphemeral: The new remote ephemeral public key.
@@ -251,13 +262,11 @@ final class DoubleRatchetSession: Codable {
     /// caching skipped keys as needed, and then uses the proper key.
     ///
     /// - Parameters:
-    ///   - message: The complete double ratchet message.
-    ///   - nonce: The AES-GCM nonce used for encryption.
+    ///   - ciphertext: The encrypted ciphertext (including authentication tag)
+    ///   - header: The Double Ratchet header
+    ///   - nonce: The AES-GCM nonce used for encryption
     /// - Returns: The decrypted plaintext.
-    func decrypt(message: DoubleRatchetMessage) throws -> Data {
-        let header = message.header
-        let nonce = message.nonce
-
+    func decrypt(ciphertext: Data, header: DoubleRatchetHeader, nonce: AES.GCM.Nonce) throws -> Data {
         // If the receiving chain key is not yet set up (e.g. first message),
         // derive it using the current remote ephemeral key.
         if self.recvChainKey == nil, let remoteEphemeral = self.remoteEphemeral {
@@ -273,13 +282,13 @@ final class DoubleRatchetSession: Codable {
         if let cachedKey = skippedMessageKeys[header.messageNumber] {
             skippedMessageKeys.removeValue(forKey: header.messageNumber)
             let symmetricKey = SymmetricKey(data: cachedKey)
-            return try decryptCiphertext(message.ciphertext, using: symmetricKey, nonce: nonce)
+            return try decryptCiphertext(ciphertext, using: symmetricKey, nonce: nonce)
         }
         
         // Convert the header's ephemeral key.
         let headerRemoteEphemeral = try P256.KeyAgreement.PublicKey(rawRepresentation: header.ephemeralKey)
         
-        // If the sender’s ephemeral key has changed, perform a DH ratchet step.
+        // If the sender's ephemeral key has changed, perform a DH ratchet step.
         if self.remoteEphemeral == nil || self.remoteEphemeral!.rawRepresentation != headerRemoteEphemeral.rawRepresentation {
             if header.previousMessageNumber > self.recvMessageNumber {
                 try skipRecvMessageKeys(until: header.previousMessageNumber)
@@ -301,7 +310,18 @@ final class DoubleRatchetSession: Codable {
         self.recvMessageNumber += 1
         
         let symmetricKey = SymmetricKey(data: messageKey)
-        return try decryptCiphertext(message.ciphertext, using: symmetricKey, nonce: nonce)
+        return try decryptCiphertext(ciphertext, using: symmetricKey, nonce: nonce)
+    }
+    
+    /// Decrypts a received Double Ratchet message.
+    ///
+    /// This function first checks for a cached message key. If none is found, it advances the receiving chain,
+    /// caching skipped keys as needed, and then uses the proper key.
+    ///
+    /// - Parameter message: The complete double ratchet message.
+    /// - Returns: The decrypted plaintext.
+    func decrypt(message: DoubleRatchetMessage) throws -> Data {
+        return try decrypt(ciphertext: message.ciphertext, header: message.header, nonce: message.nonce)
     }
 
     

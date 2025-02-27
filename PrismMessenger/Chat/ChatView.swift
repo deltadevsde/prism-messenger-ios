@@ -160,12 +160,20 @@ struct ChatView: View {
         isLoading = true
         error = nil
         
+        // Clear the text field immediately for a better user experience
+        let messageToSend = trimmedMessage
+        messageText = ""
+        
         Task {
             do {
-                try appContext.chatManager.sendMessage(content: trimmedMessage, in: chat)
+                // Send the message using the MessageService
+                _ = try await appContext.chatManager.sendMessage(
+                    content: messageToSend, 
+                    in: chat,
+                    messageService: appContext.messageService
+                )
                 
                 DispatchQueue.main.async {
-                    messageText = ""
                     isLoading = false
                 }
             } catch {

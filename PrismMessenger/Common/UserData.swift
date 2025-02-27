@@ -103,6 +103,10 @@ final class MessageData: Identifiable {
     var isFromMe: Bool
     var status: MessageStatus
     
+    // Server-related properties
+    var serverId: UUID?
+    var serverTimestamp: Date?
+    
     // Reference back to parent chat
     var chat: ChatData?
     
