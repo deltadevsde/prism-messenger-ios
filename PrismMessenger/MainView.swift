@@ -10,7 +10,7 @@ import SwiftData
 
 struct MainView: View {
     @State private var path = NavigationPath()
-    @StateObject private var appLaunch = AppLaunch()
+    @EnvironmentObject private var appLaunch: AppLaunch
     @Environment(\.modelContext) private var modelContext
     
     @EnvironmentObject private var appContext: AppContext
@@ -18,45 +18,72 @@ struct MainView: View {
     @State private var lastMessageCheckTime = Date()
     
     var body: some View {
-            NavigationStack(path: $path) {
+        NavigationStack(path: $path) {
+            Group {
                 switch appLaunch.state {
                 case .loading:
                     LoadingView()
+                        .navigationTitle("")
+                case .accountSelection:
+                    AccountSelectionView()
+                        .navigationTitle("Account Selection")
                 case .unregistered:
                     FeaturesView(path: $path)
+                        .navigationTitle("Welcome")
                 case .ready:
-                    TabView {
-                        ChatsView()
-                            .tabItem { 
-                                Label("Chats", systemImage: "message.fill") 
-                            }
-                        
-                        ProfileView()
-                            .tabItem { 
-                                Label("Profile", systemImage: "person.fill") 
-                            }
-                        // ContactsView() ?
-                        // CallsView() ?
-                    }
-                    .onAppear {
-                        // Start message polling when tab view appears
-                        startMessagePolling()
-                    }
-                    .onDisappear {
-                        // Stop message polling when tab view disappears
-                        stopMessagePolling()
-                    }
+                    mainContentView
                 case .error:
-                    Text("Error loading content")
-                        .foregroundColor(.red)
+                    errorView
                 }
             }
-            .navigationTitle("Messenger")
-            .task {
-                await appLaunch.initialize()
+        }
+        .task {
+            await appLaunch.initialize(modelContext: modelContext)
+        }
+    }
+    
+    private var mainContentView: some View {
+        TabView {
+            ChatsView()
+                .tabItem { 
+                    Label("Chats", systemImage: "message.fill") 
+                }
+            
+            ProfileView()
+                .tabItem { 
+                    Label("Profile", systemImage: "person.fill") 
+                }
+            // ContactsView() ?
+            // CallsView() ?
+        }
+        .onAppear {
+            // Start message polling when tab view appears
+            startMessagePolling()
+        }
+        .onDisappear {
+            // Stop message polling when tab view disappears
+            stopMessagePolling()
+        }
+    }
+    
+    private var errorView: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 60))
+                .foregroundColor(.red)
+            
+            Text("Error loading content")
+                .font(.title)
+                .foregroundColor(.red)
+            
+            Button("Try Again") {
+                Task {
+                    await appLaunch.initialize(modelContext: modelContext)
+                }
             }
-            .environmentObject(appLaunch)
-            // We'll inject the appContext from PrismMessengerApp instead
+            .buttonStyle(.borderedProminent)
+        }
+        .padding()
     }
     
     // Start polling for new messages

@@ -12,6 +12,7 @@ import SwiftData
 struct PrismMessengerApp: App {
     let container: ModelContainer = try! ModelContainer(for: UserData.self, ChatData.self, MessageData.self)
     @State private var appContext: AppContext?
+    @StateObject private var appLaunch = AppLaunch()
     
     var body: some Scene {
         WindowGroup {
@@ -21,6 +22,7 @@ struct PrismMessengerApp: App {
                         .environmentObject(appContext)
                         .environmentObject(appContext.keyService)
                         .environmentObject(appContext.signupService)
+                        .environmentObject(appLaunch)
                 } else {
                     LoadingView()
                         .onAppear {

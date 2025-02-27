@@ -357,5 +357,4 @@ final class DoubleRatchetSession: Codable {
         // Update the local ephemeral key.
         self.localEphemeral = newLocalEphemeral
     }
-
 }

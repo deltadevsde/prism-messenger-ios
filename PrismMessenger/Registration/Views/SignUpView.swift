@@ -25,19 +25,54 @@ struct SignUpView: View {
     private var cancellables = Set<AnyCancellable>()
     
     var body: some View {
-        VStack(alignment: .leading) {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("Create a New Account")
+                .font(.title)
+                .fontWeight(.bold)
+                .padding(.bottom)
+            
             TextField("Username", text: $username)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
+                .autocapitalization(.none)
+                .disableAutocorrection(true)
+                .disabled(isRegistering)
                 .onChange(of: username) {
                     handleUsernameChange()
                 }
 
             availabilityStatusView
-
-            Button("Create Account") {
-                handleCreateAccount()
+            
+            if let error = registrationError {
+                Text(error)
+                    .foregroundColor(.red)
+                    .font(.caption)
+                    .padding(.top, 5)
             }
-            .disabled(!isUsernameAvailable)
+            
+            Spacer()
+
+            Button(action: handleCreateAccount) {
+                if isRegistering {
+                    HStack {
+                        ProgressView()
+                            .tint(.white)
+                        Text("Creating Account...")
+                            .foregroundColor(.white)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue.opacity(0.7))
+                    .cornerRadius(10)
+                } else {
+                    Text("Create Account")
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(isUsernameAvailable ? Color.blue : Color.gray)
+                        .cornerRadius(10)
+                }
+            }
+            .disabled(!isUsernameAvailable || isRegistering)
         }
         .padding()
         .onReceive(debounceTimer) { _ in
@@ -74,7 +109,13 @@ struct SignUpView: View {
         }
     }
 
+    @State private var isRegistering = false
+    @State private var registrationError: String?
+    
     private func handleCreateAccount() {
+        isRegistering = true
+        registrationError = nil
+        
         Task {
             do {
                 // Step 1: Request registration and get challenge
@@ -92,13 +133,18 @@ struct SignUpView: View {
                 // Step 4: Submit key bundle
                 try await keyService.submitKeyBundle(username: username, keyBundle: keybundle)
 
-                // Handle success
-                // TODO How to proceed from here?
-                // Wait until settled on prism?
-                print(context.sqliteCommand)
-                await appLaunch.setRegistered()
+                // Handle success - mark the user as registered and set as selected account
+                await appLaunch.setRegistered(username: username)
+                
+                DispatchQueue.main.async {
+                    isRegistering = false
+                }
             } catch let error {
-                print(error)
+                print("Registration error: \(error)")
+                DispatchQueue.main.async {
+                    isRegistering = false
+                    registrationError = "Registration failed: \(error.localizedDescription)"
+                }
             }
         }
     }
