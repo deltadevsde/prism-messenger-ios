@@ -59,7 +59,7 @@ struct PrismMessengerApp: App {
                 
                 // Create AppContext with the initialized AppLaunch
                 let appContext = try AppContext(modelContext: context)
-                appContext.appLaunch = appLaunch
+                appContext.setAppLaunch(appLaunch)
                 self.appContext = appContext
             } catch {
                 print("Failed to initialize AppContext: \(error)")

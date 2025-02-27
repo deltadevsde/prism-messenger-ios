@@ -27,8 +27,17 @@ class AppContext: ObservableObject {
         signupService = RegistrationService(restClient: restClient, keyManager: keyManager)
         keyService = KeyService(restClient: restClient, keyManager: keyManager)
         chatManager = ChatManager(modelContext: modelContext)
-        chatManager.appLaunch = appLaunch
         messageService = MessageService(restClient: restClient, modelContext: modelContext)
+        
+        // Set appLaunch property for both services (will be updated after init)
+        chatManager.appLaunch = appLaunch
+        messageService.appLaunch = appLaunch
+    }
+    
+    // Update appLaunch reference
+    func setAppLaunch(_ appLaunch: AppLaunch) {
+        self.appLaunch = appLaunch
+        chatManager.appLaunch = appLaunch
         messageService.appLaunch = appLaunch
     }
     
@@ -40,14 +49,24 @@ class AppContext: ObservableObject {
     /// - Returns: The number of new messages processed
     @MainActor
     func fetchAndProcessMessages() async throws -> Int {
-        // Get the first user from the database
-        let descriptor = FetchDescriptor<UserData>()
-        let users = try modelContext.fetch(descriptor)
-        guard let user = users.first else {
-            return 0
+        // Get the currently selected username from appLaunch, or fall back to the first user
+        guard let username = appLaunch?.selectedUsername else {
+            // Fallback to first user if appLaunch.selectedUsername is not set
+            let descriptor = FetchDescriptor<UserData>()
+            let users = try modelContext.fetch(descriptor)
+            guard let user = users.first else {
+                return 0
+            }
+            
+            return try await processMessagesForUser(user.username)
         }
         
-        let username = user.username
+        return try await processMessagesForUser(username)
+    }
+    
+    /// Helper method to process messages for a specific username
+    @MainActor
+    private func processMessagesForUser(_ username: String) async throws -> Int {
         
         do {
             // 1. Fetch new messages from the server
