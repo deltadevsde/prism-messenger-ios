@@ -134,7 +134,7 @@ struct SignUpView: View {
                 try await keyService.submitKeyBundle(username: username, keyBundle: keybundle)
 
                 // Handle success - mark the user as registered and set as selected account
-                await appLaunch.setRegistered(username: username)
+                appLaunch.setRegistered(username: username)
                 
                 DispatchQueue.main.async {
                     isRegistering = false

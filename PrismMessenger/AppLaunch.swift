@@ -13,7 +13,6 @@ import SwiftData
 class AppLaunch: ObservableObject {
     enum LoadingState {
         case loading
-        case accountSelection
         case unregistered
         case ready
         case error
@@ -21,8 +20,6 @@ class AppLaunch: ObservableObject {
     
     @Published private(set) var state: LoadingState = .loading
     @Published var selectedUsername: String?
-    
-    // Reserved for future use if needed
     
     func initialize(modelContext: ModelContext) async {
         state = .loading
@@ -34,18 +31,13 @@ class AppLaunch: ObservableObject {
             let users = try modelContext.fetch(descriptor)
             
             if users.isEmpty {
+                // Keep the default username to prevent unauthorized errors
                 // No registered users, show the onboarding flow
                 state = .unregistered
-                // Keep the default username to prevent unauthorized errors
-            } else if users.count == 1 {
+            } else  {
                 // Only one user, automatically select it
                 selectedUsername = users[0].username
                 state = .ready
-            } else {
-                // Multiple users, show account selection screen
-                // Still select the first user to prevent unauthorized errors
-                selectedUsername = users[0].username
-                state = .accountSelection
             }
         } catch {
             state = .error

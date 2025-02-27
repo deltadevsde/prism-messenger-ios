@@ -24,9 +24,6 @@ struct MainView: View {
                 case .loading:
                     LoadingView()
                         .navigationTitle("")
-                case .accountSelection:
-                    AccountSelectionView()
-                        .navigationTitle("Account Selection")
                 case .unregistered:
                     FeaturesView(path: $path)
                         .navigationTitle("Welcome")
