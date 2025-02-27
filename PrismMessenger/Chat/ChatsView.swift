@@ -15,7 +15,8 @@ struct ChatsView: View {
     @Query private var chats: [ChatData]
     
     var body: some View {
-        VStack(alignment: .leading) {
+        NavigationStack {
+            VStack(alignment: .leading) {
             HStack {
                 Text("Messages")
                     .font(.title)
@@ -51,13 +52,16 @@ struct ChatsView: View {
                         .padding(.top, 50)
                     } else {
                         ForEach(chats) { chat in
-                            ChatPreview(
-                                username: chat.displayName ?? chat.participantUsername,
-                                imageURL: chat.imageURL,
-                                message: chat.lastMessage ?? "No messages yet",
-                                lastMessageTime: chat.lastMessageTimestamp,
-                                unreadCount: chat.unreadCount
-                            )
+                            NavigationLink(destination: ChatView(chat: chat)) {
+                                ChatPreview(
+                                    username: chat.displayName ?? chat.participantUsername,
+                                    imageURL: chat.imageURL,
+                                    message: chat.lastMessage ?? "No messages yet",
+                                    lastMessageTime: chat.lastMessageTimestamp,
+                                    unreadCount: chat.unreadCount
+                                )
+                            }
+                            .buttonStyle(PlainButtonStyle())
                         }
                     }
                 }.padding(.horizontal)
@@ -66,6 +70,7 @@ struct ChatsView: View {
         }
         .sheet(isPresented: $showingNewChatSheet) {
             NewChatView()
+        }
         }
     }
 }
@@ -158,9 +163,11 @@ struct NewChatView: View {
     @State private var username = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var createdChat: ChatData?
+    @State private var shouldNavigateToChat = false
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 20) {
                 Text("Start a New Chat")
                     .font(.title)
@@ -199,6 +206,11 @@ struct NewChatView: View {
             .navigationBarItems(trailing: Button("Cancel") {
                 dismiss()
             })
+            .navigationDestination(isPresented: $shouldNavigateToChat) {
+                if let chat = createdChat {
+                    ChatView(chat: chat)
+                }
+            }
         }
     }
     
@@ -211,8 +223,10 @@ struct NewChatView: View {
                 // Check if a chat with this user already exists
                 if let existingChat = try appContext.chatManager.getChat(with: username) {
                     print("Chat with \(username) already exists, navigating to it")
-                    // TODO: Navigate to the existing chat instead of creating a new one
+                    
                     DispatchQueue.main.async {
+                        createdChat = existingChat
+                        shouldNavigateToChat = true
                         isLoading = false
                         dismiss()
                     }
@@ -249,8 +263,10 @@ struct NewChatView: View {
                 
                 print("Successfully created chat with \(username)")
                 
-                // Close the sheet
+                // Store the created chat and navigate to it
                 DispatchQueue.main.async {
+                    createdChat = chat
+                    shouldNavigateToChat = true
                     isLoading = false
                     dismiss()
                 }
@@ -280,14 +296,22 @@ struct NewChatView: View {
     let context = ModelContext(container)
     
     // Create sample data for the preview
-    let chatData = ChatData(participantUsername: "sample_user", displayName: "Sample User", doubleRatchetSession: Data())
-    let message = MessageData(content: "Hello there!", isFromMe: false)
-    message.chat = chatData
-    chatData.addMessage(message)
+    let chatData1 = ChatData(participantUsername: "johndoe", displayName: "John Doe", doubleRatchetSession: Data())
+    let message1 = MessageData(content: "Hello there!", isFromMe: false)
+    message1.chat = chatData1
+    chatData1.addMessage(message1)
     
-    context.insert(chatData)
+    let chatData2 = ChatData(participantUsername: "sarahsmith", displayName: "Sarah Smith", doubleRatchetSession: Data())
+    let message2 = MessageData(content: "Can't wait to see you tomorrow!", isFromMe: true)
+    message2.chat = chatData2
+    chatData2.addMessage(message2)
+    
+    context.insert(chatData1)
+    context.insert(chatData2)
+    
+    let appContext = try! AppContext(modelContext: context)
     
     return ChatsView()
         .modelContainer(container)
-        .environmentObject(try! AppContext(modelContext: context))
+        .environmentObject(appContext)
 }
