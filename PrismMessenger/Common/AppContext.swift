@@ -9,7 +9,8 @@ import Foundation
 import SwiftData
 
 class AppContext: ObservableObject {
-    private let keyManager: KeyManager
+    // Make keyManager accessible since it's needed for X3DH processing
+    let keyManager: KeyManager
     private let restClient: RestClient
     let signupService: RegistrationService
     let keyService: KeyService
@@ -32,6 +33,9 @@ class AppContext: ObservableObject {
         // Set appLaunch property for both services (will be updated after init)
         chatManager.appLaunch = appLaunch
         messageService.appLaunch = appLaunch
+        
+        // Set circular references
+        messageService.appContext = self
     }
     
     // Update appLaunch reference

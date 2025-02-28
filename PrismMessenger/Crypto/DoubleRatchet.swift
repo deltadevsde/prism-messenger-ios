@@ -239,7 +239,7 @@ final class DoubleRatchetSession: Codable {
         
         // Construct the header using our local ephemeral public key.
         let header = DoubleRatchetHeader(
-            ephemeralKey: localEphemeral.publicKey.compressedRepresentation,
+            ephemeralKey: localEphemeral.publicKey,
             messageNumber: currentMessageNumber,
             previousMessageNumber: self.previousSendMessageNumber,
             oneTimePrekeyID: nil
@@ -282,11 +282,12 @@ final class DoubleRatchetSession: Codable {
         if let cachedKey = skippedMessageKeys[header.messageNumber] {
             skippedMessageKeys.removeValue(forKey: header.messageNumber)
             let symmetricKey = SymmetricKey(data: cachedKey)
+            
+            print("DEBUG: Using zero nonce for cached key decryption")
             return try decryptCiphertext(ciphertext, using: symmetricKey, nonce: nonce)
         }
         
-        // Convert the header's ephemeral key.
-        let headerRemoteEphemeral = try P256.KeyAgreement.PublicKey(rawRepresentation: header.ephemeralKey)
+        let headerRemoteEphemeral = header.ephemeralKey
         
         // If the sender's ephemeral key has changed, perform a DH ratchet step.
         if self.remoteEphemeral == nil || self.remoteEphemeral!.rawRepresentation != headerRemoteEphemeral.rawRepresentation {
@@ -327,14 +328,38 @@ final class DoubleRatchetSession: Codable {
     
     /// Helper function to decrypt a ciphertext (which includes the authentication tag).
     private func decryptCiphertext(_ ciphertext: Data, using symmetricKey: SymmetricKey, nonce: AES.GCM.Nonce) throws -> Data {
+        print("DEBUG: Decrypting ciphertext of length \(ciphertext.count)")
+        print("DEBUG: Using nonce: \(Data(nonce).map { String(format: "%02x", $0) }.joined())")
+        
         // AES-GCM produces a 16-byte tag; ensure ciphertext is long enough.
         guard ciphertext.count >= 16 else {
+            print("DEBUG: Ciphertext too short: \(ciphertext.count)")
             throw DoubleRatchetError.invalidCiphertext(length: ciphertext.count)
         }
+       
+        // Dump the raw bytes for debugging
+        print("DEBUG: Ciphertext raw bytes: \(ciphertext.map { String(format: "%02x", $0) }.joined())")
+        
         let ct = ciphertext.prefix(ciphertext.count - 16)
         let tag = ciphertext.suffix(16)
         let sealedBox = try AES.GCM.SealedBox(nonce: nonce, ciphertext: ct, tag: tag)
+        
+        // Create the full combined format by prepending the nonce
+        var combinedData = Data()
+        combinedData.append(Data(nonce))  // Add the 12-byte nonce first
+        combinedData.append(ciphertext)   // Then add our stored ciphertext+tag
+        
+        print("DEBUG: Reconstructed combined format: \(combinedData.count) bytes")
+        print("DEBUG: Combined data: \(combinedData.map { String(format: "%02x", $0) }.joined())")
         return try AES.GCM.open(sealedBox, using: symmetricKey)
+    }
+    
+    /// Gets the current receive chain key (for external message decryption)
+    func getRecvChainKey() throws -> Data {
+        guard let chainKey = self.recvChainKey else {
+            throw DoubleRatchetError.missingRecvChainKey
+        }
+        return chainKey
     }
     
     /// For testing only: Force a rotation of the local ephemeral key.

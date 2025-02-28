@@ -11,9 +11,9 @@ import CryptoKit
 // MARK: - Header & Message Types
 
 /// Swift version of Rust `DoubleRatchetHeader`.
-struct DoubleRatchetHeader: Codable, Equatable {
+struct DoubleRatchetHeader: Codable {
     /// Sender’s ephemeral public key (raw representation)
-    let ephemeralKey: Data
+    let ephemeralKey: P256.KeyAgreement.PublicKey
     /// Message counter within the current chain
     let messageNumber: UInt64
     /// Last message number of the previous chain (for skipped keys)
@@ -41,13 +41,34 @@ struct DoubleRatchetMessage: Codable {
     }
     
     init(from decoder: Decoder) throws {
+        print("DEBUG: Decoding DoubleRatchetMessage")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
-        header = try container.decode(DoubleRatchetHeader.self, forKey: .header)
-        ciphertext = try container.decode(Data.self, forKey: .ciphertext)
+        do {
+            header = try container.decode(DoubleRatchetHeader.self, forKey: .header)
+            print("DEBUG: Decoded header")
+        } catch {
+            print("DEBUG: Failed to decode header: \(error)")
+            throw error
+        }
         
-        let nonceData = try container.decode(Data.self, forKey: .nonceData)
-        nonce = try AES.GCM.Nonce(data: nonceData)
+        do {
+            ciphertext = try container.decode(Data.self, forKey: .ciphertext)
+            print("DEBUG: Decoded ciphertext")
+        } catch {
+            print("DEBUG: Failed to decode ciphertext: \(error)")
+            throw error
+        }
+        
+        do {
+            let nonceData = try container.decode(Data.self, forKey: .nonceData)
+            print("DEBUG: Decoded nonceData: \(nonceData.count) bytes")
+            nonce = try AES.GCM.Nonce(data: nonceData)
+            print("DEBUG: Created AES.GCM.Nonce")
+        } catch {
+            print("DEBUG: Failed to decode nonce: \(error)")
+            throw error
+        }
     }
     
     func encode(to encoder: Encoder) throws {

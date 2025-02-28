@@ -315,7 +315,7 @@ struct NewChatView: View {
                     username: username,
                     sharedSecret: sharedSecret,
                     ephemeralPublicKey: ephemeralPublicKey,
-                    usedPrekeyId: usedPrekeyId
+                    usedPrekeyId: nil
                 )
                 
                 print("Successfully created chat with \(username)")
