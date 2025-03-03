@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftData
 
 
 @MainActor
@@ -18,19 +19,42 @@ class AppLaunch: ObservableObject {
     }
     
     @Published private(set) var state: LoadingState = .loading
+    @Published var selectedUsername: String?
     
-    func initialize() async {
+    func initialize(modelContext: ModelContext) async {
         state = .loading
         do {
-            try await Task.sleep(nanoseconds: 1500000000)
-            // For now, we just assume
-            state = .unregistered
+            try await Task.sleep(nanoseconds: 1000000000)
+            
+            // Check if we have any existing users in the database
+            let descriptor = FetchDescriptor<UserData>()
+            let users = try modelContext.fetch(descriptor)
+            
+            if users.isEmpty {
+                // Keep the default username to prevent unauthorized errors
+                // No registered users, show the onboarding flow
+                state = .unregistered
+            } else  {
+                // Only one user, automatically select it
+                selectedUsername = users[0].username
+                state = .ready
+            }
         } catch {
             state = .error
         }
     }
     
-    func setRegistered() async {
+    func selectAccount(username: String) {
+        selectedUsername = username
+        state = .ready
+    }
+    
+    func createNewAccount() {
+        state = .unregistered
+    }
+    
+    func setRegistered(username: String) {
+        selectedUsername = username
         state = .ready
     }
 }

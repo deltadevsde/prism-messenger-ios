@@ -12,6 +12,7 @@ import CryptoKit
 enum KeyError: Error {
     case unableToRetrieveKey
     case networkFailure(Int)
+    case userNotFound
 }
 
 struct PrivatePrekey: Codable {
@@ -33,6 +34,11 @@ struct KeyBundle: Codable {
     var signed_prekey: P256.Signing.PublicKey
     var signed_prekey_signature: P256.Signing.ECDSASignature
     var prekeys: [Prekey]
+}
+
+struct KeyBundleResponse: Codable {
+    var key_bundle: KeyBundle?
+    // TODO: Account and HashedMerkleProof
 }
 
 struct UploadKeyBundleRequest: Codable {
@@ -76,6 +82,19 @@ class KeyService: ObservableObject {
         do {
             try await restClient.post(req, to: "/keys/upload_bundle")
         } catch RestClientError.httpError(let httpStatusCode) {
+            throw KeyError.networkFailure(httpStatusCode)
+        }
+    }
+    
+    /// Fetches a key bundle for a specific user from the server
+    func getKeyBundle(username: String) async throws -> KeyBundle? {
+        do {
+            let keyBundle: KeyBundleResponse = try await restClient.fetch(from: "/keys/bundle/\(username)")
+            return keyBundle.key_bundle
+        } catch RestClientError.httpError(let httpStatusCode) {
+            if httpStatusCode == 404 {
+                throw KeyError.userNotFound
+            }
             throw KeyError.networkFailure(httpStatusCode)
         }
     }

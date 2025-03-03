@@ -56,10 +56,11 @@ class RestClient {
     }
 
     func fetch<T: Decodable>(from path: String) async throws -> T {
-        let fullURL = baseURL.appendingPathComponent(path)
+        print(path)
+        var request = URLRequest(url: baseURL.appendingPathComponent(path))
+        request.httpMethod = "GET"
 
-        let (data, response) = try await session.data(from: fullURL)
-
+        let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw RestClientError.unknown
         }
@@ -111,6 +112,7 @@ class RestClient {
 
         do {
             request.httpBody = try encoder.encode(data)
+            print("\(path): \(String(data: request.httpBody!, encoding: .utf8) ?? "No body")")
         } catch EncodingError.invalidValue(_, let context) {
             throw RestClientError.serdeFailed(context.debugDescription)
         }

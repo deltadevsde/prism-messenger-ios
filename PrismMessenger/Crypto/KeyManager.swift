@@ -9,10 +9,12 @@ import CryptoKit
 import KeychainAccess
 import LocalAuthentication
 import Security
+import Foundation
 
 enum KeyServiceError: Error {
     case fetchingFromKeychainFailed
     case publicKeyDerivationFailed
+    case keyConversionFailed
 }
 
 class KeyManager {
@@ -26,10 +28,7 @@ class KeyManager {
     }
 
     func fetchIdentityKeyFromKeychain() async throws -> P256.Signing.PublicKey {
-        guard let data = try keychain.getData(Self.identityPrivateKeyTag) else {
-            throw KeyServiceError.fetchingFromKeychainFailed
-        }
-
+        let data = try getPrivateKeyData()
         let privateKey = try SecureEnclave.P256.Signing.PrivateKey.init(dataRepresentation: data)
 
         return privateKey.publicKey
@@ -85,12 +84,30 @@ class KeyManager {
     }
     
     func requestIdentitySignature(dataToSign: Data) async throws -> P256.Signing.ECDSASignature {
-        guard let data = try keychain.getData(Self.identityPrivateKeyTag) else {
-            throw KeyServiceError.fetchingFromKeychainFailed
-        }
-
+        let data = try getPrivateKeyData()
         let privateKey = try SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: data)
         
         return try privateKey.signature(for: dataToSign)
+    }
+    
+    private func getPrivateKeyData() throws -> Data {
+        guard let data = try keychain.getData(Self.identityPrivateKeyTag) else {
+            throw KeyServiceError.fetchingFromKeychainFailed
+        }
+        return data
+    }
+    
+    
+    /// Computes a shared secret between our identity key (in secure enclave) and another public key
+    /// Used when receiving a message and need to compute DH2 in passive X3DH
+    /// - Parameter remoteKey: The remote party's public key
+    /// - Returns: The shared secret data
+    func computeSharedSecretWithIdentity(remoteKey: P256.KeyAgreement.PublicKey) throws -> SharedSecret {
+        // Get the identity key for key agreement
+        let data = try getPrivateKeyData()
+
+        let identityKAPrivateKey = try SecureEnclave.P256.KeyAgreement.PrivateKey.init(dataRepresentation: data)
+        
+        return try identityKAPrivateKey.sharedSecretFromKeyAgreement(with: remoteKey)
     }
 }
