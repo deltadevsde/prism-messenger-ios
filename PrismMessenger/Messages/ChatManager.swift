@@ -38,7 +38,8 @@ class ChatManager {
         let session = try createDoubleRatchetSession(
             sharedSecret: sharedSecret,
             localEphemeral: ephemeralPrivateKey,
-            remoteEphemeral: P256.KeyAgreement.PublicKey(rawRepresentation: prekey.key.rawRepresentation)
+            remoteEphemeral: P256.KeyAgreement.PublicKey(rawRepresentation: prekey.key.rawRepresentation),
+            prekeyID: prekey.key_idx
         )
         
         // 2. Serialize the session
@@ -105,7 +106,8 @@ class ChatManager {
     private func createDoubleRatchetSession(
         sharedSecret: SymmetricKey,
         localEphemeral: P256.KeyAgreement.PrivateKey?,
-        remoteEphemeral: P256.KeyAgreement.PublicKey?
+    remoteEphemeral: P256.KeyAgreement.PublicKey?,
+        prekeyID: UInt64?
     ) throws -> DoubleRatchetSession {
         // Convert SymmetricKey to Data
         let rootKeyData = sharedSecret.withUnsafeBytes { Data($0) }
@@ -114,7 +116,8 @@ class ChatManager {
         return DoubleRatchetSession(
             initialRootKey: rootKeyData,
             localEphemeral: localEphemeral,
-            remoteEphemeral: remoteEphemeral
+            remoteEphemeral: remoteEphemeral,
+            prekeyID: prekeyID
         )
     }
     
@@ -175,7 +178,8 @@ class ChatManager {
         let session = try createDoubleRatchetSession(
             sharedSecret: symmetricKey,
             localEphemeral: prekeyKA,
-            remoteEphemeral: senderEphemeralKey
+            remoteEphemeral: senderEphemeralKey,
+            prekeyID: nil
         )
         
         // 6. Serialize the session

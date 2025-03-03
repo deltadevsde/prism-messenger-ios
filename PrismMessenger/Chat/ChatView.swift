@@ -9,7 +9,7 @@ import SwiftUI
 import SwiftData
 
 struct ChatView: View {
-    let chat: ChatData
+    @Bindable var chat: ChatData
     @State private var messageText: String = ""
     @State private var isLoading: Bool = false
     @State private var error: String? = nil
@@ -40,6 +40,23 @@ struct ChatView: View {
         .onAppear {
             // Mark chat as read when view appears
             chat.markAsRead()
+        }
+        .refreshable {
+            // Force refresh when user pulls down
+            Task {
+                try? await appContext.fetchAndProcessMessages()
+            }
+        }
+        // Periodically refresh messages when view is active
+        .task {
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
+                    try? await appContext.fetchAndProcessMessages()
+                } catch {
+                    break
+                }
+            }
         }
     }
     

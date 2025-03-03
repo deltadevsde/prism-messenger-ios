@@ -55,7 +55,11 @@ struct ChatsView: View {
                         .padding(.top, 50)
                     } else {
                         ForEach(currentChats) { chat in
-                            NavigationLink(destination: ChatView(chat: chat)) {
+                            NavigationLink(destination: {
+                                // Using a closure form that creates a new binding for each chat
+                                let bindableChat = chat
+                                ChatView(chat: bindableChat)
+                            }) {
                                 ChatPreview(
                                     username: chat.displayName ?? chat.participantUsername,
                                     imageURL: chat.imageURL,
@@ -265,7 +269,8 @@ struct NewChatView: View {
             })
             .navigationDestination(isPresented: $shouldNavigateToChat) {
                 if let chat = createdChat {
-                    ChatView(chat: chat)
+                    let bindableChat = chat
+                    ChatView(chat: bindableChat)
                 }
             }
         }
@@ -291,9 +296,7 @@ struct NewChatView: View {
                 }
                 
                 // 1. Try to get the key bundle
-                let keyBundle = try await appContext.keyService.getKeyBundle(username: username)
-                
-                if keyBundle == nil {
+                guard let keyBundle = try await appContext.keyService.getKeyBundle(username: username) else {
                     DispatchQueue.main.async {
                         errorMessage = "User does not exist"
                         isLoading = false
@@ -301,7 +304,7 @@ struct NewChatView: View {
                     return
                 }
                 
-                guard let prekey = keyBundle?.prekeys.first else {
+                guard let prekey = keyBundle.prekeys.first else {
                     DispatchQueue.main.async {
                         errorMessage = "User is missing prekeys"
                         isLoading = false
@@ -313,7 +316,7 @@ struct NewChatView: View {
                 let x3dh = try appContext.createX3DHSession()
 
                 // 3. Perform the X3DH handshake
-                let (sharedSecret, ephemeralPrivateKey, usedPrekeyId) = try await x3dh.initiateHandshake(with: keyBundle!, using: prekey.key_idx)
+                let (sharedSecret, ephemeralPrivateKey, usedPrekeyId) = try await x3dh.initiateHandshake(with: keyBundle, using: prekey.key_idx)
 
                 print("Successfully performed X3DH handshake with user: \(username)")
                 print("Used prekey ID: \(String(describing: usedPrekeyId))")

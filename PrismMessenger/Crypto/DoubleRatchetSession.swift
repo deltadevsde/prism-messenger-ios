@@ -87,8 +87,9 @@ final class DoubleRatchetSession: Codable {
         case recvMessageNumber
         case skippedMessageKeys
         case previousSendMessageNumber
-        case localEphemeralData // We need to store the raw representation since the Key types are not Codable.
+        case localEphemeralData
         case remoteEphemeralData
+        case prekeyID
     }
     
     // Encode to a JSON representation.
@@ -102,7 +103,8 @@ final class DoubleRatchetSession: Codable {
         try container.encode(recvMessageNumber, forKey: .recvMessageNumber)
         try container.encode(skippedMessageKeys, forKey: .skippedMessageKeys)
         try container.encode(previousSendMessageNumber, forKey: .previousSendMessageNumber)
-        
+        try container.encode(prekeyID, forKey: .prekeyID)
+            
         // Convert the keys to their raw representation.
         try container.encode(localEphemeral?.rawRepresentation, forKey: .localEphemeralData)
         try container.encode(remoteEphemeral?.rawRepresentation, forKey: .remoteEphemeralData)
@@ -119,6 +121,7 @@ final class DoubleRatchetSession: Codable {
         recvMessageNumber = try container.decode(UInt64.self, forKey: .recvMessageNumber)
         skippedMessageKeys = try container.decode([UInt64: Data].self, forKey: .skippedMessageKeys)
         previousSendMessageNumber = try container.decode(UInt64.self, forKey: .previousSendMessageNumber)
+        prekeyID = try container.decode(UInt64?.self, forKey: .prekeyID)
         
         // Decode the keys from their raw representation
         let localEphemeralData = try container.decode(Data.self, forKey: .localEphemeralData)
@@ -151,11 +154,12 @@ final class DoubleRatchetSession: Codable {
     init(initialRootKey: Data,
          localEphemeral: P256.KeyAgreement.PrivateKey?,
          remoteEphemeral: P256.KeyAgreement.PublicKey?,
-         prekeyID: UInt64? = nil
+         prekeyID: UInt64?
     ) {
         self.rootKey = initialRootKey
         self.localEphemeral = localEphemeral
         self.remoteEphemeral = remoteEphemeral
+        self.prekeyID = prekeyID
     }
     
     // MARK: - DH Ratchet Step
@@ -263,9 +267,7 @@ final class DoubleRatchetSession: Codable {
         )
         
         // If using a prekey ID, don't use it again, it was just to establish the chain
-        if let prekeyID = self.prekeyID {
-            self.prekeyID = nil
-        }
+        self.prekeyID = nil
 
         let symmetricKey = SymmetricKey(data: messageKeyData)
         let nonce = AES.GCM.Nonce()  // Randomly generated nonce.
