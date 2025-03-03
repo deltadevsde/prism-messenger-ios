@@ -300,12 +300,20 @@ struct NewChatView: View {
                     }
                     return
                 }
+                
+                guard let prekey = keyBundle?.prekeys.first else {
+                    DispatchQueue.main.async {
+                        errorMessage = "User is missing prekeys"
+                        isLoading = false
+                    }
+                    return
+                }
 
                 // 2. Initialize X3DH with our key manager
                 let x3dh = try appContext.createX3DHSession()
 
                 // 3. Perform the X3DH handshake
-                let (sharedSecret, ephemeralPublicKey, usedPrekeyId) = try await x3dh.initiateHandshake(with: keyBundle!)
+                let (sharedSecret, ephemeralPrivateKey, usedPrekeyId) = try await x3dh.initiateHandshake(with: keyBundle!, using: prekey.key_idx)
 
                 print("Successfully performed X3DH handshake with user: \(username)")
                 print("Used prekey ID: \(String(describing: usedPrekeyId))")
@@ -314,8 +322,8 @@ struct NewChatView: View {
                 let chat = try appContext.chatManager.createChat(
                     username: username,
                     sharedSecret: sharedSecret,
-                    ephemeralPublicKey: ephemeralPublicKey,
-                    usedPrekeyId: nil
+                    ephemeralPrivateKey: ephemeralPrivateKey,
+                    prekey: prekey
                 )
                 
                 print("Successfully created chat with \(username)")

@@ -22,14 +22,14 @@ class ChatManager {
     ///   - username: The participant's username
     ///   - sharedSecret: The shared secret derived from X3DH
     ///   - ephemeralPublicKey: The ephemeral public key used in X3DH
-    ///   - usedPrekeyId: The ID of the prekey that was used
+    ///   - prekey: The prekey that was used
     /// - Returns: The created ChatData object
     @MainActor
     func createChat(
         username: String,
         sharedSecret: SymmetricKey,
-        ephemeralPublicKey: P256.KeyAgreement.PublicKey,
-        usedPrekeyId: UInt64?
+        ephemeralPrivateKey: P256.KeyAgreement.PrivateKey,
+        prekey: Prekey
     ) throws -> ChatData {
         // 0. Get the current user
         let currentUsername = try getCurrentUsername()
@@ -37,8 +37,8 @@ class ChatManager {
         // 1. Create a Double Ratchet session with the shared secret
         let session = try createDoubleRatchetSession(
             sharedSecret: sharedSecret,
-            ephemeralPublicKey: ephemeralPublicKey,
-            oneTimePrekeyId: usedPrekeyId
+            localEphemeral: ephemeralPrivateKey,
+            remoteEphemeral: P256.KeyAgreement.PublicKey(rawRepresentation: prekey.key.rawRepresentation)
         )
         
         // 2. Serialize the session
@@ -104,20 +104,17 @@ class ChatManager {
     /// Creates a DoubleRatchetSession from the shared secret from X3DH
     private func createDoubleRatchetSession(
         sharedSecret: SymmetricKey,
-        ephemeralPublicKey: P256.KeyAgreement.PublicKey,
-        oneTimePrekeyId: UInt64?
+        localEphemeral: P256.KeyAgreement.PrivateKey?,
+        remoteEphemeral: P256.KeyAgreement.PublicKey?
     ) throws -> DoubleRatchetSession {
         // Convert SymmetricKey to Data
         let rootKeyData = sharedSecret.withUnsafeBytes { Data($0) }
-        
-        // Create a fresh local ephemeral key for the Double Ratchet
-        let localEphemeral = P256.KeyAgreement.PrivateKey()
         
         // Initialize the Double Ratchet session
         return DoubleRatchetSession(
             initialRootKey: rootKeyData,
             localEphemeral: localEphemeral,
-            remoteEphemeral: ephemeralPublicKey
+            remoteEphemeral: remoteEphemeral
         )
     }
     
@@ -165,6 +162,7 @@ class ChatManager {
         var prekeyKA: P256.KeyAgreement.PrivateKey? = nil
         if let prekeyId = usedPrekeyId, let prekey = try userData.getPrekey(keyIdx: prekeyId) {
             prekeyKA = try P256.KeyAgreement.PrivateKey(rawRepresentation: prekey.rawRepresentation)
+            print("DEBUG: USING PREKEY")
             // Mark the prekey as used
             userData.deletePrekey(keyIdx: prekeyId)
         }
@@ -176,8 +174,8 @@ class ChatManager {
         // 5. Create a Double Ratchet session with the shared secret
         let session = try createDoubleRatchetSession(
             sharedSecret: symmetricKey,
-            ephemeralPublicKey: senderEphemeralKey,
-            oneTimePrekeyId: usedPrekeyId
+            localEphemeral: prekeyKA,
+            remoteEphemeral: senderEphemeralKey
         )
         
         // 6. Serialize the session
@@ -204,15 +202,6 @@ class ChatManager {
         )
         welcomeMessage.chat = chat
         chat.addMessage(welcomeMessage)
-        
-        // 10. Add a system message indicating how the chat was created
-        let systemMessage = MessageData(
-            content: "\(senderUsername) started this conversation",
-            isFromMe: false,
-            status: .delivered
-        )
-        systemMessage.chat = chat
-        chat.addMessage(systemMessage)
         
         try modelContext.save()
         

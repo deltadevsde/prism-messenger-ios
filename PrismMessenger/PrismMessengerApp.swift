@@ -17,7 +17,7 @@ struct PrismMessengerApp: App {
         // Check if schema has changed - only delete database when needed
         let currentVersion = UserDefaults.standard.integer(forKey: UserDefaultsKeys.schemaVersionKey)
         // Current schema version
-        let newVersion = 2 
+        let newVersion = 6 
         
         if currentVersion < newVersion {
             // Only delete database when schema has changed since last launch

@@ -22,21 +22,6 @@ struct RegistrationRequestData: Encodable {
 
 struct RegistrationChallenge: Decodable {
     var challenge: Data
-    
-    enum CodingKeys: String, CodingKey {
-        case challenge
-    }
-    
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        
-        if let challengeArray = try? container.decode([UInt8].self, forKey: .challenge) {
-            self.challenge = Data(challengeArray)
-            return
-        }
-        
-        throw DecodingError.dataCorruptedError(forKey: .challenge, in: container, debugDescription: "Invalid challenge format")
-    }
 }
 
 struct FinalizeRegistrationRequest: Encodable {
@@ -75,10 +60,7 @@ class RegistrationService: ObservableObject {
 
         let req = RegistrationRequestData(
             username: username,
-            key: CryptoPayload(
-                algorithm: .secp256r1,
-                bytes: key.compressedRepresentation
-            )
+            key: key.toCryptoPayload()
         )
         
         do {
@@ -104,10 +86,7 @@ class RegistrationService: ObservableObject {
         
         let req = FinalizeRegistrationRequest(
             username: username,
-            key: CryptoPayload(
-                algorithm: .secp256r1,
-                bytes: key.compressedRepresentation
-            ),
+            key: key.toCryptoPayload(),
             signature: signature.toCryptoPayload()
         )
         

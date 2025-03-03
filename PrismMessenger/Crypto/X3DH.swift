@@ -40,7 +40,7 @@ struct X3DH {
     func initiateHandshake(
         with keyBundle: KeyBundle,
         using prekeyId: UInt64? = nil
-    ) async throws -> (symmetricKey: SymmetricKey, ephemeralKey: P256.KeyAgreement.PublicKey, usedPrekeyId: UInt64?) {
+    ) async throws -> (symmetricKey: SymmetricKey, ephemeralKey: P256.KeyAgreement.PrivateKey, usedPrekeyId: UInt64?) {
         // Generate ephemeral key for this session
         let ephemeralKey = P256.KeyAgreement.PrivateKey()
         
@@ -56,11 +56,6 @@ struct X3DH {
            let selectedPrekey = keyBundle.prekeys.first(where: { $0.key_idx == specificPrekeyId }) {
             responderOneTimePreKeyKA = try convertSigningToKeyAgreement(publicKey: selectedPrekey.key)
             usedPrekeyId = specificPrekeyId
-        } else if !keyBundle.prekeys.isEmpty {
-            // Use first available prekey if none specified
-            let prekey = keyBundle.prekeys[0]
-            responderOneTimePreKeyKA = try convertSigningToKeyAgreement(publicKey: prekey.key)
-            usedPrekeyId = prekey.key_idx
         }
         
         // Delegate the key agreement calculation to the KeyManager
@@ -72,7 +67,7 @@ struct X3DH {
             responderOneTimePreKey: responderOneTimePreKeyKA
         )
         
-        return (symmetricKey: symmetricKey, ephemeralKey: ephemeralKey.publicKey, usedPrekeyId: usedPrekeyId)
+        return (symmetricKey: symmetricKey, ephemeralKey: ephemeralKey, usedPrekeyId: usedPrekeyId)
     }
     
     /// Performs the X3DH key agreement protocol using the identity key in the secure enclave and a received key bundle
@@ -96,7 +91,7 @@ struct X3DH {
         
         var dh4: SharedSecret? = nil
         if let receiverOPK = receiverOneTimePreKey {
-            let dh4 = try receiverOPK.sharedSecretFromKeyAgreement(with: senderEphemeralKey)
+            dh4 = try receiverOPK.sharedSecretFromKeyAgreement(with: senderEphemeralKey)
         }
         
         return try deriveSymmetricKey(dh1: dh1, dh2: dh2, dh3: dh3, dh4: dh4)
@@ -143,7 +138,10 @@ struct X3DH {
         combinedSecret.append(dh3.withUnsafeBytes { Data($0) })
         
         if let dhOPK = dh4 {
+            print("X3DH: Using DH4: \(dhOPK)")
             combinedSecret.append(dhOPK.withUnsafeBytes { Data($0) })
+        } else {
+            print("X3DH: Not using DH4")
         }
 
         // Derive the final key via HKDF

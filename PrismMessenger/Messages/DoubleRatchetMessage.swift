@@ -12,14 +12,14 @@ import CryptoKit
 
 /// Swift version of Rust `DoubleRatchetHeader`.
 struct DoubleRatchetHeader: Codable {
-    /// Sender’s ephemeral public key (raw representation)
-    let ephemeralKey: P256.KeyAgreement.PublicKey
+    /// Sender’s ephemeral public key
+    let ephemeral_key: P256.KeyAgreement.PublicKey
     /// Message counter within the current chain
-    let messageNumber: UInt64
+    let message_number: UInt64
     /// Last message number of the previous chain (for skipped keys)
-    let previousMessageNumber: UInt64
+    let previous_message_number: UInt64
     /// Identifier of the one-time prekey used in the handshake (if used)
-    let oneTimePrekeyID: UInt64?
+    let one_time_prekey_id: UInt64?
 }
 
 /// The complete double ratchet message, including header and AEAD-encrypted ciphertext.
@@ -31,7 +31,7 @@ struct DoubleRatchetMessage: Codable {
     let nonce: AES.GCM.Nonce
     
     enum CodingKeys: String, CodingKey {
-        case header, ciphertext, nonceData
+        case header, ciphertext, nonce
     }
     
     init(header: DoubleRatchetHeader, ciphertext: Data, nonce: AES.GCM.Nonce) {
@@ -61,7 +61,7 @@ struct DoubleRatchetMessage: Codable {
         }
         
         do {
-            let nonceData = try container.decode(Data.self, forKey: .nonceData)
+            let nonceData = try container.decode(Data.self, forKey: .nonce)
             print("DEBUG: Decoded nonceData: \(nonceData.count) bytes")
             nonce = try AES.GCM.Nonce(data: nonceData)
             print("DEBUG: Created AES.GCM.Nonce")
@@ -76,6 +76,6 @@ struct DoubleRatchetMessage: Codable {
         
         try container.encode(header, forKey: .header)
         try container.encode(ciphertext, forKey: .ciphertext)
-        try container.encode(Data(nonce), forKey: .nonceData)
+        try container.encode(Data(nonce), forKey: .nonce)
     }
 }

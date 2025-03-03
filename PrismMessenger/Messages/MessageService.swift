@@ -23,7 +23,7 @@ enum MessageError: Error {
 struct SendMessageRequest: Encodable {
     var sender_id: String
     var recipient_id: String
-    var message: APIDoubleRatchetMessage
+    var message: DoubleRatchetMessage
 }
 
 /// API response when sending a message
@@ -37,7 +37,7 @@ struct APIMessage: Decodable {
     var message_id: UUID
     var sender_id: String
     var recipient_id: String
-    var message: APIDoubleRatchetMessage
+    var message: DoubleRatchetMessage
     var timestamp: UInt64
 }
 
@@ -45,76 +45,6 @@ struct APIMessage: Decodable {
 struct MarkDeliveredRequest: Encodable {
     var user_id: String
     var message_ids: [UUID]
-}
-
-/// API model for header structure used in API requests/responses
-struct APIDoubleRatchetHeader: Codable {
-    var ephemeral_key: P256.KeyAgreement.PublicKey
-    var message_number: UInt64
-    var previous_message_number: UInt64
-    var one_time_prekey_id: UInt64?
-    
-    // Convert from our local model to API model
-    init(from header: DoubleRatchetHeader) throws {
-        self.ephemeral_key = header.ephemeralKey
-        self.message_number = header.messageNumber
-        self.previous_message_number = header.previousMessageNumber
-        self.one_time_prekey_id = header.oneTimePrekeyID
-    }
-    
-    // Convert from API model to our local model
-    func toDoubleRatchetHeader() -> DoubleRatchetHeader {
-        return DoubleRatchetHeader(
-            ephemeralKey: ephemeral_key,
-            messageNumber: message_number,
-            previousMessageNumber: previous_message_number,
-            oneTimePrekeyID: one_time_prekey_id
-        )
-    }
-}
-
-/// API model for double ratchet message used in API requests/responses
-struct APIDoubleRatchetMessage: Codable {
-    var header: APIDoubleRatchetHeader
-    var ciphertext: [UInt8]
-    
-    // Convert from our local model to API model
-    init(from message: DoubleRatchetMessage) throws {
-        self.header = try APIDoubleRatchetHeader(from: message.header)
-        self.ciphertext = [UInt8](message.ciphertext)
-    }
-    
-    // Try to convert from API model to our local model
-    func toDoubleRatchetMessage() throws -> DoubleRatchetMessage {
-        print("DEBUG: Inside toDoubleRatchetMessage")
-        
-        do {
-            // Log the ephemeral key details
-            print("DEBUG: ephemeral_key: \(self.header.ephemeral_key)")
-            print("DEBUG: ephemeral_key size: \(self.header.ephemeral_key.compressedRepresentation.count) bytes")
-            
-            // Convert the header
-            let localHeader = self.header.toDoubleRatchetHeader()
-            print("DEBUG: Converted to local header")
-            
-            // To match the sending side, use a zero nonce
-            // In a real app, the nonce would be transmitted with the message
-            let nonceData = Data(repeating: 0, count: 12)
-            print("DEBUG: Using zero nonce for consistency with sender")
-            let nonce = try AES.GCM.Nonce(data: nonceData)
-            print("DEBUG: Created nonce")
-            
-            // Create and return the local message
-            return DoubleRatchetMessage(
-                header: localHeader,
-                ciphertext: Data(ciphertext),
-                nonce: nonce
-            )
-        } catch {
-            print("DEBUG: Error in toDoubleRatchetMessage: \(error)")
-            throw error
-        }
-    }
 }
 
 /// Service for sending and receiving messages
@@ -139,7 +69,7 @@ class MessageService: ObservableObject {
         let request = SendMessageRequest(
             sender_id: sender,
             recipient_id: recipient,
-            message: try APIDoubleRatchetMessage(from: message)
+            message: message
         )
         
         do {
@@ -250,20 +180,8 @@ class MessageService: ObservableObject {
             print("DEBUG: Processing message ID: \(apiMessage.message_id) from \(apiMessage.sender_id)")
             
             do {
-                print("DEBUG: Converting message to local format")
-                print("DEBUG: Ephemeral key type: \(type(of: apiMessage.message.header.ephemeral_key))")
-                print("DEBUG: Ephemeral key data: \(apiMessage.message.header.ephemeral_key.compressedRepresentation.count) bytes")
                 
-                // Convert API message to our local message format
-                var drMessage: DoubleRatchetMessage
-                do {
-                    drMessage = try apiMessage.message.toDoubleRatchetMessage()
-                    print("DEBUG: Successfully converted message to local format")
-                } catch {
-                    print("DEBUG: Failed to convert message: \(error)")
-                    processedMessageIds.append(apiMessage.message_id)
-                    continue
-                }
+                let drMessage = apiMessage.message
                 
                 // Get or create the chat for this sender
                 var chat: ChatData
@@ -274,7 +192,6 @@ class MessageService: ObservableObject {
                     print("Received message from unknown sender, establishing secure channel with X3DH")
                     
                     do {
-                        // 1. Get the sender's key bundle to obtain their identity key
                         guard let keyBundle = try await appContext?.keyService.getKeyBundle(username: apiMessage.sender_id) else {
                             print("Failed to get key bundle for \(apiMessage.sender_id)")
                             // TODO: Throw error?
@@ -286,19 +203,13 @@ class MessageService: ObservableObject {
                         print("DEBUG: Identity key compressed size: \(keyBundle.identity_key.compressedRepresentation.count)")
                         print("DEBUG: Message header dump: \(drMessage.header)")
                         
-                        // 3. First, create a P256.Signing.PublicKey from the ephemeral key, then convert to KeyAgreement
-                        print("DEBUG: Converting ephemeral key from message")
+                        var senderEphemeralKey = drMessage.header.ephemeral_key
                         
-                        // First try to create a Signing.PublicKey, then convert
-                        var senderEphemeralKey = drMessage.header.ephemeralKey
-                        
-                        // 4. Convert identity key using the same method as in X3DH.swift
                         print("DEBUG: Converting identity key")
                         let senderIdentityKA = try P256.KeyAgreement.PublicKey(
                             compressedRepresentation: keyBundle.identity_key.compressedRepresentation
                         )
                         
-                        // 4. Get key manager for secure operations
                         guard let keyManager = appContext?.keyManager else {
                             print("KeyManager not available")
                             // TODO: Throw error
@@ -310,7 +221,7 @@ class MessageService: ObservableObject {
                             senderUsername: apiMessage.sender_id,
                             senderIdentityKey: senderIdentityKA,
                             senderEphemeralKey: senderEphemeralKey,
-                            usedPrekeyId: drMessage.header.oneTimePrekeyID,
+                            usedPrekeyId: drMessage.header.one_time_prekey_id,
                             keyManager: keyManager
                         )
                         

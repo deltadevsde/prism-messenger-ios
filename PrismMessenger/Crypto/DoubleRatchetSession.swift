@@ -67,10 +67,14 @@ final class DoubleRatchetSession: Codable {
     private(set) var previousSendMessageNumber: UInt64 = 0
     
     /// Our current ephemeral private key for the DH ratchet.
-    private(set) var localEphemeral: P256.KeyAgreement.PrivateKey
+    private(set) var localEphemeral: P256.KeyAgreement.PrivateKey?
     
     /// The remote party's current ephemeral public key.
     private(set) var remoteEphemeral: P256.KeyAgreement.PublicKey?
+    
+    /// Prekey used to send next message.
+    /// TODO: This is very ugly way to handle this through the call stack
+    private(set) var prekeyID: UInt64?
     
     // MARK: Codable
     
@@ -100,7 +104,7 @@ final class DoubleRatchetSession: Codable {
         try container.encode(previousSendMessageNumber, forKey: .previousSendMessageNumber)
         
         // Convert the keys to their raw representation.
-        try container.encode(localEphemeral.rawRepresentation, forKey: .localEphemeralData)
+        try container.encode(localEphemeral?.rawRepresentation, forKey: .localEphemeralData)
         try container.encode(remoteEphemeral?.rawRepresentation, forKey: .remoteEphemeralData)
     }
     
@@ -145,8 +149,10 @@ final class DoubleRatchetSession: Codable {
     ///   - localEphemeral: Your starting ephemeral key pair.
     ///   - remoteEphemeral: The remote party's starting ephemeral public key (if available).
     init(initialRootKey: Data,
-         localEphemeral: P256.KeyAgreement.PrivateKey,
-         remoteEphemeral: P256.KeyAgreement.PublicKey?) {
+         localEphemeral: P256.KeyAgreement.PrivateKey?,
+         remoteEphemeral: P256.KeyAgreement.PublicKey?,
+         prekeyID: UInt64? = nil
+    ) {
         self.rootKey = initialRootKey
         self.localEphemeral = localEphemeral
         self.remoteEphemeral = remoteEphemeral
@@ -164,8 +170,13 @@ final class DoubleRatchetSession: Codable {
         // Update remote ephemeral key.
         self.remoteEphemeral = newRemoteEphemeral
         
+        // If local ephemeral has not been set yet (the recipient receives no ephemeral key for partner), a DH ratchet is not yet possible because the rootKey is still the shared secret from the initial X3DH handshake
+        if localEphemeral == nil {
+            return
+        }
+        
         // Compute DH shared secret using the current local ephemeral key.
-        let sharedSecret = try localEphemeral.sharedSecretFromKeyAgreement(with: newRemoteEphemeral)
+        let sharedSecret = try localEphemeral!.sharedSecretFromKeyAgreement(with: newRemoteEphemeral)
         let sharedSecretData = sharedSecret.withUnsafeBytes { Data($0) }
         
         // Derive a new root key and the receiving chain key.
@@ -217,8 +228,13 @@ final class DoubleRatchetSession: Codable {
     /// - Parameter plaintext: The plaintext data to encrypt.
     /// - Returns: A tuple containing the message header, the ciphertext (with appended tag), and the AES-GCM nonce.
     func encrypt(plaintext: Data) throws -> DoubleRatchetMessage {
+        if self.localEphemeral == nil {
+            self.localEphemeral = P256.KeyAgreement.PrivateKey()
+        }
+        let localEphemeral = self.localEphemeral!
+        
         // If the sending chain is not yet set up, derive it using the remote ephemeral.
-        if sendChainKey == nil, let remoteEphemeral = self.remoteEphemeral {
+        if sendChainKey == nil, let remoteEphemeral = self.remoteEphemeral, let localEphemeral = self.localEphemeral {
             let sharedSecret = try localEphemeral.sharedSecretFromKeyAgreement(with: remoteEphemeral)
             let sharedSecretData = sharedSecret.withUnsafeBytes { Data($0) }
             let derived = deriveRatchetKeys(rootKey: self.rootKey, dhSharedSecret: sharedSecretData)
@@ -237,14 +253,20 @@ final class DoubleRatchetSession: Codable {
         let currentMessageNumber = self.sendMessageNumber
         self.sendMessageNumber += 1
         
+        
         // Construct the header using our local ephemeral public key.
         let header = DoubleRatchetHeader(
-            ephemeralKey: localEphemeral.publicKey,
-            messageNumber: currentMessageNumber,
-            previousMessageNumber: self.previousSendMessageNumber,
-            oneTimePrekeyID: nil
+            ephemeral_key: localEphemeral.publicKey,
+            message_number: currentMessageNumber,
+            previous_message_number: self.previousSendMessageNumber,
+            one_time_prekey_id: self.prekeyID
         )
         
+        // If using a prekey ID, don't use it again, it was just to establish the chain
+        if let prekeyID = self.prekeyID {
+            self.prekeyID = nil
+        }
+
         let symmetricKey = SymmetricKey(data: messageKeyData)
         let nonce = AES.GCM.Nonce()  // Randomly generated nonce.
         let sealedBox = try AES.GCM.seal(plaintext, using: symmetricKey, nonce: nonce)
@@ -269,7 +291,7 @@ final class DoubleRatchetSession: Codable {
     func decrypt(ciphertext: Data, header: DoubleRatchetHeader, nonce: AES.GCM.Nonce) throws -> Data {
         // If the receiving chain key is not yet set up (e.g. first message),
         // derive it using the current remote ephemeral key.
-        if self.recvChainKey == nil, let remoteEphemeral = self.remoteEphemeral {
+        if self.recvChainKey == nil, let remoteEphemeral = self.remoteEphemeral, let localEphemeral = self.localEphemeral {
             let sharedSecret = try localEphemeral.sharedSecretFromKeyAgreement(with: remoteEphemeral)
             let sharedSecretData = sharedSecret.withUnsafeBytes { Data($0) }
             let derived = deriveRatchetKeys(rootKey: self.rootKey, dhSharedSecret: sharedSecretData)
@@ -279,27 +301,27 @@ final class DoubleRatchetSession: Codable {
         }
         
         // If we have a cached key from a previous skip, use it.
-        if let cachedKey = skippedMessageKeys[header.messageNumber] {
-            skippedMessageKeys.removeValue(forKey: header.messageNumber)
+        if let cachedKey = skippedMessageKeys[header.message_number] {
+            skippedMessageKeys.removeValue(forKey: header.message_number)
             let symmetricKey = SymmetricKey(data: cachedKey)
             
             print("DEBUG: Using zero nonce for cached key decryption")
             return try decryptCiphertext(ciphertext, using: symmetricKey, nonce: nonce)
         }
         
-        let headerRemoteEphemeral = header.ephemeralKey
+        let headerRemoteEphemeral = header.ephemeral_key
         
         // If the sender's ephemeral key has changed, perform a DH ratchet step.
         if self.remoteEphemeral == nil || self.remoteEphemeral!.rawRepresentation != headerRemoteEphemeral.rawRepresentation {
-            if header.previousMessageNumber > self.recvMessageNumber {
-                try skipRecvMessageKeys(until: header.previousMessageNumber)
+            if header.previous_message_number > self.recvMessageNumber {
+                try skipRecvMessageKeys(until: header.previous_message_number)
             }
             try performDHRatchet(with: headerRemoteEphemeral)
         }
         
         // If the message number is ahead, skip (and cache) keys until we reach it.
-        if header.messageNumber > self.recvMessageNumber {
-            try skipRecvMessageKeys(until: header.messageNumber)
+        if header.message_number > self.recvMessageNumber {
+            try skipRecvMessageKeys(until: header.message_number)
         }
         
         // Now, derive the message key for the current recvMessageNumber.
