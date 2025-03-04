@@ -8,8 +8,7 @@
 import Foundation
 import CryptoKit
 
-// TODO(@distractedm1nd): KeyServiceError already exists, fix naming
-enum KeyError: Error {
+enum KeyServiceError: Error {
     case unableToRetrieveKey
     case networkFailure(Int)
     case userNotFound
@@ -83,7 +82,7 @@ class KeyService: ObservableObject, KeyServiceProtocol {
         do {
             try await restClient.post(req, to: "/keys/upload_bundle")
         } catch RestClientError.httpError(let httpStatusCode) {
-            throw KeyError.networkFailure(httpStatusCode)
+            throw KeyServiceError.networkFailure(httpStatusCode)
         }
     }
     
@@ -94,9 +93,9 @@ class KeyService: ObservableObject, KeyServiceProtocol {
             return keyBundle.key_bundle
         } catch RestClientError.httpError(let httpStatusCode) {
             if httpStatusCode == 404 {
-                throw KeyError.userNotFound
+                throw KeyServiceError.userNotFound
             }
-            throw KeyError.networkFailure(httpStatusCode)
+            throw KeyServiceError.networkFailure(httpStatusCode)
         }
     }
 }
