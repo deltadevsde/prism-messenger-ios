@@ -120,7 +120,7 @@ struct ProfileView: View {
         .onAppear {
             loadCurrentUser()
         }
-        .onChange(of: appLaunch.selectedUsername) { _ in
+        .onChange(of: appLaunch.selectedUsername) {
             loadCurrentUser()
         }
     }

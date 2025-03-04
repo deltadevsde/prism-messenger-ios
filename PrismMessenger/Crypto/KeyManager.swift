@@ -11,7 +11,7 @@ import LocalAuthentication
 import Security
 import Foundation
 
-enum KeyServiceError: Error {
+enum KeyManagerError: Error {
     case fetchingFromKeychainFailed
     case publicKeyDerivationFailed
     case keyConversionFailed
@@ -92,7 +92,7 @@ class KeyManager {
     
     private func getPrivateKeyData() throws -> Data {
         guard let data = try keychain.getData(Self.identityPrivateKeyTag) else {
-            throw KeyServiceError.fetchingFromKeychainFailed
+            throw KeyManagerError.fetchingFromKeychainFailed
         }
         return data
     }

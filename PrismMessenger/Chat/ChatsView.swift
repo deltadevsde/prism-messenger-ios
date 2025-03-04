@@ -338,7 +338,7 @@ struct NewChatView: View {
                     isLoading = false
                     dismiss()
                 }
-            } catch KeyError.userNotFound {
+            } catch KeyServiceError.userNotFound {
                 DispatchQueue.main.async {
                     errorMessage = "User not found. Please check the username."
                     isLoading = false
