@@ -11,10 +11,11 @@ import CryptoKit
 
 class ChatManager {
     private let modelContext: ModelContext
-    weak var appLaunch: AppLaunch?
+    private let userManager: UserManager
     
-    init(modelContext: ModelContext) {
+    init(modelContext: ModelContext, userManager: UserManager) {
         self.modelContext = modelContext
+        self.userManager = userManager
     }
     
     /// Creates a new chat from an X3DH handshake and stores it in SwiftData
@@ -313,7 +314,7 @@ class ChatManager {
         // 3. Convert decrypted data to a string
         guard let content = String(data: decryptedData, encoding: .utf8) else {
             print("DEBUG: Failed to decode string from data")
-            throw MessageError.messageDecodingFailed
+            throw MessageServiceError.messageDecodingFailed
         }
         print("DEBUG: Decoded message: \(content)")
         
@@ -405,20 +406,10 @@ class ChatManager {
         return okm
     }
     
-    /// Get the current user's username from appLaunch
+    /// Get the current user's username from userManager
     /// - Returns: The current user's username
     @MainActor
     private func getCurrentUsername() throws -> String {
-        if let username = appLaunch?.selectedUsername, !username.isEmpty {
-            return username
-        }
-        
-        // Try to get any user from the database
-        let descriptor = FetchDescriptor<UserData>()
-        let users = try modelContext.fetch(descriptor)
-        if let firstUser = users.first {
-            return firstUser.username
-        }
-        throw MessageError.unauthorized
+        return try userManager.getCurrentUsername()
     }
 }

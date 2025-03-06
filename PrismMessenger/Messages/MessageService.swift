@@ -9,12 +9,10 @@ import Foundation
 import CryptoKit
 import SwiftData
 
-enum MessageError: Error {
-    case networkFailure(Int)
+// MessageError defined in BackendGateway.swift
+enum MessageServiceError: Error {
     case messageEncryptionFailed
     case messageDecodingFailed
-    case unauthorized
-    case serverError
 }
 
 // MARK: - API Request/Response Models
@@ -51,13 +49,18 @@ struct MarkDeliveredRequest: Encodable {
 class MessageService: ObservableObject {
     private let restClient: RestClient
     private let modelContext: ModelContext
-    weak var appLaunch: AppLaunch?
+    private let userManager: UserManager
+    private let keyService: KeyService
     weak var appContext: AppContext?
     
-    init(restClient: RestClient, modelContext: ModelContext) {
+    init(restClient: RestClient, modelContext: ModelContext, userManager: UserManager, keyService: KeyService) {
         self.restClient = restClient
         self.modelContext = modelContext
+        self.userManager = userManager
+        self.keyService = keyService
     }
+    
+    // Circular dependency handling
     
     /// Sends a message to another user
     /// - Parameters:
@@ -85,24 +88,6 @@ class MessageService: ObservableObject {
                 throw MessageError.networkFailure(statusCode)
             }
         }
-    }
-    
-    /// Gets the current username from appLaunch or database
-    /// - Returns: The current username
-    @MainActor
-    func getCurrentUsername() throws -> String {
-        // First try appLaunch
-        if let username = appLaunch?.selectedUsername, !username.isEmpty {
-            return username
-        }
-        
-        // Then try the database directly
-        let descriptor = FetchDescriptor<UserData>()
-        let users = try modelContext.fetch(descriptor)
-        if let firstUser = users.first {
-            return firstUser.username
-        }
-        throw MessageError.unauthorized
     }
     
     /// Fetches all available messages for the current user
@@ -174,13 +159,8 @@ class MessageService: ObservableObject {
     ) async throws -> [UUID] {
         var processedMessageIds: [UUID] = []
         
-        print("DEBUG: Processing \(messages.count) messages for user \(currentUser)")
-        
         for apiMessage in messages {
-            print("DEBUG: Processing message ID: \(apiMessage.message_id) from \(apiMessage.sender_id)")
-            
             do {
-                
                 let drMessage = apiMessage.message
                 
                 // Get or create the chat for this sender
@@ -189,46 +169,35 @@ class MessageService: ObservableObject {
                     chat = existingChat
                 } else {
                     // We have an incoming message from an unknown sender - try to establish X3DH
-                    print("Received message from unknown sender, establishing secure channel with X3DH")
-                    
                     do {
-                        guard let keyBundle = try await appContext?.keyService.getKeyBundle(username: apiMessage.sender_id) else {
-                            print("Failed to get key bundle for \(apiMessage.sender_id)")
-                            // TODO: Throw error?
-                            continue
+                        let keyBundle = try await keyService.getKeyBundle(username: apiMessage.sender_id)
+                        
+                        let senderEphemeralKey: P256.KeyAgreement.PublicKey
+                        if #available(iOS 17.0, *) {
+                            // For iOS 17+, use ephemeralKey as Data directly
+                            senderEphemeralKey = try P256.KeyAgreement.PublicKey(rawRepresentation: drMessage.header.ephemeralKey)
+                        } else {
+                            // For older iOS versions, we need to get it from the header
+                            senderEphemeralKey = try parseEphemeralKey(from: drMessage)
                         }
                         
-                        print("DEBUG: Got key bundle for \(apiMessage.sender_id)")
-                        print("DEBUG: Identity key representation size: \(keyBundle.identity_key.rawRepresentation.count)")
-                        print("DEBUG: Identity key compressed size: \(keyBundle.identity_key.compressedRepresentation.count)")
-                        print("DEBUG: Message header dump: \(drMessage.header)")
-                        
-                        var senderEphemeralKey = drMessage.header.ephemeral_key
-                        
-                        print("DEBUG: Converting identity key")
                         let senderIdentityKA = try P256.KeyAgreement.PublicKey(
                             compressedRepresentation: keyBundle.identity_key.compressedRepresentation
                         )
                         
                         guard let keyManager = appContext?.keyManager else {
-                            print("KeyManager not available")
-                            // TODO: Throw error
                             continue
                         }
                         
-                        // 5. Create the secure chat using X3DH passive mode
+                        // Create the secure chat using X3DH passive mode
                         chat = try await chatManager.createChatFromIncomingMessage(
                             senderUsername: apiMessage.sender_id,
                             senderIdentityKey: senderIdentityKA,
                             senderEphemeralKey: senderEphemeralKey,
-                            usedPrekeyId: drMessage.header.one_time_prekey_id,
+                            usedPrekeyId: drMessage.header.oneTimePrekeyID,
                             keyManager: keyManager
                         )
-                        
-                        print("Successfully established secure channel with \(apiMessage.sender_id)")
                     } catch {
-                        print("Failed to establish secure channel: \(error)")
-                        // TODO: throw
                         continue
                     }
                 }
@@ -244,10 +213,18 @@ class MessageService: ObservableObject {
                     processedMessageIds.append(apiMessage.message_id)
                 }
             } catch {
-                print("Failed to process message: \(error)")
+                // Continue with other messages if one fails
             }
         }
         
         return processedMessageIds
+    }
+    
+    // Helper methods for parsing message components
+    private func parseEphemeralKey(from message: DoubleRatchetMessage) throws -> P256.KeyAgreement.PublicKey {
+        // Implementation depends on DoubleRatchetMessage structure
+        // This is a fallback method for older iOS versions
+        let rawRepresentation = message.header.ephemeralKey
+        return try P256.KeyAgreement.PublicKey(rawRepresentation: rawRepresentation)
     }
 }
