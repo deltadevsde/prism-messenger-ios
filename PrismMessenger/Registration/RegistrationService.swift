@@ -13,6 +13,7 @@ enum RegistrationError: Error {
     case unableToSignChallenge
     case invalidChallenge
     case unknown
+    case usernameTaken
 }
 
 struct RegistrationRequestData: Encodable {

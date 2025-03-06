@@ -54,6 +54,19 @@ class RestClient {
 
         return httpResponse
     }
+    
+    func getResponse(from path: String) async throws -> HTTPURLResponse {
+        var request = URLRequest(url: baseURL.appendingPathComponent(path))
+        request.httpMethod = "GET"
+        
+        let (_, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw RestClientError.unknown
+        }
+        
+        return httpResponse
+    }
 
     func fetch<T: Decodable>(from path: String) async throws -> T {
         print(path)

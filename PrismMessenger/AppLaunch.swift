@@ -8,7 +8,6 @@
 import Foundation
 import SwiftData
 
-
 @MainActor
 class AppLaunch: ObservableObject {
     enum LoadingState {
@@ -19,24 +18,20 @@ class AppLaunch: ObservableObject {
     }
     
     @Published private(set) var state: LoadingState = .loading
-    @Published var selectedUsername: String?
     
-    func initialize(modelContext: ModelContext) async {
+    func initialize(modelContext: ModelContext, userManager: UserManager) async {
         state = .loading
         do {
             try await Task.sleep(nanoseconds: 1000000000)
             
             // Check if we have any existing users in the database
-            let descriptor = FetchDescriptor<UserData>()
-            let users = try modelContext.fetch(descriptor)
+            let users = try userManager.getAllUsers()
             
             if users.isEmpty {
-                // Keep the default username to prevent unauthorized errors
-                // No registered users, show the onboarding flow
                 state = .unregistered
-            } else  {
-                // Only one user, automatically select it
-                selectedUsername = users[0].username
+            } else {
+                // Select the first user automatically
+                userManager.selectUser(users[0].username)
                 state = .ready
             }
         } catch {
@@ -44,17 +39,15 @@ class AppLaunch: ObservableObject {
         }
     }
     
-    func selectAccount(username: String) {
-        selectedUsername = username
+    func setRegistered() {
         state = .ready
     }
     
-    func createNewAccount() {
+    func setUnregistered() {
         state = .unregistered
     }
     
-    func setRegistered(username: String) {
-        selectedUsername = username
-        state = .ready
+    func setError() {
+        state = .error
     }
 }
