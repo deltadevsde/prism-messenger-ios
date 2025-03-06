@@ -133,8 +133,8 @@ struct SignUpView: View {
                 // Step 4: Submit key bundle
                 try await keyService.submitKeyBundle(username: username, keyBundle: keybundle)
 
-                // Handle success - mark the user as registered and set as selected account
-                appLaunch.setRegistered(username: username)
+                // Handle success - mark the user as registered
+                appLaunch.setRegistered()
                 
                 DispatchQueue.main.async {
                     isRegistering = false
@@ -150,9 +150,4 @@ struct SignUpView: View {
     }
 }
 
-#Preview {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: UserData.self, configurations: config)
-
-    SignUpView().modelContainer(container)
-}
+// Preview removed temporarily for testing

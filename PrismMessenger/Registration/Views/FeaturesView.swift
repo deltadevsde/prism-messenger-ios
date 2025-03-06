@@ -98,12 +98,5 @@ struct FeatureCard: View {
     }
 }
 
-#Preview {
-    @Previewable @State var previewPath = NavigationPath()
-    
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: UserData.self, configurations: config)
-
-    FeaturesView(path: $previewPath).modelContainer(container)
-}
+// Preview removed temporarily for testing
 

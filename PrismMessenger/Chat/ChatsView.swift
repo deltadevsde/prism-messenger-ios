@@ -84,9 +84,6 @@ struct ChatsView: View {
         .onAppear {
             loadChats()
         }
-        .onChange(of: appLaunch.selectedUsername) { _ in
-            loadChats()
-        }
         .onChange(of: refreshTrigger) { _ in
             loadChats()
         }
@@ -99,19 +96,15 @@ struct ChatsView: View {
     private func loadChats() {
         Task {
             do {
-                // First try to get the selected username
-                var username: String
-                if let selected = appLaunch.selectedUsername, !selected.isEmpty {
-                    username = selected
-                } else {
-                    // Fall back to first user in database
-                    let userDescriptor = FetchDescriptor<UserData>()
-                    let users = try modelContext.fetch(userDescriptor)
-                    guard let firstUser = users.first else {
+                // Get the current username from the UserManager
+                let username: String
+                do {
+                    username = try await MainActor.run { try appContext.userManager.getCurrentUsername() }
+                } catch {
+                    DispatchQueue.main.async {
                         self.currentChats = []
-                        return
                     }
-                    username = firstUser.username
+                    return
                 }
                 
                 // Get chats that have the current user as the owner
@@ -296,9 +289,18 @@ struct NewChatView: View {
                 }
                 
                 // 1. Try to get the key bundle
-                guard let keyBundle = try await appContext.keyService.getKeyBundle(username: username) else {
+                let keyBundle: KeyBundle
+                do {
+                    keyBundle = try await appContext.keyService.getKeyBundle(username: username)
+                } catch KeyError.userNotFound {
                     DispatchQueue.main.async {
                         errorMessage = "User does not exist"
+                        isLoading = false
+                    }
+                    return
+                } catch {
+                    DispatchQueue.main.async {
+                        errorMessage = "Failed to fetch key bundle: \(error.localizedDescription)"
                         isLoading = false
                     }
                     return
@@ -358,41 +360,4 @@ struct NewChatView: View {
     }
 }
 
-#Preview {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: UserData.self, ChatData.self, MessageData.self, configurations: config)
-    let context = ModelContext(container)
-    
-    // Create sample data for the preview
-    let chatData1 = ChatData(
-        participantUsername: "johndoe", 
-        ownerUsername: "alice",
-        displayName: "John Doe", 
-        doubleRatchetSession: Data()
-    )
-    let message1 = MessageData(content: "Hello there!", isFromMe: false)
-    message1.chat = chatData1
-    chatData1.addMessage(message1)
-    
-    let chatData2 = ChatData(
-        participantUsername: "sarahsmith", 
-        ownerUsername: "alice",
-        displayName: "Sarah Smith", 
-        doubleRatchetSession: Data()
-    )
-    let message2 = MessageData(content: "Can't wait to see you tomorrow!", isFromMe: true)
-    message2.chat = chatData2
-    chatData2.addMessage(message2)
-    
-    context.insert(chatData1)
-    context.insert(chatData2)
-    
-    let appContext = try! AppContext(modelContext: context)
-    let appLaunch = AppLaunch()
-    appLaunch.selectAccount(username: "alice")
-    
-    return ChatsView()
-        .modelContainer(container)
-        .environmentObject(appContext)
-        .environmentObject(appLaunch)
-}
+// Preview removed temporarily for testing
