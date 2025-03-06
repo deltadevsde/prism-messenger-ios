@@ -260,10 +260,10 @@ final class DoubleRatchetSession: Codable {
         
         // Construct the header using our local ephemeral public key.
         let header = DoubleRatchetHeader(
-            ephemeral_key: localEphemeral.publicKey,
-            message_number: currentMessageNumber,
-            previous_message_number: self.previousSendMessageNumber,
-            one_time_prekey_id: self.prekeyID
+            ephemeralKey: localEphemeral.publicKey.rawRepresentation,
+            messageNumber: currentMessageNumber,
+            previousMessageNumber: self.previousSendMessageNumber,
+            oneTimePrekeyID: self.prekeyID
         )
         
         // If using a prekey ID, don't use it again, it was just to establish the chain
@@ -303,27 +303,26 @@ final class DoubleRatchetSession: Codable {
         }
         
         // If we have a cached key from a previous skip, use it.
-        if let cachedKey = skippedMessageKeys[header.message_number] {
-            skippedMessageKeys.removeValue(forKey: header.message_number)
+        if let cachedKey = skippedMessageKeys[header.messageNumber] {
+            skippedMessageKeys.removeValue(forKey: header.messageNumber)
             let symmetricKey = SymmetricKey(data: cachedKey)
-            
-            print("DEBUG: Using zero nonce for cached key decryption")
             return try decryptCiphertext(ciphertext, using: symmetricKey, nonce: nonce)
         }
         
-        let headerRemoteEphemeral = header.ephemeral_key
+        // Convert the ephemeral key from raw representation
+        let headerRemoteEphemeral = try P256.KeyAgreement.PublicKey(rawRepresentation: header.ephemeralKey)
         
         // If the sender's ephemeral key has changed, perform a DH ratchet step.
         if self.remoteEphemeral == nil || self.remoteEphemeral!.rawRepresentation != headerRemoteEphemeral.rawRepresentation {
-            if header.previous_message_number > self.recvMessageNumber {
-                try skipRecvMessageKeys(until: header.previous_message_number)
+            if header.previousMessageNumber > self.recvMessageNumber {
+                try skipRecvMessageKeys(until: header.previousMessageNumber)
             }
             try performDHRatchet(with: headerRemoteEphemeral)
         }
         
         // If the message number is ahead, skip (and cache) keys until we reach it.
-        if header.message_number > self.recvMessageNumber {
-            try skipRecvMessageKeys(until: header.message_number)
+        if header.messageNumber > self.recvMessageNumber {
+            try skipRecvMessageKeys(until: header.messageNumber)
         }
         
         // Now, derive the message key for the current recvMessageNumber.

@@ -31,14 +31,16 @@ final class DoubleRatchetTests: XCTestCase {
         let bobEphemeral = P256.KeyAgreement.PrivateKey()
         
         // Initialize sessions.
-        // Alice (sender) uses Bob’s public key as remote ephemeral.
+        // Alice (sender) uses Bob's public key as remote ephemeral.
         let aliceSession = DoubleRatchetSession(initialRootKey: initialRootKey,
                                                 localEphemeral: aliceEphemeral,
-                                                remoteEphemeral: bobEphemeral.publicKey)
-        // Bob (receiver) uses Alice’s public key as remote ephemeral.
+                                                remoteEphemeral: bobEphemeral.publicKey,
+                                                prekeyID: nil)
+        // Bob (receiver) uses Alice's public key as remote ephemeral.
         let bobSession = DoubleRatchetSession(initialRootKey: initialRootKey,
                                               localEphemeral: bobEphemeral,
-                                              remoteEphemeral: aliceEphemeral.publicKey)
+                                              remoteEphemeral: aliceEphemeral.publicKey,
+                                              prekeyID: nil)
         
         // Alice encrypts the first message.
         let plaintext1 = "Hello Bob, message 1".data(using: .utf8)!
@@ -66,10 +68,12 @@ final class DoubleRatchetTests: XCTestCase {
         
         let aliceSession = DoubleRatchetSession(initialRootKey: initialRootKey,
                                                 localEphemeral: aliceEphemeral,
-                                                remoteEphemeral: bobEphemeral.publicKey)
+                                                remoteEphemeral: bobEphemeral.publicKey,
+                                                prekeyID: nil)
         let bobSession = DoubleRatchetSession(initialRootKey: initialRootKey,
                                               localEphemeral: bobEphemeral,
-                                              remoteEphemeral: aliceEphemeral.publicKey)
+                                              remoteEphemeral: aliceEphemeral.publicKey,
+                                              prekeyID: nil)
         
         // Alice sends three messages.
         let plaintexts: [Data] = [
@@ -106,10 +110,12 @@ final class DoubleRatchetTests: XCTestCase {
         
         let aliceSession = DoubleRatchetSession(initialRootKey: initialRootKey,
                                                 localEphemeral: aliceEphemeral,
-                                                remoteEphemeral: bobEphemeral.publicKey)
+                                                remoteEphemeral: bobEphemeral.publicKey,
+                                                prekeyID: nil)
         let bobSession = DoubleRatchetSession(initialRootKey: initialRootKey,
                                               localEphemeral: bobEphemeral,
-                                              remoteEphemeral: aliceEphemeral.publicKey)
+                                              remoteEphemeral: aliceEphemeral.publicKey,
+                                              prekeyID: nil)
         
         // First message before the DH ratchet update.
         let plaintext1 = "Message before DH ratchet update".data(using: .utf8)!
@@ -135,10 +141,12 @@ final class DoubleRatchetTests: XCTestCase {
         
         let aliceSession = DoubleRatchetSession(initialRootKey: initialRootKey,
                                                 localEphemeral: aliceEphemeral,
-                                                remoteEphemeral: bobEphemeral.publicKey)
+                                                remoteEphemeral: bobEphemeral.publicKey,
+                                                prekeyID: nil)
         let bobSession = DoubleRatchetSession(initialRootKey: initialRootKey,
                                               localEphemeral: bobEphemeral,
-                                              remoteEphemeral: aliceEphemeral.publicKey)
+                                              remoteEphemeral: aliceEphemeral.publicKey,
+                                              prekeyID: nil)
         
         let plaintext = "Tampered ciphertext test".data(using: .utf8)!
         let encryptedMessage = try aliceSession.encrypt(plaintext: plaintext)
@@ -164,10 +172,12 @@ final class DoubleRatchetTests: XCTestCase {
         
         let aliceSession = DoubleRatchetSession(initialRootKey: initialRootKey,
                                                 localEphemeral: aliceEphemeral,
-                                                remoteEphemeral: bobEphemeral.publicKey)
+                                                remoteEphemeral: bobEphemeral.publicKey,
+                                                prekeyID: nil)
         let bobSession = DoubleRatchetSession(initialRootKey: initialRootKey,
                                               localEphemeral: bobEphemeral,
-                                              remoteEphemeral: aliceEphemeral.publicKey)
+                                              remoteEphemeral: aliceEphemeral.publicKey,
+                                              prekeyID: nil)
         
         let plaintext = "Invalid nonce test".data(using: .utf8)!
         let message = try aliceSession.encrypt(plaintext: plaintext)
@@ -190,10 +200,12 @@ final class DoubleRatchetTests: XCTestCase {
         
         let aliceSession = DoubleRatchetSession(initialRootKey: initialRootKey,
                                                 localEphemeral: aliceEphemeral,
-                                                remoteEphemeral: bobEphemeral.publicKey)
+                                                remoteEphemeral: bobEphemeral.publicKey,
+                                                prekeyID: nil)
         let bobSession = DoubleRatchetSession(initialRootKey: initialRootKey,
                                               localEphemeral: bobEphemeral,
-                                              remoteEphemeral: aliceEphemeral.publicKey)
+                                              remoteEphemeral: aliceEphemeral.publicKey,
+                                              prekeyID: nil)
         
         let plaintext = "Replay message test".data(using: .utf8)!
         let message = try aliceSession.encrypt(plaintext: plaintext)
@@ -215,10 +227,12 @@ final class DoubleRatchetTests: XCTestCase {
         
         let aliceSession = DoubleRatchetSession(initialRootKey: initialRootKey,
                                                 localEphemeral: aliceEphemeral,
-                                                remoteEphemeral: bobEphemeral.publicKey)
+                                                remoteEphemeral: bobEphemeral.publicKey,
+                                                prekeyID: nil)
         let bobSession = DoubleRatchetSession(initialRootKey: initialRootKey,
                                               localEphemeral: bobEphemeral,
-                                              remoteEphemeral: aliceEphemeral.publicKey)
+                                              remoteEphemeral: aliceEphemeral.publicKey,
+                                              prekeyID: nil)
         
         let plaintext = "Tampered header test".data(using: .utf8)!
         let message = try aliceSession.encrypt(plaintext: plaintext)
