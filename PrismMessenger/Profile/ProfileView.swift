@@ -11,6 +11,7 @@ import CryptoKit
 
 struct ProfileView: View {
     @EnvironmentObject private var appLaunch: AppLaunch
+    @EnvironmentObject private var appContext: AppContext
     @Environment(\.modelContext) private var modelContext
     @State private var isEditingDisplayName = false
     @State private var newDisplayName = ""
@@ -120,40 +121,35 @@ struct ProfileView: View {
         .onAppear {
             loadCurrentUser()
         }
-        .onChange(of: appLaunch.selectedUsername) { _ in
-            loadCurrentUser()
-        }
     }
     
     private func loadCurrentUser() {
         Task {
             do {
-                // Try with selectedUsername first if available
-                if let selectedUsername = appLaunch.selectedUsername {
-                    let userDescriptor = FetchDescriptor<UserData>(
-                        predicate: #Predicate<UserData> { user in
-                            user.username == selectedUsername
-                        }
-                    )
-                    
-                    let users = try modelContext.fetch(userDescriptor)
-                    if let user = users.first {
-                        currentUser = user
-                        return
+                // Get the current username from the UserManager
+                let username = try await MainActor.run { try appContext.userManager.getCurrentUsername() }
+                
+                let userDescriptor = FetchDescriptor<UserData>(
+                    predicate: #Predicate<UserData> { user in
+                        user.username == username
                     }
-                }
+                )
                 
-                // If selectedUsername is nil or not found, try to get the first user
-                let allUserDescriptor = FetchDescriptor<UserData>()
-                let allUsers = try modelContext.fetch(allUserDescriptor)
-                
-                if let firstUser = allUsers.first {
-                    currentUser = firstUser
-                    
-                    // Update AppLaunch selectedUsername to match
-                    appLaunch.selectAccount(username: firstUser.username)
+                let users = try modelContext.fetch(userDescriptor)
+                if let user = users.first {
+                    currentUser = user
                 } else {
-                    currentUser = nil
+                    // If user not found, try to get any user
+                    let allUserDescriptor = FetchDescriptor<UserData>()
+                    let allUsers = try modelContext.fetch(allUserDescriptor)
+                    
+                    if let firstUser = allUsers.first {
+                        currentUser = firstUser
+                        // Update UserManager with the found user
+                        appContext.userManager.selectUser(firstUser.username)
+                    } else {
+                        currentUser = nil
+                    }
                 }
             } catch {
                 currentUser = nil
@@ -177,7 +173,7 @@ struct ProfileView: View {
                     LazyVStack(spacing: 10) {
                         ForEach(allUsers) { user in
                             Button(action: {
-                                appLaunch.selectAccount(username: user.username)
+                                appContext.userManager.selectUser(user.username)
                                 showingAccountSelection = false
                             }) {
                                 HStack {
@@ -193,7 +189,7 @@ struct ProfileView: View {
                                     
                                     Spacer()
                                     
-                                    if user.username == appLaunch.selectedUsername {
+                                    if appContext.userManager.currentUsername == user.username {
                                         Image(systemName: "checkmark")
                                             .foregroundColor(.blue)
                                     }
@@ -216,7 +212,7 @@ struct ProfileView: View {
             
             // Create new account button
             Button(action: {
-                appLaunch.createNewAccount()
+                appLaunch.setUnregistered()
                 showingAccountSelection = false
             }) {
                 HStack {
@@ -288,9 +284,7 @@ struct ProfileImageView: View {
     }
 }
 
-#Preview {
-    ProfileView().modelContainer(DataController.previewContainer)
-}
+// Preview removed temporarily for testing
 
 @MainActor
 class DataController {
