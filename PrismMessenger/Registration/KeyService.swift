@@ -9,10 +9,9 @@ import Foundation
 import CryptoKit
 
 // TODO(@distractedm1nd): KeyServiceError already exists, fix naming
-enum KeyError: Error {
+// KeyError is defined in BackendGateway.swift
+enum KeyServiceError: Error {
     case unableToRetrieveKey
-    case networkFailure(Int)
-    case userNotFound
 }
 
 struct PrivatePrekey: Codable {
@@ -36,15 +35,7 @@ struct KeyBundle: Codable {
     var prekeys: [Prekey]
 }
 
-struct KeyBundleResponse: Codable {
-    var key_bundle: KeyBundle?
-    // TODO: Account and HashedMerkleProof
-}
-
-struct UploadKeyBundleRequest: Codable {
-    var user_id: String
-    var keybundle: KeyBundle
-}
+// KeyBundleResponse and UploadKeyBundleRequest are defined in BackendGateway.swift
 
 class KeyService: ObservableObject {
     private let restClient: RestClient
@@ -87,10 +78,13 @@ class KeyService: ObservableObject {
     }
     
     /// Fetches a key bundle for a specific user from the server
-    func getKeyBundle(username: String) async throws -> KeyBundle? {
+    func getKeyBundle(username: String) async throws -> KeyBundle {
         do {
-            let keyBundle: KeyBundleResponse = try await restClient.fetch(from: "/keys/bundle/\(username)")
-            return keyBundle.key_bundle
+            let response: KeyBundleResponse = try await restClient.fetch(from: "/keys/bundle/\(username)")
+            guard let keyBundle = response.key_bundle else {
+                throw KeyError.userNotFound
+            }
+            return keyBundle
         } catch RestClientError.httpError(let httpStatusCode) {
             if httpStatusCode == 404 {
                 throw KeyError.userNotFound
