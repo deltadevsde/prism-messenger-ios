@@ -19,24 +19,27 @@ class AppLaunch: ObservableObject {
     }
     
     @Published private(set) var state: LoadingState = .loading
-    @Published var selectedUsername: String?
+    private var userManager: UserManager?
     
-    func initialize(modelContext: ModelContext) async {
+    var selectedUsername: String? {
+        userManager?.selectedUsername
+    }
+    
+    func initialize(modelContext: ModelContext, userManager: UserManager) async {
+        self.userManager = userManager
         state = .loading
+        
         do {
             try await Task.sleep(nanoseconds: 1000000000)
             
-            // Check if we have any existing users in the database
-            let descriptor = FetchDescriptor<UserData>()
-            let users = try modelContext.fetch(descriptor)
+            // Use UserManager to check for existing users
+            let hasUsers = try await userManager.initialize()
             
-            if users.isEmpty {
-                // Keep the default username to prevent unauthorized errors
+            if !hasUsers {
                 // No registered users, show the onboarding flow
                 state = .unregistered
-            } else  {
-                // Only one user, automatically select it
-                selectedUsername = users[0].username
+            } else {
+                // UserManager has selected a user
                 state = .ready
             }
         } catch {
@@ -45,7 +48,7 @@ class AppLaunch: ObservableObject {
     }
     
     func selectAccount(username: String) {
-        selectedUsername = username
+        userManager?.selectAccount(username: username)
         state = .ready
     }
     
@@ -54,7 +57,7 @@ class AppLaunch: ObservableObject {
     }
     
     func setRegistered(username: String) {
-        selectedUsername = username
+        userManager?.setRegistered(username: username)
         state = .ready
     }
 }

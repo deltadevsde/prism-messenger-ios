@@ -13,7 +13,7 @@ import SwiftData
 
 protocol MessageServiceProtocol {
     func sendMessage(_ message: DoubleRatchetMessage, from sender: String, to recipient: String) async throws -> SendMessageResponse
-    func getCurrentUsername() throws -> String
+    func getCurrentUsername() async throws -> String
     func fetchMessages(for username: String) async throws -> [APIMessage]
     func markMessagesAsDelivered(messageIds: [UUID], for username: String) async throws
     func processReceivedMessages(

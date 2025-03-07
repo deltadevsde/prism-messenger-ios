@@ -90,7 +90,7 @@ class MessageService: ObservableObject, MessageServiceProtocol {
     /// Gets the current username from appLaunch or database
     /// - Returns: The current username
     @MainActor
-    func getCurrentUsername() throws -> String {
+    func getCurrentUsername() async throws -> String {
         // First try appLaunch
         if let username = appLaunch?.selectedUsername, !username.isEmpty {
             return username

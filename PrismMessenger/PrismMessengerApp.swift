@@ -52,11 +52,13 @@ struct PrismMessengerApp: App {
                 // Get a ModelContext from the environment
                 let context = ModelContext(SwiftDataConfig.sharedModelContainer)
                 
-                // First initialize AppLaunch to set up the username
-                await appLaunch.initialize(modelContext: context)
-                
-                // Create AppContext with the initialized AppLaunch
+                // Create AppContext first to initialize UserManager
                 let appContext = try AppContext(modelContext: context)
+                
+                // Initialize AppLaunch with the UserManager
+                await appLaunch.initialize(modelContext: context, userManager: appContext.userManager)
+                
+                // Set the initialized AppLaunch in AppContext
                 appContext.setAppLaunch(appLaunch)
                 self.appContext = appContext
             } catch {

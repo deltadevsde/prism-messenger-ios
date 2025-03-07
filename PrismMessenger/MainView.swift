@@ -74,7 +74,8 @@ struct MainView: View {
             
             Button("Try Again") {
                 Task {
-                    await appLaunch.initialize(modelContext: modelContext)
+                    // We have direct access to appContext as an @EnvironmentObject
+                    await appLaunch.initialize(modelContext: modelContext, userManager: appContext.userManager)
                 }
             }
             .buttonStyle(.borderedProminent)
@@ -120,7 +121,11 @@ struct MainView: View {
     // Create a context for preview
     let appContext = try! AppContext(modelContext: context)
     
+    // Create AppLaunch
+    let appLaunch = AppLaunch()
+    
     return MainView()
         .modelContainer(container)
         .environmentObject(appContext)
+        .environmentObject(appLaunch)
 }

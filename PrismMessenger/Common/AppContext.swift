@@ -8,12 +8,14 @@
 import Foundation
 import SwiftData
 
+@MainActor
 class AppContext: ObservableObject {
     // Make keyManager accessible since it's needed for X3DH processing
     let keyManager: KeyManager
     let backendGateway: BackendGatewayProtocol
     let chatManager: ChatManager
     let modelContext: ModelContext
+    let userManager: UserManager
     weak var appLaunch: AppLaunch?
     
     // Convenience properties for backward compatibility
@@ -23,6 +25,10 @@ class AppContext: ObservableObject {
     
     init(modelContext: ModelContext) throws {
         self.modelContext = modelContext
+        
+        // Initialize UserManager (since it has @MainActor methods but is not fully isolated)
+        let userManager = UserManager(modelContext: modelContext)
+        self.userManager = userManager
         
         // Initialize KeyManager
         self.keyManager = KeyManager()
@@ -60,19 +66,11 @@ class AppContext: ObservableObject {
     /// - Returns: The number of new messages processed
     @MainActor
     func fetchAndProcessMessages() async throws -> Int {
-        // Get the currently selected username from appLaunch, or fall back to the first user
-        guard let username = appLaunch?.selectedUsername else {
-            // Fallback to first user if appLaunch.selectedUsername is not set
-            let descriptor = FetchDescriptor<UserData>()
-            let users = try modelContext.fetch(descriptor)
-            guard let user = users.first else {
-                return 0
-            }
-            
-            return try await processMessagesForUser(user.username)
+        guard let currentUser = try userManager.getCurrentUser() else {
+            return 0
         }
         
-        return try await processMessagesForUser(username)
+        return try await processMessagesForUser(currentUser.username)
     }
     
     /// Helper method to process messages for a specific username
@@ -112,18 +110,7 @@ class AppContext: ObservableObject {
     /// - Returns: The current user's UserData
     @MainActor
     private func getCurrentUserData() throws -> UserData {
-        guard let selectedUsername = appLaunch?.selectedUsername else {
-            throw MessageError.unauthorized
-        }
-        
-        let descriptor = FetchDescriptor<UserData>(
-            predicate: #Predicate<UserData> { user in
-                user.username == selectedUsername
-            }
-        )
-        
-        let users = try modelContext.fetch(descriptor)
-        guard let currentUser = users.first else {
+        guard let currentUser = try userManager.getCurrentUser() else {
             throw MessageError.unauthorized
         }
         
