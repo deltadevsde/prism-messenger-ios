@@ -187,7 +187,7 @@ struct ChatView: View {
                 _ = try await appContext.chatManager.sendMessage(
                     content: messageToSend, 
                     in: chat,
-                    messageService: appContext.messageService
+                    messageService: appContext.backendGateway.messageService
                 )
                 
                 DispatchQueue.main.async {

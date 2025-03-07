@@ -216,12 +216,12 @@ class ChatManager {
     /// - Parameters:
     ///   - content: The message content
     ///   - chat: The chat to send the message in
-    ///   - messageService: Optional MessageService to send the message to the server
+    ///   - messageService: Optional MessageServiceProtocol to send the message to the server
     /// - Returns: The created MessageData object
     func sendMessage(
         content: String, 
         in chat: ChatData,
-        messageService: MessageService? = nil
+        messageService: MessageServiceProtocol? = nil
     ) async throws -> MessageData {
         // 1. Deserialize the Double Ratchet session
         let session = try deserializeDoubleRatchetSession(from: chat.doubleRatchetSession)

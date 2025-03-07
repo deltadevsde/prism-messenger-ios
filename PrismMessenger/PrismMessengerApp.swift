@@ -33,8 +33,6 @@ struct PrismMessengerApp: App {
                 if let appContext = appContext {
                     MainView()
                         .environmentObject(appContext)
-                        .environmentObject(appContext.keyService)
-                        .environmentObject(appContext.signupService)
                         .environmentObject(appLaunch)
                 } else {
                     LoadingView()

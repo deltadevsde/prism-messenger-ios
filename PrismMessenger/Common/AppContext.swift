@@ -11,38 +11,45 @@ import SwiftData
 class AppContext: ObservableObject {
     // Make keyManager accessible since it's needed for X3DH processing
     let keyManager: KeyManager
-    private let restClient: RestClient
-    let signupService: RegistrationService
-    let keyService: KeyService
+    let backendGateway: BackendGatewayProtocol
     let chatManager: ChatManager
-    let messageService: MessageService
     let modelContext: ModelContext
     weak var appLaunch: AppLaunch?
     
+    // Convenience properties for backward compatibility
+    var signupService: RegistrationServiceProtocol { backendGateway.registrationService }
+    var keyService: KeyServiceProtocol { backendGateway.keyService }
+    var messageService: MessageServiceProtocol { backendGateway.messageService }
+    
     init(modelContext: ModelContext) throws {
         self.modelContext = modelContext
-        let restClient = try RestClient(baseURLStr: "http://127.0.0.1:48080")
-        self.restClient = restClient
         
-        keyManager = KeyManager()
-        signupService = RegistrationService(restClient: restClient, keyManager: keyManager)
-        keyService = KeyService(restClient: restClient, keyManager: keyManager)
-        chatManager = ChatManager(modelContext: modelContext)
-        messageService = MessageService(restClient: restClient, modelContext: modelContext)
+        // Initialize KeyManager
+        self.keyManager = KeyManager()
         
-        // Set appLaunch property for both services (will be updated after init)
+        // Create the BackendGateway
+        let gateway = try BackendGateway(modelContext: modelContext)
+        self.backendGateway = gateway
+        
+        // Initialize ChatManager
+        self.chatManager = ChatManager(modelContext: modelContext)
+        
+        // Set appLaunch property for ChatManager (will be updated after init)
         chatManager.appLaunch = appLaunch
-        messageService.appLaunch = appLaunch
         
         // Set circular references
-        messageService.appContext = self
+        gateway.setAppContext(self)
     }
     
     // Update appLaunch reference
     func setAppLaunch(_ appLaunch: AppLaunch) {
         self.appLaunch = appLaunch
         chatManager.appLaunch = appLaunch
-        messageService.appLaunch = appLaunch
+        
+        // Update appLaunch in BackendGateway
+        if let gateway = backendGateway as? BackendGateway {
+            gateway.setAppLaunch(appLaunch)
+        }
     }
     
     func createX3DHSession() throws -> X3DH {

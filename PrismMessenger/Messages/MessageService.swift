@@ -47,8 +47,8 @@ struct MarkDeliveredRequest: Encodable {
     var message_ids: [UUID]
 }
 
-/// Service for sending and receiving messages
-class MessageService: ObservableObject {
+/// Concrete implementation of the MessageServiceProtocol
+class MessageService: ObservableObject, MessageServiceProtocol {
     private let restClient: RestClient
     private let modelContext: ModelContext
     weak var appLaunch: AppLaunch?
@@ -192,7 +192,7 @@ class MessageService: ObservableObject {
                     print("Received message from unknown sender, establishing secure channel with X3DH")
                     
                     do {
-                        guard let keyBundle = try await appContext?.keyService.getKeyBundle(username: apiMessage.sender_id) else {
+                        guard let keyBundle = try await appContext?.backendGateway.keyService.getKeyBundle(username: apiMessage.sender_id) else {
                             print("Failed to get key bundle for \(apiMessage.sender_id)")
                             // TODO: Throw error?
                             continue
@@ -251,3 +251,4 @@ class MessageService: ObservableObject {
         return processedMessageIds
     }
 }
+

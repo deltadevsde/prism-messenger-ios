@@ -296,7 +296,7 @@ struct NewChatView: View {
                 }
                 
                 // 1. Try to get the key bundle
-                guard let keyBundle = try await appContext.keyService.getKeyBundle(username: username) else {
+                guard let keyBundle = try await appContext.backendGateway.keyService.getKeyBundle(username: username) else {
                     DispatchQueue.main.async {
                         errorMessage = "User does not exist"
                         isLoading = false

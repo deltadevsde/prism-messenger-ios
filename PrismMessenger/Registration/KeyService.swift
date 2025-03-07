@@ -46,7 +46,8 @@ struct UploadKeyBundleRequest: Codable {
     var keybundle: KeyBundle
 }
 
-class KeyService: ObservableObject {
+/// Concrete implementation of the KeyServiceProtocol
+class KeyService: ObservableObject, KeyServiceProtocol {
     private let restClient: RestClient
     private let keyManager: KeyManager
     
@@ -99,3 +100,4 @@ class KeyService: ObservableObject {
         }
     }
 }
+

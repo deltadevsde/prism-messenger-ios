@@ -30,7 +30,8 @@ struct FinalizeRegistrationRequest: Encodable {
     var signature: CryptoPayload
 }
 
-class RegistrationService: ObservableObject {
+/// Concrete implementation of the RegistrationServiceProtocol
+class RegistrationService: ObservableObject, RegistrationServiceProtocol {
 
     private let restClient: RestClient
 
@@ -103,3 +104,4 @@ class RegistrationService: ObservableObject {
         try await finalizeRegistration(username: username, challenge: challenge)
     }
 }
+
