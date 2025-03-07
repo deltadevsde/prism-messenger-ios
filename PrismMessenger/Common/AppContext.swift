@@ -34,7 +34,7 @@ class AppContext: ObservableObject {
         self.keyManager = KeyManager()
         
         // Create the BackendGateway
-        let gateway = try BackendGateway(modelContext: modelContext)
+        let gateway = try BackendGateway(modelContext: modelContext, userManager: userManager)
         self.backendGateway = gateway
         
         // Initialize ChatManager
@@ -58,62 +58,9 @@ class AppContext: ObservableObject {
         }
     }
     
+    /// Creates a new X3DH session
+    /// - Returns: A new X3DH object initialized with the KeyManager
     func createX3DHSession() throws -> X3DH {
         return X3DH(keyManager: keyManager)
-    }
-    
-    /// Fetches new messages from the server and processes them
-    /// - Returns: The number of new messages processed
-    @MainActor
-    func fetchAndProcessMessages() async throws -> Int {
-        guard let currentUser = try userManager.getCurrentUser() else {
-            return 0
-        }
-        
-        return try await processMessagesForUser(currentUser.username)
-    }
-    
-    /// Helper method to process messages for a specific username
-    @MainActor
-    private func processMessagesForUser(_ username: String) async throws -> Int {
-        
-        do {
-            // 1. Fetch new messages from the server
-            let messages = try await messageService.fetchMessages(for: username)
-            
-            if messages.isEmpty {
-                return 0
-            }
-            
-            // 2. Process the messages and get the IDs of processed messages
-            let processedIds = try await messageService.processReceivedMessages(
-                messages: messages,
-                currentUser: username,
-                chatManager: chatManager
-            )
-            
-            if !processedIds.isEmpty {
-                // 3. Mark the processed messages as delivered on the server
-                try await messageService.markMessagesAsDelivered(
-                    messageIds: processedIds,
-                    for: username
-                )
-            }
-            
-            return processedIds.count
-        } catch {
-            return 0
-        }
-    }
-    
-    /// Get the current user data
-    /// - Returns: The current user's UserData
-    @MainActor
-    private func getCurrentUserData() throws -> UserData {
-        guard let currentUser = try userManager.getCurrentUser() else {
-            throw MessageError.unauthorized
-        }
-        
-        return currentUser
     }
 }

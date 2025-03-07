@@ -21,6 +21,7 @@ protocol MessageServiceProtocol {
         currentUser: String,
         chatManager: ChatManager
     ) async throws -> [UUID]
+    func fetchAndProcessMessages() async throws -> Int
 }
 
 // MARK: - Key Service Protocol
@@ -62,7 +63,7 @@ class BackendGateway: BackendGatewayProtocol {
     weak var appLaunch: AppLaunch?
     weak var appContext: AppContext?
     
-    init(modelContext: ModelContext) throws {
+    init(modelContext: ModelContext, userManager: UserManager) throws {
         self.modelContext = modelContext
         
         // Initialize RestClient
@@ -73,7 +74,7 @@ class BackendGateway: BackendGatewayProtocol {
         self.keyManager = KeyManager()
         
         // Initialize services with their concrete implementations
-        let messageService = MessageService(restClient: restClient, modelContext: modelContext)
+        let messageService = MessageService(restClient: restClient, modelContext: modelContext, userManager: userManager)
         let keyService = KeyService(restClient: restClient, keyManager: keyManager)
         let registrationService = RegistrationService(restClient: restClient, keyManager: keyManager)
         

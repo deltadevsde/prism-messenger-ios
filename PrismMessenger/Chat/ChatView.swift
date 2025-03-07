@@ -44,7 +44,7 @@ struct ChatView: View {
         .refreshable {
             // Force refresh when user pulls down
             Task {
-                try? await appContext.fetchAndProcessMessages()
+                try? await appContext.messageService.fetchAndProcessMessages()
             }
         }
         // Periodically refresh messages when view is active
@@ -52,7 +52,7 @@ struct ChatView: View {
             while !Task.isCancelled {
                 do {
                     try await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
-                    try? await appContext.fetchAndProcessMessages()
+                    try? await appContext.messageService.fetchAndProcessMessages()
                 } catch {
                     break
                 }

@@ -53,10 +53,12 @@ class MessageService: ObservableObject, MessageServiceProtocol {
     private let modelContext: ModelContext
     weak var appLaunch: AppLaunch?
     weak var appContext: AppContext?
+    private let userManager: UserManager
     
-    init(restClient: RestClient, modelContext: ModelContext) {
+    init(restClient: RestClient, modelContext: ModelContext, userManager: UserManager) {
         self.restClient = restClient
         self.modelContext = modelContext
+        self.userManager = userManager
     }
     
     /// Sends a message to another user
@@ -87,22 +89,62 @@ class MessageService: ObservableObject, MessageServiceProtocol {
         }
     }
     
-    /// Gets the current username from appLaunch or database
+    /// Gets the current username from the userManager
     /// - Returns: The current username
     @MainActor
     func getCurrentUsername() async throws -> String {
-        // First try appLaunch
-        if let username = appLaunch?.selectedUsername, !username.isEmpty {
-            return username
-        }
-        
-        // Then try the database directly
-        let descriptor = FetchDescriptor<UserData>()
-        let users = try modelContext.fetch(descriptor)
-        if let firstUser = users.first {
-            return firstUser.username
+        if let user = try userManager.getCurrentUser() {
+            return user.username
         }
         throw MessageError.unauthorized
+    }
+    
+    /// Fetches new messages from the server and processes them
+    /// - Returns: The number of new messages processed
+    @MainActor
+    func fetchAndProcessMessages() async throws -> Int {
+        guard let currentUser = try userManager.getCurrentUser() else {
+            return 0
+        }
+        
+        return try await processMessagesForUser(currentUser.username)
+    }
+    
+    /// Helper method to process messages for a specific username
+    @MainActor
+    private func processMessagesForUser(_ username: String) async throws -> Int {
+        
+        do {
+            // 1. Fetch new messages from the server
+            let messages = try await fetchMessages(for: username)
+            
+            if messages.isEmpty {
+                return 0
+            }
+            
+            guard let chatManager = appContext?.chatManager else {
+                return 0
+            }
+            
+            // 2. Process the messages and get the IDs of processed messages
+            let processedIds = try await processReceivedMessages(
+                messages: messages,
+                currentUser: username,
+                chatManager: chatManager
+            )
+            
+            if !processedIds.isEmpty {
+                // 3. Mark the processed messages as delivered on the server
+                try await markMessagesAsDelivered(
+                    messageIds: processedIds,
+                    for: username
+                )
+            }
+            
+            return processedIds.count
+        } catch {
+            return 0
+        }
     }
     
     /// Fetches all available messages for the current user

@@ -92,7 +92,7 @@ struct MainView: View {
         messagePollingTask = Task {
             while !Task.isCancelled {
                 do {
-                    let newMessageCount = try await appContext.fetchAndProcessMessages()
+                    let newMessageCount = try await appContext.messageService.fetchAndProcessMessages()
                     if newMessageCount > 0 {
                         print("Fetched \(newMessageCount) new messages")
                     }
