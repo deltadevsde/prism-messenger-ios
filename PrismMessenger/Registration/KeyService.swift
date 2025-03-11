@@ -58,13 +58,13 @@ class KeyService: ObservableObject, KeyServiceProtocol {
         self.keyManager = keyManager
     }
     
-    /// Initializes a KeyBundle and UserData for a new user. Caller must ensure the new `UserData` is saved to the container .
-    func initializeKeyBundle(username: String) async throws -> (KeyBundle, UserData) {
+    /// Initializes a KeyBundle and User for a new user. Caller must ensure the new `User` is saved to the container .
+    func initializeKeyBundle(username: String) async throws -> (KeyBundle, User) {
         let idKey = try await keyManager.fetchIdentityKeyFromKeychain()
         let (signedPrekey, signedPrekeySignature) = try await keyManager.createSignedPrekey()
         let privatePrekeys = try await keyManager.createPrekeys(count: 10)
         
-        let user = UserData(signedPrekey: signedPrekey, username: username)
+        let user = User(signedPrekey: signedPrekey, username: username)
         try user.addPrekeys(keys: privatePrekeys)
         let prekeys = try user.getPublicPrekeys()
         

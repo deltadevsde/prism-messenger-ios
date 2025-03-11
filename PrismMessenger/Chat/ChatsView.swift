@@ -105,7 +105,7 @@ struct ChatsView: View {
                     username = selected
                 } else {
                     // Fall back to first user in database
-                    let userDescriptor = FetchDescriptor<UserData>()
+                    let userDescriptor = FetchDescriptor<User>()
                     let users = try modelContext.fetch(userDescriptor)
                     guard let firstUser = users.first else {
                         self.currentChats = []
@@ -360,7 +360,7 @@ struct NewChatView: View {
 
 #Preview {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: UserData.self, Chat.self, MessageData.self, configurations: config)
+    let container = try! ModelContainer(for: User.self, Chat.self, MessageData.self, configurations: config)
     let context = ModelContext(container)
     
     // Create sample data for the preview

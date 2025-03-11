@@ -27,7 +27,7 @@ protocol MessageServiceProtocol {
 // MARK: - Key Service Protocol
 
 protocol KeyServiceProtocol {
-    func initializeKeyBundle(username: String) async throws -> (KeyBundle, UserData)
+    func initializeKeyBundle(username: String) async throws -> (KeyBundle, User)
     func submitKeyBundle(username: String, keyBundle: KeyBundle) async throws
     func getKeyBundle(username: String) async throws -> KeyBundle?
 }

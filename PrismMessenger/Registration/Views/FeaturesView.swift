@@ -102,7 +102,7 @@ struct FeatureCard: View {
     @Previewable @State var previewPath = NavigationPath()
     
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: UserData.self, configurations: config)
+    let container = try! ModelContainer(for: User.self, configurations: config)
 
     FeaturesView(path: $previewPath).modelContainer(container)
 }
