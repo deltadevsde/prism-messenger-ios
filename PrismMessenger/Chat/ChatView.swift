@@ -9,7 +9,7 @@ import SwiftUI
 import SwiftData
 
 struct ChatView: View {
-    @Bindable var chat: ChatData
+    @Bindable var chat: Chat
     @State private var messageText: String = ""
     @State private var isLoading: Bool = false
     @State private var error: String? = nil
@@ -286,13 +286,13 @@ struct MessageBubble: View {
 struct ChatViewPreview: PreviewProvider {
     static var previews: some View {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try! ModelContainer(for: UserData.self, ChatData.self, MessageData.self, configurations: config)
+        let container = try! ModelContainer(for: UserData.self, Chat.self, MessageData.self, configurations: config)
         let context = ModelContext(container)
         
         // Create data preparation function
-        func prepareData() -> (ChatData, AppContext) {
+        func prepareData() -> (Chat, AppContext) {
             // Create sample data for the preview
-            let chatData = ChatData(
+            let chat = Chat(
                 participantUsername: "johndoe", 
                 ownerUsername: "alice", 
                 displayName: "John Doe", 
@@ -301,33 +301,33 @@ struct ChatViewPreview: PreviewProvider {
             
             // Add a few sample messages
             let message1 = MessageData(content: "Hey there! How's it going?", isFromMe: false)
-            message1.chat = chatData
-            chatData.addMessage(message1)
+            message1.chat = chat
+            chat.addMessage(message1)
             
             let message2 = MessageData(content: "Not bad! Just working on this app. How about you?", isFromMe: true)
-            message2.chat = chatData
-            chatData.addMessage(message2)
+            message2.chat = chat
+            chat.addMessage(message2)
             
             let message3 = MessageData(content: "That's cool! I've been exploring some new hiking trails nearby.", isFromMe: false)
-            message3.chat = chatData
-            chatData.addMessage(message3)
+            message3.chat = chat
+            chat.addMessage(message3)
             
             let message4 = MessageData(content: "That sounds awesome! Which trails did you check out?", isFromMe: true, status: .delivered)
-            message4.chat = chatData
-            chatData.addMessage(message4)
+            message4.chat = chat
+            chat.addMessage(message4)
             
-            context.insert(chatData)
+            context.insert(chat)
             
             let appContext = try! AppContext(modelContext: context)
-            return (chatData, appContext)
+            return (chat, appContext)
         }
         
         // Get the prepared data
-        let (chatData, appContext) = prepareData()
+        let (chat, appContext) = prepareData()
         
         // Return the preview
         return NavigationStack {
-            ChatView(chat: chatData)
+            ChatView(chat: chat)
                 .environmentObject(appContext)
         }
         .modelContainer(container)
