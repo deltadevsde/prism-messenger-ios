@@ -63,7 +63,7 @@ class BackendGateway: BackendGatewayProtocol {
     weak var appLaunch: AppLaunch?
     weak var appContext: AppContext?
     
-    init(modelContext: ModelContext, userManager: UserManager) throws {
+    init(modelContext: ModelContext, userService: UserService) throws {
         self.modelContext = modelContext
         
         // Initialize RestClient
@@ -74,7 +74,7 @@ class BackendGateway: BackendGatewayProtocol {
         self.keyManager = KeyManager()
         
         // Initialize services with their concrete implementations
-        let messageService = MessageService(restClient: restClient, modelContext: modelContext, userManager: userManager)
+        let messageService = MessageService(restClient: restClient, modelContext: modelContext, userService: userService)
         let keyService = KeyService(restClient: restClient, keyManager: keyManager)
         let registrationService = RegistrationService(restClient: restClient, keyManager: keyManager)
         

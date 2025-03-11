@@ -15,7 +15,7 @@ class AppContext: ObservableObject {
     let backendGateway: BackendGatewayProtocol
     let chatManager: ChatManager
     let modelContext: ModelContext
-    let userManager: UserManager
+    let userService: UserService
     weak var appLaunch: AppLaunch?
     
     // Convenience properties for backward compatibility
@@ -26,15 +26,15 @@ class AppContext: ObservableObject {
     init(modelContext: ModelContext) throws {
         self.modelContext = modelContext
         
-        // Initialize UserManager (since it has @MainActor methods but is not fully isolated)
-        let userManager = UserManager(modelContext: modelContext)
-        self.userManager = userManager
+        // Initialize UserService (since it has @MainActor methods but is not fully isolated)
+        let userService = UserService(modelContext: modelContext)
+        self.userService = userService
         
         // Initialize KeyManager
         self.keyManager = KeyManager()
         
         // Create the BackendGateway
-        let gateway = try BackendGateway(modelContext: modelContext, userManager: userManager)
+        let gateway = try BackendGateway(modelContext: modelContext, userService: userService)
         self.backendGateway = gateway
         
         // Initialize ChatManager

@@ -1,5 +1,5 @@
 //
-//  UserManager.swift
+//  UserService.swift
 //  PrismMessenger
 //
 //  Copyright © 2025 prism. All rights reserved.
@@ -8,7 +8,7 @@
 import Foundation
 import SwiftData
 
-class UserManager: ObservableObject {
+class UserService: ObservableObject {
     @MainActor @Published private(set) var selectedUsername: String?
     
     private let modelContext: ModelContext

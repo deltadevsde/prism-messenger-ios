@@ -53,12 +53,12 @@ class MessageService: ObservableObject, MessageServiceProtocol {
     private let modelContext: ModelContext
     weak var appLaunch: AppLaunch?
     weak var appContext: AppContext?
-    private let userManager: UserManager
+    private let userService: UserService
     
-    init(restClient: RestClient, modelContext: ModelContext, userManager: UserManager) {
+    init(restClient: RestClient, modelContext: ModelContext, userService: UserService) {
         self.restClient = restClient
         self.modelContext = modelContext
-        self.userManager = userManager
+        self.userService = userService
     }
     
     /// Sends a message to another user
@@ -89,11 +89,11 @@ class MessageService: ObservableObject, MessageServiceProtocol {
         }
     }
     
-    /// Gets the current username from the userManager
+    /// Gets the current username from the userService
     /// - Returns: The current username
     @MainActor
     func getCurrentUsername() async throws -> String {
-        if let user = try userManager.getCurrentUser() {
+        if let user = try userService.getCurrentUser() {
             return user.username
         }
         throw MessageError.unauthorized
@@ -103,7 +103,7 @@ class MessageService: ObservableObject, MessageServiceProtocol {
     /// - Returns: The number of new messages processed
     @MainActor
     func fetchAndProcessMessages() async throws -> Int {
-        guard let currentUser = try userManager.getCurrentUser() else {
+        guard let currentUser = try userService.getCurrentUser() else {
             return 0
         }
         
