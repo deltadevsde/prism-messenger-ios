@@ -151,7 +151,7 @@ struct SignUpView: View {
 
 #Preview {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: UserData.self, configurations: config)
+    let container = try! ModelContainer(for: User.self, configurations: config)
 
     SignUpView().modelContainer(container)
 }

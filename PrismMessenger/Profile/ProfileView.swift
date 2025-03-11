@@ -14,9 +14,9 @@ struct ProfileView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var isEditingDisplayName = false
     @State private var newDisplayName = ""
-    @State private var currentUser: UserData?
+    @State private var currentUser: User?
     @State private var showingAccountSelection = false
-    @Query private var allUsers: [UserData]
+    @Query private var allUsers: [User]
     
     var body: some View {
         Group {
@@ -130,8 +130,8 @@ struct ProfileView: View {
             do {
                 // Try with selectedUsername first if available
                 if let selectedUsername = appLaunch.selectedUsername {
-                    let userDescriptor = FetchDescriptor<UserData>(
-                        predicate: #Predicate<UserData> { user in
+                    let userDescriptor = FetchDescriptor<User>(
+                        predicate: #Predicate<User> { user in
                             user.username == selectedUsername
                         }
                     )
@@ -144,7 +144,7 @@ struct ProfileView: View {
                 }
                 
                 // If selectedUsername is nil or not found, try to get the first user
-                let allUserDescriptor = FetchDescriptor<UserData>()
+                let allUserDescriptor = FetchDescriptor<User>()
                 let allUsers = try modelContext.fetch(allUserDescriptor)
                 
                 if let firstUser = allUsers.first {
@@ -241,7 +241,7 @@ struct ProfileView: View {
         .padding()
     }
     
-    private func formatPublicKeyPreview(from user: UserData) -> String {
+    private func formatPublicKeyPreview(from user: User) -> String {
         do {
             let publicKey = try user.signedPrekey.toP256PrivateKey().publicKey
             let keyData = publicKey.rawRepresentation
@@ -297,9 +297,9 @@ class DataController {
     static let previewContainer: ModelContainer = {
         do {
             let config = ModelConfiguration(isStoredInMemoryOnly: true)
-            let container = try ModelContainer(for: UserData.self, configurations: config)
+            let container = try ModelContainer(for: User.self, configurations: config)
 
-            let user = UserData(
+            let user = User(
                 signedPrekey: P256.Signing.PrivateKey(), 
                 username: "alice_prism", 
                 displayName: "Alice Wonderland"

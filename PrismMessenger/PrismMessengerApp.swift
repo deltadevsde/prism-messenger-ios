@@ -41,7 +41,7 @@ struct PrismMessengerApp: App {
                         }
                 }
             }
-            .modelContainer(for: [UserData.self, Chat.self, MessageData.self])
+            .modelContainer(for: [User.self, Chat.self, MessageData.self])
         }
     }
     
@@ -74,7 +74,7 @@ struct PrismMessengerApp: App {
 enum SwiftDataConfig {
     static var sharedModelContainer: ModelContainer = {
         do {
-            let schema = Schema([UserData.self, Chat.self, MessageData.self])
+            let schema = Schema([User.self, Chat.self, MessageData.self])
             let modelConfiguration = ModelConfiguration(
                 isStoredInMemoryOnly: false
             )

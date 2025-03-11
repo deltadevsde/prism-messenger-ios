@@ -20,7 +20,7 @@ class UserService: ObservableObject {
     @MainActor
     func initialize() async throws -> Bool {
         // Check if we have any existing users in the database
-        let descriptor = FetchDescriptor<UserData>()
+        let descriptor = FetchDescriptor<User>()
         let users = try modelContext.fetch(descriptor)
         
         if users.isEmpty {
@@ -44,19 +44,19 @@ class UserService: ObservableObject {
     }
     
     @MainActor
-    func getAllUsers() throws -> [UserData] {
-        let descriptor = FetchDescriptor<UserData>()
+    func getAllUsers() throws -> [User] {
+        let descriptor = FetchDescriptor<User>()
         return try modelContext.fetch(descriptor)
     }
     
     @MainActor
-    func getCurrentUser() throws -> UserData? {
+    func getCurrentUser() throws -> User? {
         guard let username = selectedUsername else {
             return nil
         }
         
-        let descriptor = FetchDescriptor<UserData>(
-            predicate: #Predicate<UserData> { user in
+        let descriptor = FetchDescriptor<User>(
+            predicate: #Predicate<User> { user in
                 user.username == username
             }
         )

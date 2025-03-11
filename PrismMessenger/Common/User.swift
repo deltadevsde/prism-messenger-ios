@@ -1,5 +1,5 @@
 //
-//  UserData.swift
+//  User.swift
 //  PrismMessenger
 //
 //  Copyright © 2025 prism. All rights reserved.
@@ -9,7 +9,7 @@ import Foundation
 import CryptoKit
 
 @Model
-final class UserData: Identifiable {
+final class User: Identifiable {
     @Attribute(.unique) var username: String
     var displayName: String?
     

@@ -151,23 +151,23 @@ class ChatManager {
     ) async throws -> Chat {
         // 1. Get the current user's data
         let currentUsername = try getCurrentUsername()
-        let descriptor = FetchDescriptor<UserData>(
-            predicate: #Predicate<UserData> { $0.username == currentUsername }
+        let descriptor = FetchDescriptor<User>(
+            predicate: #Predicate<User> { $0.username == currentUsername }
         )
-        guard let userData = try modelContext.fetch(descriptor).first else {
+        guard let user = try modelContext.fetch(descriptor).first else {
             throw MessageError.unauthorized
         }
         
         // 2. Get our signed prekey
-        let signedPrekey = try userData.signedPrekey.toP256KAPrivateKey()
+        let signedPrekey = try user.signedPrekey.toP256KAPrivateKey()
         
         // 3. Get the one-time prekey if it was used
         var prekeyKA: P256.KeyAgreement.PrivateKey? = nil
-        if let prekeyId = usedPrekeyId, let prekey = try userData.getPrekey(keyIdx: prekeyId) {
+        if let prekeyId = usedPrekeyId, let prekey = try user.getPrekey(keyIdx: prekeyId) {
             prekeyKA = try P256.KeyAgreement.PrivateKey(rawRepresentation: prekey.rawRepresentation)
             print("DEBUG: USING PREKEY")
             // Mark the prekey as used
-            userData.deletePrekey(keyIdx: prekeyId)
+            user.deletePrekey(keyIdx: prekeyId)
         }
         
         // 4. Compute the X3DH shared secret (from receiver's perspective)
@@ -248,7 +248,7 @@ class ChatManager {
         // 5. Send the encrypted message to the server if a MessageService is provided
         if let messageService = messageService {
             do {
-                // Get username from a userData context (this would come from your app's auth context)
+                // Get username from a user context (this would come from your app's auth context)
                 let selfUserName = try await MainActor.run { try self.getCurrentUsername() }
                 
                 // Send message to server
@@ -414,7 +414,7 @@ class ChatManager {
         }
         
         // Try to get any user from the database
-        let descriptor = FetchDescriptor<UserData>()
+        let descriptor = FetchDescriptor<User>()
         let users = try modelContext.fetch(descriptor)
         if let firstUser = users.first {
             return firstUser.username

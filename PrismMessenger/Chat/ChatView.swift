@@ -286,7 +286,7 @@ struct MessageBubble: View {
 struct ChatViewPreview: PreviewProvider {
     static var previews: some View {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try! ModelContainer(for: UserData.self, Chat.self, MessageData.self, configurations: config)
+        let container = try! ModelContainer(for: User.self, Chat.self, MessageData.self, configurations: config)
         let context = ModelContext(container)
         
         // Create data preparation function
