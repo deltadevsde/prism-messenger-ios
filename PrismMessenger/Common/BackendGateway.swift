@@ -74,7 +74,7 @@ class BackendGateway: BackendGatewayProtocol {
         self.keyManager = KeyManager()
         
         // Initialize services with their concrete implementations
-        let messageService = MessageService(restClient: restClient, modelContext: modelContext, userService: userService)
+        let messageService = MessageService(restClient: restClient, userService: userService)
         let keyService = KeyService(restClient: restClient, keyManager: keyManager)
         let registrationService = RegistrationService(restClient: restClient, keyManager: keyManager)
         
