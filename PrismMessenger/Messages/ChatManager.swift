@@ -23,14 +23,14 @@ class ChatManager {
     ///   - sharedSecret: The shared secret derived from X3DH
     ///   - ephemeralPublicKey: The ephemeral public key used in X3DH
     ///   - prekey: The prekey that was used
-    /// - Returns: The created ChatData object
+    /// - Returns: The created Chat object
     @MainActor
     func createChat(
         username: String,
         sharedSecret: SymmetricKey,
         ephemeralPrivateKey: P256.KeyAgreement.PrivateKey,
         prekey: Prekey
-    ) throws -> ChatData {
+    ) throws -> Chat {
         // 0. Get the current user
         let currentUsername = try getCurrentUsername()
         
@@ -48,7 +48,7 @@ class ChatManager {
         print("sessionData from sender: \(jsonStr)")
 
         // 3. Create and save the chat
-        let chat = ChatData(
+        let chat = Chat(
             participantUsername: username,
             ownerUsername: currentUsername,
             displayName: username, // Default to username for display until we get more info
@@ -74,12 +74,12 @@ class ChatManager {
     
     /// Retrieves a chat with a specific participant for the current user, if it exists
     /// - Parameter username: The participant's username
-    /// - Returns: The ChatData object if found, nil otherwise
+    /// - Returns: The Chat object if found, nil otherwise
     @MainActor
-    func getChat(with username: String) throws -> ChatData? {
+    func getChat(with username: String) throws -> Chat? {
         let currentUsername = try getCurrentUsername()
         
-        let descriptor = FetchDescriptor<ChatData>(
+        let descriptor = FetchDescriptor<Chat>(
             predicate: #Predicate { 
                 $0.participantUsername == username && 
                 $0.ownerUsername == currentUsername 
@@ -92,10 +92,10 @@ class ChatManager {
     /// Gets a list of all chats for the current user, sorted by last message timestamp
     /// - Returns: Array of all chats owned by the current user
     @MainActor
-    func getAllChats() throws -> [ChatData] {
+    func getAllChats() throws -> [Chat] {
         let currentUsername = try getCurrentUsername()
         
-        let descriptor = FetchDescriptor<ChatData>(
+        let descriptor = FetchDescriptor<Chat>(
             predicate: #Predicate { $0.ownerUsername == currentUsername },
             sortBy: [SortDescriptor(\.lastMessageTimestamp, order: .reverse)]
         )
@@ -140,7 +140,7 @@ class ChatManager {
     ///   - senderEphemeralKey: The sender's ephemeral key from the message header
     ///   - usedPrekeyId: The ID of our prekey that was used (if any)
     ///   - keyManager: The KeyManager to perform secure cryptographic operations
-    /// - Returns: The newly created ChatData
+    /// - Returns: The newly created Chat
     @MainActor
     func createChatFromIncomingMessage(
         senderUsername: String,
@@ -148,7 +148,7 @@ class ChatManager {
         senderEphemeralKey: P256.KeyAgreement.PublicKey,
         usedPrekeyId: UInt64?,
         keyManager: KeyManager
-    ) async throws -> ChatData {
+    ) async throws -> Chat {
         // 1. Get the current user's data
         let currentUsername = try getCurrentUsername()
         let descriptor = FetchDescriptor<UserData>(
@@ -188,7 +188,7 @@ class ChatManager {
         print("sessionData from recv: \(jsonStr)")
         
         // 7. Create and save the chat
-        let chat = ChatData(
+        let chat = Chat(
             participantUsername: senderUsername,
             ownerUsername: currentUsername,
             displayName: senderUsername, // Default to username for display
@@ -220,7 +220,7 @@ class ChatManager {
     /// - Returns: The created MessageData object
     func sendMessage(
         content: String, 
-        in chat: ChatData,
+        in chat: Chat,
         messageService: MessageServiceProtocol? = nil
     ) async throws -> MessageData {
         // 1. Deserialize the Double Ratchet session
@@ -283,7 +283,7 @@ class ChatManager {
     /// - Returns: The created MessageData object if successful
     func receiveMessage(
         _ drMessage: DoubleRatchetMessage,
-        in chat: ChatData,
+        in chat: Chat,
         from sender: String
     ) async throws -> MessageData? {
         print("DEBUG: Receiving message in chat with \(sender)")

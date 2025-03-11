@@ -115,7 +115,7 @@ struct MainView: View {
 
 #Preview {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: UserData.self, ChatData.self, MessageData.self, configurations: config)
+    let container = try! ModelContainer(for: UserData.self, Chat.self, MessageData.self, configurations: config)
     let context = ModelContext(container)
     
     // Create a context for preview

@@ -13,7 +13,7 @@ struct ChatsView: View {
     @State private var showingNewChatSheet = false
     @EnvironmentObject private var appContext: AppContext
     @EnvironmentObject private var appLaunch: AppLaunch
-    @State private var currentChats: [ChatData] = []
+    @State private var currentChats: [Chat] = []
     @Environment(\.modelContext) private var modelContext
     @State private var refreshTrigger = false // Refresh trigger for manual refreshes
     
@@ -115,8 +115,8 @@ struct ChatsView: View {
                 }
                 
                 // Get chats that have the current user as the owner
-                let descriptor = FetchDescriptor<ChatData>(
-                    predicate: #Predicate<ChatData> { chat in
+                let descriptor = FetchDescriptor<Chat>(
+                    predicate: #Predicate<Chat> { chat in
                         chat.ownerUsername == username
                     },
                     sortBy: [SortDescriptor(\.lastMessageTimestamp, order: .reverse)]
@@ -224,7 +224,7 @@ struct NewChatView: View {
     @State private var username = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
-    @State private var createdChat: ChatData?
+    @State private var createdChat: Chat?
     @State private var shouldNavigateToChat = false
     
     var body: some View {
@@ -360,32 +360,32 @@ struct NewChatView: View {
 
 #Preview {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: UserData.self, ChatData.self, MessageData.self, configurations: config)
+    let container = try! ModelContainer(for: UserData.self, Chat.self, MessageData.self, configurations: config)
     let context = ModelContext(container)
     
     // Create sample data for the preview
-    let chatData1 = ChatData(
+    let chat1 = Chat(
         participantUsername: "johndoe", 
         ownerUsername: "alice",
         displayName: "John Doe", 
         doubleRatchetSession: Data()
     )
     let message1 = MessageData(content: "Hello there!", isFromMe: false)
-    message1.chat = chatData1
-    chatData1.addMessage(message1)
+    message1.chat = chat1
+    chat1.addMessage(message1)
     
-    let chatData2 = ChatData(
+    let chat2 = Chat(
         participantUsername: "sarahsmith", 
         ownerUsername: "alice",
         displayName: "Sarah Smith", 
         doubleRatchetSession: Data()
     )
     let message2 = MessageData(content: "Can't wait to see you tomorrow!", isFromMe: true)
-    message2.chat = chatData2
-    chatData2.addMessage(message2)
+    message2.chat = chat2
+    chat2.addMessage(message2)
     
-    context.insert(chatData1)
-    context.insert(chatData2)
+    context.insert(chat1)
+    context.insert(chat2)
     
     let appContext = try! AppContext(modelContext: context)
     let appLaunch = AppLaunch()

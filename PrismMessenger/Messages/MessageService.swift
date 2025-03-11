@@ -226,7 +226,7 @@ class MessageService: ObservableObject, MessageServiceProtocol {
                 let drMessage = apiMessage.message
                 
                 // Get or create the chat for this sender
-                var chat: ChatData
+                var chat: Chat
                 if let existingChat = try await chatManager.getChat(with: apiMessage.sender_id) {
                     chat = existingChat
                 } else {

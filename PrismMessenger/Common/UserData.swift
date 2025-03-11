@@ -52,7 +52,7 @@ final class UserData: Identifiable {
 }
 
 @Model
-final class ChatData: Identifiable {
+final class Chat: Identifiable {
     @Attribute(.unique) var id: UUID
     var participantUsername: String
     var displayName: String?
@@ -113,7 +113,7 @@ final class MessageData: Identifiable {
     var serverTimestamp: Date?
     
     // Reference back to parent chat
-    var chat: ChatData?
+    var chat: Chat?
     
     init(content: String, isFromMe: Bool, status: MessageStatus = .sent) {
         self.id = UUID()
