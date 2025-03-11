@@ -75,7 +75,7 @@ struct MainView: View {
             Button("Try Again") {
                 Task {
                     // We have direct access to appContext as an @EnvironmentObject
-                    await appLaunch.initialize(modelContext: modelContext, userManager: appContext.userManager)
+                    await appLaunch.initialize(modelContext: modelContext, userService: appContext.userService)
                 }
             }
             .buttonStyle(.borderedProminent)

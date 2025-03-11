@@ -274,7 +274,7 @@ class ChatManager {
         
         return message
     }
-    
+
     /// Receive and process an incoming message
     /// - Parameters:
     ///   - drMessage: The encrypted DoubleRatchetMessage
@@ -292,15 +292,15 @@ class ChatManager {
             print("DEBUG: Deserializing Double Ratchet session from \(chat.doubleRatchetSession.count) bytes")
             let session = try deserializeDoubleRatchetSession(from: chat.doubleRatchetSession)
             print("DEBUG: Successfully deserialized session")
-            
+
             // 2. Decrypt the message content
             print("DEBUG: About to decrypt message")
             print("DEBUG: Ciphertext size: \(drMessage.ciphertext.count) bytes")
             print("DEBUG: Nonce size: \(Data(drMessage.nonce).count) bytes")
-            
+
             // Try multiple decryption approaches due to potential format issues
             let decryptedData: Data
-            
+
             do {
                 // Method 1: Use decrypt function with message
                 decryptedData = try session.decrypt(message: drMessage)
@@ -309,7 +309,7 @@ class ChatManager {
                 print("DEBUG: Method 1 failed: \(error1)")
                 throw error1
             }
-        
+
         // 3. Convert decrypted data to a string
         guard let content = String(data: decryptedData, encoding: .utf8) else {
             print("DEBUG: Failed to decode string from data")
