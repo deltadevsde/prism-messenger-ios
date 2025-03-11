@@ -10,14 +10,17 @@ import SwiftData
 import CryptoKit
 
 class ChatManager {
-    private let modelContext: ModelContext
+    private let chatRepository: ChatRepository
+    private let userRepository: UserRepository
     weak var appLaunch: AppLaunch?
     
-    init(modelContext: ModelContext) {
-        self.modelContext = modelContext
+    init(chatRepository: ChatRepository,
+         userRepository: UserRepository) {
+        self.chatRepository = chatRepository
+        self.userRepository = userRepository
     }
     
-    /// Creates a new chat from an X3DH handshake and stores it in SwiftData
+    /// Creates a new chat from an X3DH handshake and stores it in the repository
     /// - Parameters:
     ///   - username: The participant's username
     ///   - sharedSecret: The shared secret derived from X3DH
@@ -30,7 +33,7 @@ class ChatManager {
         sharedSecret: SymmetricKey,
         ephemeralPrivateKey: P256.KeyAgreement.PrivateKey,
         prekey: Prekey
-    ) throws -> Chat {
+    ) async throws -> Chat {
         // 0. Get the current user
         let currentUsername = try getCurrentUsername()
         
@@ -55,10 +58,7 @@ class ChatManager {
             doubleRatchetSession: sessionData
         )
         
-        // 4. Add to SwiftData
-        modelContext.insert(chat)
-        
-        // 5. Create a welcome message
+        // 4. Create a welcome message
         let welcomeMessage = MessageData(
             content: "Chat established securely",
             isFromMe: true,
@@ -67,7 +67,7 @@ class ChatManager {
         welcomeMessage.chat = chat
         chat.addMessage(welcomeMessage)
         
-        try modelContext.save()
+        try await chatRepository.saveChat(chat)
         
         return chat
     }
@@ -76,30 +76,17 @@ class ChatManager {
     /// - Parameter username: The participant's username
     /// - Returns: The Chat object if found, nil otherwise
     @MainActor
-    func getChat(with username: String) throws -> Chat? {
+    func getChat(with username: String) async throws -> Chat? {
         let currentUsername = try getCurrentUsername()
-        
-        let descriptor = FetchDescriptor<Chat>(
-            predicate: #Predicate { 
-                $0.participantUsername == username && 
-                $0.ownerUsername == currentUsername 
-            }
-        )
-        let chats = try modelContext.fetch(descriptor)
-        return chats.first
+        return try await chatRepository.getChat(withParticipant: username, forOwner: currentUsername)
     }
     
     /// Gets a list of all chats for the current user, sorted by last message timestamp
     /// - Returns: Array of all chats owned by the current user
     @MainActor
-    func getAllChats() throws -> [Chat] {
+    func getAllChats() async throws -> [Chat] {
         let currentUsername = try getCurrentUsername()
-        
-        let descriptor = FetchDescriptor<Chat>(
-            predicate: #Predicate { $0.ownerUsername == currentUsername },
-            sortBy: [SortDescriptor(\.lastMessageTimestamp, order: .reverse)]
-        )
-        return try modelContext.fetch(descriptor)
+        return try await chatRepository.getAllChats(for: currentUsername)
     }
     
     /// Creates a DoubleRatchetSession from the shared secret from X3DH
@@ -140,6 +127,7 @@ class ChatManager {
     ///   - senderEphemeralKey: The sender's ephemeral key from the message header
     ///   - usedPrekeyId: The ID of our prekey that was used (if any)
     ///   - keyManager: The KeyManager to perform secure cryptographic operations
+    ///   - userRepository: The user repository to retrieve the current user data
     /// - Returns: The newly created Chat
     @MainActor
     func createChatFromIncomingMessage(
@@ -151,10 +139,7 @@ class ChatManager {
     ) async throws -> Chat {
         // 1. Get the current user's data
         let currentUsername = try getCurrentUsername()
-        let descriptor = FetchDescriptor<User>(
-            predicate: #Predicate<User> { $0.username == currentUsername }
-        )
-        guard let user = try modelContext.fetch(descriptor).first else {
+        guard let user = try await userRepository.getUser(byUsername: currentUsername) else {
             throw MessageError.unauthorized
         }
         
@@ -168,6 +153,7 @@ class ChatManager {
             print("DEBUG: USING PREKEY")
             // Mark the prekey as used
             user.deletePrekey(keyIdx: prekeyId)
+            try await userRepository.saveUser(user)
         }
         
         // 4. Compute the X3DH shared secret (from receiver's perspective)
@@ -195,10 +181,7 @@ class ChatManager {
             doubleRatchetSession: sessionData
         )
         
-        // 8. Add to SwiftData
-        modelContext.insert(chat)
-        
-        // 9. Create a welcome message
+        // 8. Create a welcome message
         let welcomeMessage = MessageData(
             content: "Chat established securely",
             isFromMe: false,
@@ -207,7 +190,7 @@ class ChatManager {
         welcomeMessage.chat = chat
         chat.addMessage(welcomeMessage)
         
-        try modelContext.save()
+        try await chatRepository.saveChat(chat)
         
         return chat
     }
@@ -243,7 +226,7 @@ class ChatManager {
         chat.doubleRatchetSession = try serializeDoubleRatchetSession(session)
         
         // Save initial state with "sending" status
-        try modelContext.save()
+        try await chatRepository.saveChat(chat)
         
         // 5. Send the encrypted message to the server if a MessageService is provided
         if let messageService = messageService {
@@ -263,11 +246,11 @@ class ChatManager {
                 message.serverId = response.message_id
                 message.serverTimestamp = Date(timeIntervalSince1970: TimeInterval(response.timestamp) / 1000)
                 
-                try modelContext.save()
+                try await chatRepository.saveChat(chat)
             } catch {
                 // If sending fails, mark message as failed
                 message.status = .failed
-                try modelContext.save()
+                try await chatRepository.saveChat(chat)
                 throw error
             }
         }
@@ -336,7 +319,7 @@ class ChatManager {
         chat.addMessage(message)
         
         do {
-            try modelContext.save()
+            try await chatRepository.saveChat(chat)
             print("DEBUG: Saved message to database")
         } catch {
             print("DEBUG: Failed to save message: \(error)")
@@ -413,12 +396,6 @@ class ChatManager {
             return username
         }
         
-        // Try to get any user from the database
-        let descriptor = FetchDescriptor<User>()
-        let users = try modelContext.fetch(descriptor)
-        if let firstUser = users.first {
-            return firstUser.username
-        }
         throw MessageError.unauthorized
     }
 }

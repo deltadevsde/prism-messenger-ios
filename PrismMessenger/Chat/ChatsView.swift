@@ -283,7 +283,7 @@ struct NewChatView: View {
         Task {
             do {
                 // Check if a chat with this user already exists
-                if let existingChat = try appContext.chatManager.getChat(with: username) {
+                if let existingChat = try await appContext.chatManager.getChat(with: username) {
                     print("Chat with \(username) already exists, navigating to it")
                     
                     DispatchQueue.main.async {
@@ -322,7 +322,7 @@ struct NewChatView: View {
                 print("Used prekey ID: \(String(describing: usedPrekeyId))")
                 
                 // 4. Create a new chat with the Double Ratchet session
-                let chat = try appContext.chatManager.createChat(
+                let chat = try await appContext.chatManager.createChat(
                     username: username,
                     sharedSecret: sharedSecret,
                     ephemeralPrivateKey: ephemeralPrivateKey,

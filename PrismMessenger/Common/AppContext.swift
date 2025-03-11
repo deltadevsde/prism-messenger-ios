@@ -13,6 +13,8 @@ class AppContext: ObservableObject {
     // Make keyManager accessible since it's needed for X3DH processing
     let keyManager: KeyManager
     let backendGateway: BackendGatewayProtocol
+    
+    let chatRepository: ChatRepository
     let chatManager: ChatManager
     let modelContext: ModelContext
     let userService: UserService
@@ -27,7 +29,8 @@ class AppContext: ObservableObject {
         self.modelContext = modelContext
         
         // Initialize UserService (since it has @MainActor methods but is not fully isolated)
-        let userService = UserService(modelContext: modelContext)
+        let userRepository = ModelContextUserRepository(modelContext: modelContext)
+        let userService = UserService(userRepository: userRepository)
         self.userService = userService
         
         // Initialize KeyManager
@@ -38,7 +41,11 @@ class AppContext: ObservableObject {
         self.backendGateway = gateway
         
         // Initialize ChatManager
-        self.chatManager = ChatManager(modelContext: modelContext)
+        self.chatRepository = ModelContextChatRepository(modelContext: modelContext)
+        self.chatManager = ChatManager(
+            chatRepository: chatRepository,
+            userRepository: userRepository
+        )
         
         // Set appLaunch property for ChatManager (will be updated after init)
         chatManager.appLaunch = appLaunch

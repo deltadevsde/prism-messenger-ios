@@ -50,14 +50,12 @@ struct MarkDeliveredRequest: Encodable {
 /// Concrete implementation of the MessageServiceProtocol
 class MessageService: ObservableObject, MessageServiceProtocol {
     private let restClient: RestClient
-    private let modelContext: ModelContext
     weak var appLaunch: AppLaunch?
     weak var appContext: AppContext?
     private let userService: UserService
     
-    init(restClient: RestClient, modelContext: ModelContext, userService: UserService) {
+    init(restClient: RestClient, userService: UserService) {
         self.restClient = restClient
-        self.modelContext = modelContext
         self.userService = userService
     }
     
@@ -93,7 +91,7 @@ class MessageService: ObservableObject, MessageServiceProtocol {
     /// - Returns: The current username
     @MainActor
     func getCurrentUsername() async throws -> String {
-        if let user = try userService.getCurrentUser() {
+        if let user = try await userService.getCurrentUser() {
             return user.username
         }
         throw MessageError.unauthorized
@@ -103,7 +101,7 @@ class MessageService: ObservableObject, MessageServiceProtocol {
     /// - Returns: The number of new messages processed
     @MainActor
     func fetchAndProcessMessages() async throws -> Int {
-        guard let currentUser = try userService.getCurrentUser() else {
+        guard let currentUser = try await userService.getCurrentUser() else {
             return 0
         }
         
