@@ -11,7 +11,8 @@ import CryptoKit
 
 struct ProfileView: View {
     @EnvironmentObject private var appLaunch: AppLaunch
-    @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var userService: UserService
+    
     @State private var isEditingDisplayName = false
     @State private var newDisplayName = ""
     @State private var currentUser: User?
@@ -21,98 +22,7 @@ struct ProfileView: View {
     var body: some View {
         Group {
             if let user = currentUser {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Header
-                    HStack {
-                        Text("Profile")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                        Spacer()
-                        Button("Edit Profile") {
-                            isEditingDisplayName = true
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundColor(.blue)
-                    }.padding(.horizontal)
-                    
-                    // Profile Image
-                    ProfileImageView(username: user.username)
-                        .padding(.top)
-                    
-                    // Display Name, Username, and Public Key
-                    VStack(spacing: 4) {
-                        if isEditingDisplayName {
-                            VStack(spacing: 10) {
-                                TextField("Display Name", text: $newDisplayName)
-                                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                                    .padding(.horizontal, 40)
-                                    .onAppear {
-                                        newDisplayName = user.displayName ?? ""
-                                    }
-                                
-                                HStack {
-                                    Button("Cancel") {
-                                        isEditingDisplayName = false
-                                    }
-                                    .buttonStyle(.bordered)
-                                    
-                                    Button("Save") {
-                                        user.displayName = newDisplayName.isEmpty ? nil : newDisplayName
-                                        try? modelContext.save()
-                                        isEditingDisplayName = false
-                                    }
-                                    .buttonStyle(.borderedProminent)
-                                }
-                            }
-                            .padding(.vertical, 5)
-                        } else {
-                            if let displayName = user.displayName {
-                                Text(displayName)
-                                    .font(.title2)
-                                    .fontWeight(.semibold)
-                            }
-                        }
-                        
-                        Text("@\(user.username)")
-                            .font(.title3)
-                            .fontWeight(.medium)
-                            .padding(.top, 1)
-                        
-                        Text(formatPublicKeyPreview(from: user))
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .padding(.top, 1)
-                    }
-                    
-                    Divider()
-                        .padding(.vertical)
-                    
-                    // Account switcher button
-                    Button(action: {
-                        showingAccountSelection = true
-                    }) {
-                        HStack {
-                            Image(systemName: "person.2.fill")
-                                .font(.system(size: 18))
-                            Text("Change Account")
-                                .font(.headline)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
-                    }
-                    .padding(.horizontal)
-                    
-                    Spacer()
-                }
-                .padding(.bottom)
-                .sheet(isPresented: $showingAccountSelection) {
-                    accountSelectionView
-                }
-            }
+                profileView(for: user)
         } else {
             LoadingView()
         }
@@ -120,43 +30,108 @@ struct ProfileView: View {
         .onAppear {
             loadCurrentUser()
         }
-        .onChange(of: appLaunch.selectedUsername) {
+        .onChange(of: userService.selectedUsername) {
             loadCurrentUser()
         }
     }
     
     private func loadCurrentUser() {
         Task {
-            do {
-                // Try with selectedUsername first if available
-                if let selectedUsername = appLaunch.selectedUsername {
-                    let userDescriptor = FetchDescriptor<User>(
-                        predicate: #Predicate<User> { user in
-                            user.username == selectedUsername
-                        }
-                    )
-                    
-                    let users = try modelContext.fetch(userDescriptor)
-                    if let user = users.first {
-                        currentUser = user
-                        return
+            currentUser = try? await userService.getCurrentUser()
+        }
+    }
+    
+    private func profileView(for user: User) -> some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                // Header
+                HStack {
+                    Text("Profile")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                    Spacer()
+                    Button("Edit Profile") {
+                        isEditingDisplayName = true
                     }
-                }
+                    .buttonStyle(.plain)
+                    .foregroundColor(.blue)
+                }.padding(.horizontal)
                 
-                // If selectedUsername is nil or not found, try to get the first user
-                let allUserDescriptor = FetchDescriptor<User>()
-                let allUsers = try modelContext.fetch(allUserDescriptor)
+                // Profile Image
+                ProfileImageView(username: user.username)
+                    .padding(.top)
                 
-                if let firstUser = allUsers.first {
-                    currentUser = firstUser
+                // Display Name, Username, and Public Key
+                VStack(spacing: 4) {
+                    if isEditingDisplayName {
+                        VStack(spacing: 10) {
+                            TextField("Display Name", text: $newDisplayName)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .padding(.horizontal, 40)
+                                .onAppear {
+                                    newDisplayName = user.displayName ?? ""
+                                }
+                            
+                            HStack {
+                                Button("Cancel") {
+                                    isEditingDisplayName = false
+                                }
+                                .buttonStyle(.bordered)
+                                
+                                Button("Save") {
+                                    user.displayName = newDisplayName.isEmpty ? nil : newDisplayName
+                                    Task { try await userService.saveUser(user) }
+                                    isEditingDisplayName = false
+                                }
+                                .buttonStyle(.borderedProminent)
+                            }
+                        }
+                        .padding(.vertical, 5)
+                    } else {
+                        if let displayName = user.displayName {
+                            Text(displayName)
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                        }
+                    }
                     
-                    // Update AppLaunch selectedUsername to match
-                    appLaunch.selectAccount(username: firstUser.username)
-                } else {
-                    currentUser = nil
+                    Text("@\(user.username)")
+                        .font(.title3)
+                        .fontWeight(.medium)
+                        .padding(.top, 1)
+                    
+                    Text(formatPublicKeyPreview(from: user))
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .padding(.top, 1)
                 }
-            } catch {
-                currentUser = nil
+                
+                Divider()
+                    .padding(.vertical)
+                
+                // Account switcher button
+                Button(action: {
+                    showingAccountSelection = true
+                }) {
+                    HStack {
+                        Image(systemName: "person.2.fill")
+                            .font(.system(size: 18))
+                        Text("Change Account")
+                            .font(.headline)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+                }
+                .padding(.horizontal)
+                
+                Spacer()
+            }
+            .padding(.bottom)
+            .sheet(isPresented: $showingAccountSelection) {
+                accountSelectionView
             }
         }
     }
@@ -177,7 +152,7 @@ struct ProfileView: View {
                     LazyVStack(spacing: 10) {
                         ForEach(allUsers) { user in
                             Button(action: {
-                                appLaunch.selectAccount(username: user.username)
+                                userService.selectAccount(username: user.username)
                                 showingAccountSelection = false
                             }) {
                                 HStack {
@@ -193,7 +168,7 @@ struct ProfileView: View {
                                     
                                     Spacer()
                                     
-                                    if user.username == appLaunch.selectedUsername {
+                                    if user.username == userService.selectedUsername {
                                         Image(systemName: "checkmark")
                                             .foregroundColor(.blue)
                                     }
@@ -216,7 +191,7 @@ struct ProfileView: View {
             
             // Create new account button
             Button(action: {
-                appLaunch.createNewAccount()
+                appLaunch.setUnregistered()
                 showingAccountSelection = false
             }) {
                 HStack {
@@ -289,26 +264,21 @@ struct ProfileImageView: View {
 }
 
 #Preview {
-    ProfileView().modelContainer(DataController.previewContainer)
-}
-
-@MainActor
-class DataController {
-    static let previewContainer: ModelContainer = {
-        do {
-            let config = ModelConfiguration(isStoredInMemoryOnly: true)
-            let container = try ModelContainer(for: User.self, configurations: config)
-
-            let user = User(
-                signedPrekey: P256.Signing.PrivateKey(), 
-                username: "alice_prism", 
-                displayName: "Alice Wonderland"
-            )
-            container.mainContext.insert(user)
-
-            return container
-        } catch {
-            fatalError("Failed to create model container for previewing: \(error.localizedDescription)")
-        }
-    }()
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: User.self, configurations: config)
+    let modelContext = ModelContext(container)
+    
+    let user = User(
+        signedPrekey: P256.Signing.PrivateKey(),
+        username: "alice_prism",
+        displayName: "Alice Wonderland"
+    )
+//    modelContext.insert(user)
+//    let userService = UserService(userRepository: SwiftDataUserRepository(modelContext: modelContext))
+//    userService.selectAccount(username: "alice_prism")
+//    let appLaunch = AppLaunch()
+//    appLaunch.setRegistered()
+    ProfileView()
+//        .environmentObject(appLaunch)
+//        .environmentObject(userService)
 }

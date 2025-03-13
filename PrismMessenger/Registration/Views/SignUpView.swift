@@ -11,10 +11,8 @@ import CryptoKit
 import SwiftUI
 
 struct SignUpView: View {
-    @Environment(\.modelContext) var context
-    
     @EnvironmentObject var appLaunch: AppLaunch
-    @EnvironmentObject var appContext: AppContext
+    @EnvironmentObject var registrationService: RegistrationService
 
     @State private var username = ""
     @State private var isUsernameAvailable = false
@@ -103,7 +101,7 @@ struct SignUpView: View {
         }
 
         Task {
-            isUsernameAvailable = (await appContext.backendGateway.registrationService.checkUsernameAvailability(username))
+            isUsernameAvailable = (await registrationService.checkUsernameAvailability(username))
             isCheckingUsername = false
         }
     }
@@ -117,23 +115,9 @@ struct SignUpView: View {
         
         Task {
             do {
-                // Step 1: Request registration and get challenge
-                let challenge = try await appContext.backendGateway.registrationService.requestRegistration(username: username)
-                
-                // Step 2: Sign challenge and finalize registration
-                try await appContext.backendGateway.registrationService.finalizeRegistration(username: username, challenge: challenge)
-                
-                // Step 3: Initialize key bundle and create user
-                let (keybundle, user) = try await appContext.backendGateway.keyService.initializeKeyBundle(username: username)
-                
-                context.insert(user)
-                try context.save()
-                
-                // Step 4: Submit key bundle
-                try await appContext.backendGateway.keyService.submitKeyBundle(username: username, keyBundle: keybundle)
+                try await registrationService.registerNewUser(username: username)
 
-                // Handle success - mark the user as registered and set as selected account
-                appLaunch.setRegistered(username: username)
+                appLaunch.setRegistered()
                 
                 DispatchQueue.main.async {
                     isRegistering = false
@@ -150,8 +134,5 @@ struct SignUpView: View {
 }
 
 #Preview {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: User.self, configurations: config)
-
-    SignUpView().modelContainer(container)
+    SignUpView()
 }

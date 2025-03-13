@@ -9,15 +9,71 @@ import Foundation
 import SwiftData
 import CryptoKit
 
-class ChatManager {
+enum ChatManagerError: Error {
+    case noCurrentUser
+    case otherUserNotFound
+    case keyExchangeFailed
+    case missingKeyBundle
+    case missingPreKeys
+    case networkFailure(Int)
+}
+
+class ChatManager: ObservableObject {
     private let chatRepository: ChatRepository
-    private let userRepository: UserRepository
-    weak var appLaunch: AppLaunch?
+    private let userService: UserService
+    private let messageGateway: MessageGateway
+    private let keyGateway: KeyGateway
+    private let x3dh: X3DH
     
     init(chatRepository: ChatRepository,
-         userRepository: UserRepository) {
+         userService: UserService, 
+         messageGateway: MessageGateway,
+         keyGateway: KeyGateway,
+         x3dh: X3DH) {
         self.chatRepository = chatRepository
-        self.userRepository = userRepository
+        self.userService = userService
+        self.messageGateway = messageGateway
+        self.keyGateway = keyGateway
+        self.x3dh = x3dh
+    }
+    
+    func startChat(with otherUsername: String) async throws -> Chat {
+        do {
+            // If a chat with this user already exists, reuse it
+            if let existingChat = try await getChat(with: otherUsername) {
+                return existingChat
+            }
+            
+            // Try to get the key bundle from the other user
+            guard
+                let keyBundle = try await keyGateway.fetchKeyBundle(for: otherUsername) else {
+                throw ChatManagerError.missingKeyBundle
+            }
+            
+            guard let prekey = keyBundle.prekeys.first else {
+                throw ChatManagerError.missingPreKeys
+            }
+            
+            // Perform the X3DH handshake
+            let (sharedSecret, ephemeralPrivateKey, usedPrekeyId) = try await x3dh.initiateHandshake(with: keyBundle, using: prekey.key_idx)
+            
+            print("Successfully performed X3DH handshake with user: \(otherUsername)")
+            print("Used prekey ID: \(String(describing: usedPrekeyId))")
+            
+            // Create a new chat with the Double Ratchet session
+            return try await createChat(with: otherUsername,
+                sharedSecret: sharedSecret,
+                ephemeralPrivateKey: ephemeralPrivateKey,
+                prekey: prekey
+            )
+            
+        } catch KeyGatewayError.requestFailed(let statusCode) {
+            throw ChatManagerError.networkFailure(statusCode)
+        }  catch KeyGatewayError.userNotFound {
+            throw ChatManagerError.otherUserNotFound
+        }  catch is X3DHError {
+            throw ChatManagerError.keyExchangeFailed
+        }
     }
     
     /// Creates a new chat from an X3DH handshake and stores it in the repository
@@ -29,13 +85,13 @@ class ChatManager {
     /// - Returns: The created Chat object
     @MainActor
     func createChat(
-        username: String,
+        with otherUsername: String,
         sharedSecret: SymmetricKey,
         ephemeralPrivateKey: P256.KeyAgreement.PrivateKey,
         prekey: Prekey
     ) async throws -> Chat {
         // 0. Get the current user
-        let currentUsername = try getCurrentUsername()
+        let currentUsername = try await getCurrentUsername()
         
         // 1. Create a Double Ratchet session with the shared secret
         let session = try createDoubleRatchetSession(
@@ -52,9 +108,9 @@ class ChatManager {
 
         // 3. Create and save the chat
         let chat = Chat(
-            participantUsername: username,
+            participantUsername: otherUsername,
             ownerUsername: currentUsername,
-            displayName: username, // Default to username for display until we get more info
+            displayName: otherUsername, // Default to username for display until we get more info
             doubleRatchetSession: sessionData
         )
         
@@ -77,7 +133,7 @@ class ChatManager {
     /// - Returns: The Chat object if found, nil otherwise
     @MainActor
     func getChat(with username: String) async throws -> Chat? {
-        let currentUsername = try getCurrentUsername()
+        let currentUsername = try await getCurrentUsername()
         return try await chatRepository.getChat(withParticipant: username, forOwner: currentUsername)
     }
     
@@ -85,7 +141,7 @@ class ChatManager {
     /// - Returns: Array of all chats owned by the current user
     @MainActor
     func getAllChats() async throws -> [Chat] {
-        let currentUsername = try getCurrentUsername()
+        let currentUsername = try await getCurrentUsername()
         return try await chatRepository.getAllChats(for: currentUsername)
     }
     
@@ -115,7 +171,7 @@ class ChatManager {
     }
     
     /// Deserializes Data back to a DoubleRatchetSession
-    func deserializeDoubleRatchetSession(from data: Data) throws -> DoubleRatchetSession {
+    private func deserializeDoubleRatchetSession(from data: Data) throws -> DoubleRatchetSession {
         let decoder = JSONDecoder()
         return try decoder.decode(DoubleRatchetSession.self, from: data)
     }
@@ -134,13 +190,11 @@ class ChatManager {
         senderUsername: String,
         senderIdentityKey: P256.KeyAgreement.PublicKey,
         senderEphemeralKey: P256.KeyAgreement.PublicKey,
-        usedPrekeyId: UInt64?,
-        keyManager: KeyManager
+        usedPrekeyId: UInt64?
     ) async throws -> Chat {
         // 1. Get the current user's data
-        let currentUsername = try getCurrentUsername()
-        guard let user = try await userRepository.getUser(byUsername: currentUsername) else {
-            throw MessageError.unauthorized
+        guard let user = try await userService.getCurrentUser() else {
+            throw ChatManagerError.noCurrentUser
         }
         
         // 2. Get our signed prekey
@@ -153,11 +207,10 @@ class ChatManager {
             print("DEBUG: USING PREKEY")
             // Mark the prekey as used
             user.deletePrekey(keyIdx: prekeyId)
-            try await userRepository.saveUser(user)
+            try await userService.saveUser(user)
         }
         
         // 4. Compute the X3DH shared secret (from receiver's perspective)
-        let x3dh = X3DH(keyManager: keyManager)
         let symmetricKey = try await x3dh.performPassiveX3DH(senderEphemeralKey: senderEphemeralKey, senderIdentityKey: senderIdentityKey, receiverSignedPreKey: signedPrekey, receiverOneTimePreKey: prekeyKA)
         
         // 5. Create a Double Ratchet session with the shared secret
@@ -176,7 +229,7 @@ class ChatManager {
         // 7. Create and save the chat
         let chat = Chat(
             participantUsername: senderUsername,
-            ownerUsername: currentUsername,
+            ownerUsername: user.username,
             displayName: senderUsername, // Default to username for display
             doubleRatchetSession: sessionData
         )
@@ -199,12 +252,10 @@ class ChatManager {
     /// - Parameters:
     ///   - content: The message content
     ///   - chat: The chat to send the message in
-    ///   - messageService: Optional MessageServiceProtocol to send the message to the server
     /// - Returns: The created MessageData object
     func sendMessage(
         content: String, 
-        in chat: Chat,
-        messageService: MessageServiceProtocol? = nil
+        in chat: Chat
     ) async throws -> MessageData {
         // 1. Deserialize the Double Ratchet session
         let session = try deserializeDoubleRatchetSession(from: chat.doubleRatchetSession)
@@ -228,31 +279,30 @@ class ChatManager {
         // Save initial state with "sending" status
         try await chatRepository.saveChat(chat)
         
-        // 5. Send the encrypted message to the server if a MessageService is provided
-        if let messageService = messageService {
-            do {
-                // Get username from a user context (this would come from your app's auth context)
-                let selfUserName = try await MainActor.run { try self.getCurrentUsername() }
-                
-                // Send message to server
-                let response = try await messageService.sendMessage(
-                    encryptedMessage,
-                    from: selfUserName,
-                    to: chat.participantUsername
-                )
-                
-                // Update message status to "sent" after server confirms receipt
-                message.status = .sent
-                message.serverId = response.message_id
-                message.serverTimestamp = Date(timeIntervalSince1970: TimeInterval(response.timestamp) / 1000)
-                
-                try await chatRepository.saveChat(chat)
-            } catch {
-                // If sending fails, mark message as failed
-                message.status = .failed
-                try await chatRepository.saveChat(chat)
-                throw error
-            }
+        // 5. Send the encrypted message to the server
+        do {
+            // Get username from a user context (this would come from your app's auth context)
+            // TODO: Why can't it be derived from the chat?
+            let username = try await getCurrentUsername()
+            
+            // Send message to server using the MessageGateway
+            let response = try await messageGateway.sendMessage(
+                encryptedMessage,
+                from: username,
+                to: chat.participantUsername
+            )
+            
+            // Update message status to "sent" after server confirms receipt
+            message.status = .sent
+            message.serverId = response.message_id
+            message.serverTimestamp = Date(timeIntervalSince1970: TimeInterval(response.timestamp) / 1000)
+            
+            try await chatRepository.saveChat(chat)
+        } catch {
+            // If sending fails, mark message as failed
+            message.status = .failed
+            try await chatRepository.saveChat(chat)
+            throw error
         }
         
         return message
@@ -333,69 +383,10 @@ class ChatManager {
         }
     }
     
-    /// Given a chain key, derive a message key and the next chain key.
-    /// Same implementation as in DoubleRatchet.swift
-    private func deriveMessageKey(from chainKey: Data) -> (messageKey: Data, newChainKey: Data) {
-        let keyMaterial = localHkdf(
-            inputKeyingMaterial: chainKey,
-            salt: Data(),
-            info: Data("DoubleRatchetMessage".utf8),
-            outputLength: 64
-        )
-        let messageKey = keyMaterial.prefix(32)
-        let newChainKey = keyMaterial.suffix(32)
-        return (Data(messageKey), Data(newChainKey))
-    }
-    
-    // MARK: - Local HKDF Implementation (copy of HKDF.swift)
-    
-    /// Local implementation of HKDF extract
-    private func localHkdfExtract(salt: Data, inputKeyingMaterial ikm: Data) -> Data {
-        // If salt is empty, use a salt of HashLen (32 bytes for SHA256) zeros.
-        let effectiveSalt = salt.isEmpty ? Data(repeating: 0, count: Int(SHA256.byteCount)) : salt
-        let saltKey = SymmetricKey(data: effectiveSalt)
-        let prk = HMAC<SHA256>.authenticationCode(for: ikm, using: saltKey)
-        return Data(prk)
-    }
-    
-    /// Local implementation of HKDF expand
-    private func localHkdfExpand(prk: Data, info: Data, outputLength: Int) -> Data {
-        var okm = Data()
-        var previousBlock = Data()
-        var counter: UInt8 = 1
-    
-        while okm.count < outputLength {
-            var data = Data()
-            // T(n) = HMAC(PRK, T(n-1) || info || counter)
-            data.append(previousBlock)
-            data.append(info)
-            data.append(counter)
-            
-            let prkKey = SymmetricKey(data: prk)
-            let block = HMAC<SHA256>.authenticationCode(for: data, using: prkKey)
-            previousBlock = Data(block)
-            okm.append(previousBlock)
-            counter += 1
+    private func getCurrentUsername() async throws -> String  {
+        guard let currentUsername = await userService.selectedUsername else {
+            throw ChatManagerError.noCurrentUser
         }
-        
-        return okm.prefix(outputLength)
-    }
-    
-    /// Local implementation of HKDF
-    private func localHkdf(inputKeyingMaterial ikm: Data, salt: Data, info: Data, outputLength: Int) -> Data {
-        let prk = localHkdfExtract(salt: salt, inputKeyingMaterial: ikm)
-        let okm = localHkdfExpand(prk: prk, info: info, outputLength: outputLength)
-        return okm
-    }
-    
-    /// Get the current user's username from appLaunch
-    /// - Returns: The current user's username
-    @MainActor
-    private func getCurrentUsername() throws -> String {
-        if let username = appLaunch?.selectedUsername, !username.isEmpty {
-            return username
-        }
-        
-        throw MessageError.unauthorized
+        return currentUsername
     }
 }

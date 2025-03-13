@@ -15,6 +15,7 @@ struct ChatView: View {
     @State private var error: String? = nil
     @FocusState private var isTextFieldFocused: Bool
     @EnvironmentObject private var appContext: AppContext
+    @EnvironmentObject private var messageService: MessageService
     
     var body: some View {
         VStack(spacing: 0) {
@@ -52,7 +53,7 @@ struct ChatView: View {
             while !Task.isCancelled {
                 do {
                     try await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
-                    try? await appContext.messageService.fetchAndProcessMessages()
+                    try? await messageService.fetchAndProcessMessages()
                 } catch {
                     break
                 }
@@ -186,8 +187,7 @@ struct ChatView: View {
                 // Send the message using the MessageService
                 _ = try await appContext.chatManager.sendMessage(
                     content: messageToSend, 
-                    in: chat,
-                    messageService: appContext.backendGateway.messageService
+                    in: chat
                 )
                 
                 DispatchQueue.main.async {
@@ -318,7 +318,7 @@ struct ChatViewPreview: PreviewProvider {
             
             context.insert(chat)
             
-            let appContext = try! AppContext(modelContext: context)
+            let appContext = AppContext(modelContext: context)
             return (chat, appContext)
         }
         

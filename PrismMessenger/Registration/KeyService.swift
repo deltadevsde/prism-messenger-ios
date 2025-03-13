@@ -14,47 +14,16 @@ enum KeyServiceError: Error {
     case userNotFound
 }
 
-struct PrivatePrekey: Codable {
-    var key_idx: UInt64
-    var key: CryptoPayload
-}
-
-struct Prekey: Codable {
-    var key_idx: UInt64
-    var key: P256.Signing.PublicKey
-    
-    func fromPrivatePrekey(_ prekey: PrivatePrekey) throws -> Prekey {
-        try Prekey(key_idx: prekey.key_idx, key: prekey.key.toP256PrivateKey().publicKey)
-    }
-}
-
-struct KeyBundle: Codable {
-    var identity_key: P256.Signing.PublicKey
-    var signed_prekey: P256.Signing.PublicKey
-    var signed_prekey_signature: P256.Signing.ECDSASignature
-    var prekeys: [Prekey]
-}
-
-struct KeyBundleResponse: Codable {
-    var key_bundle: KeyBundle?
-    // TODO: Account and HashedMerkleProof
-}
-
-struct UploadKeyBundleRequest: Codable {
-    var user_id: String
-    var keybundle: KeyBundle
-}
-
-/// Concrete implementation of the KeyServiceProtocol
-class KeyService: ObservableObject, KeyServiceProtocol {
-    private let restClient: RestClient
+///
+class KeyService: ObservableObject {
+    private let keyGateway: KeyGateway
     private let keyManager: KeyManager
     
     init(
-        restClient: RestClient,
+        keyGateway: KeyGateway,
         keyManager: KeyManager
     ) {
-        self.restClient = restClient
+        self.keyGateway = keyGateway
         self.keyManager = keyManager
     }
     
@@ -76,27 +45,25 @@ class KeyService: ObservableObject, KeyServiceProtocol {
         ), user)
     }
     
-    /// Submits a user's key bundle to the server
-    func submitKeyBundle(username: String, keyBundle: KeyBundle) async throws {
-        let req = UploadKeyBundleRequest(user_id: username, keybundle: keyBundle)
-        do {
-            try await restClient.post(req, to: "/keys/upload_bundle")
-        } catch RestClientError.httpError(let httpStatusCode) {
-            throw KeyServiceError.networkFailure(httpStatusCode)
-        }
-    }
-    
-    /// Fetches a key bundle for a specific user from the server
-    func getKeyBundle(username: String) async throws -> KeyBundle? {
-        do {
-            let keyBundle: KeyBundleResponse = try await restClient.fetch(from: "/keys/bundle/\(username)")
-            return keyBundle.key_bundle
-        } catch RestClientError.httpError(let httpStatusCode) {
-            if httpStatusCode == 404 {
-                throw KeyServiceError.userNotFound
-            }
-            throw KeyServiceError.networkFailure(httpStatusCode)
-        }
-    }
+//    func submitKeyBundle(username: String, keyBundle: KeyBundle) async throws {
+//        let req = UploadKeyBundleRequest(user_id: username, keybundle: keyBundle)
+//        do {
+//            try await restClient.post(req, to: "/keys/upload_bundle")
+//        } catch RestClientError.httpError(let httpStatusCode) {
+//            throw KeyServiceError.networkFailure(httpStatusCode)
+//        }
+//    }
+//    
+//    func getKeyBundle(username: String) async throws -> KeyBundle? {
+//        do {
+//            let keyBundle: KeyBundleResponse = try await restClient.fetch(from: "/keys/bundle/\(username)")
+//            return keyBundle.key_bundle
+//        } catch RestClientError.httpError(let httpStatusCode) {
+//            if httpStatusCode == 404 {
+//                throw KeyServiceError.userNotFound
+//            }
+//            throw KeyServiceError.networkFailure(httpStatusCode)
+//        }
+//    }
 }
 
