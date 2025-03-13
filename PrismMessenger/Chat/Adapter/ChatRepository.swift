@@ -1,3 +1,10 @@
+//
+//  ChatRepository.swift
+//  PrismMessenger
+//
+//  Copyright © 2025 prism. All rights reserved.
+//
+
 import Foundation
 import SwiftData
 
@@ -9,7 +16,8 @@ protocol ChatRepository {
     func deleteChat(_ chat: Chat) async throws
 }
 
-class ModelContextChatRepository: ChatRepository {
+@MainActor
+class SwiftDataChatRepository: ChatRepository {
     private let modelContext: ModelContext
     
     init(modelContext: ModelContext) {
@@ -30,7 +38,8 @@ class ModelContextChatRepository: ChatRepository {
         let descriptor = FetchDescriptor<Chat>(
             predicate: #Predicate<Chat> { chat in
                 chat.id == id
-            }
+            },
+            sortBy: [SortDescriptor(\.lastMessageTimestamp, order: .reverse)]
         )
         
         let chats = try modelContext.fetch(descriptor)

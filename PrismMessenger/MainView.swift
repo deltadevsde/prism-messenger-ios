@@ -9,11 +9,10 @@ import SwiftUI
 import SwiftData
 
 struct MainView: View {
-    @State private var path = NavigationPath()
-    @EnvironmentObject private var appLaunch: AppLaunch
-    @Environment(\.modelContext) private var modelContext
-    
     @EnvironmentObject private var appContext: AppContext
+    @EnvironmentObject private var appLaunch: AppLaunch
+    
+    @State private var path = NavigationPath()
     @State private var messagePollingTask: Task<Void, Never>?
     @State private var lastMessageCheckTime = Date()
     
@@ -34,8 +33,12 @@ struct MainView: View {
                 }
             }
         }
-        // We're now initializing in PrismMessengerApp instead
-        // to ensure proper initialization order
+        .modelContext(appContext.modelContext)
+        .environmentObject(appContext.appLaunch)
+        .environmentObject(appContext.chatManager)
+        .environmentObject(appContext.messageService)
+        .environmentObject(appContext.registrationService)
+        .environmentObject(appContext.userService)
     }
     
     private var mainContentView: some View {
@@ -74,8 +77,7 @@ struct MainView: View {
             
             Button("Try Again") {
                 Task {
-                    // We have direct access to appContext as an @EnvironmentObject
-                    await appLaunch.initialize(modelContext: modelContext, userService: appContext.userService)
+                    await appContext.onAppStart()
                 }
             }
             .buttonStyle(.borderedProminent)
@@ -114,18 +116,6 @@ struct MainView: View {
 }
 
 #Preview {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: User.self, Chat.self, MessageData.self, configurations: config)
-    let context = ModelContext(container)
-    
-    // Create a context for preview
-    let appContext = try! AppContext(modelContext: context)
-    
-    // Create AppLaunch
-    let appLaunch = AppLaunch()
-    
     return MainView()
-        .modelContainer(container)
-        .environmentObject(appContext)
-        .environmentObject(appLaunch)
+        .environmentObject(AppContext())
 }

@@ -1,3 +1,10 @@
+//
+//  UserRepository.swift
+//  PrismMessenger
+//
+//  Copyright © 2025 prism. All rights reserved.
+//
+
 import Foundation
 import SwiftData
 import CryptoKit
@@ -9,7 +16,8 @@ protocol UserRepository {
     func deleteUser(_ user: User) async throws
 }
 
-class ModelContextUserRepository: UserRepository {
+@MainActor
+class SwiftDataUserRepository: UserRepository {
     private let modelContext: ModelContext
     
     init(modelContext: ModelContext) {
