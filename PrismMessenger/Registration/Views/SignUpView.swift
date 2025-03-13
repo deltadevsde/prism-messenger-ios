@@ -13,7 +13,8 @@ import SwiftUI
 struct SignUpView: View {
     @EnvironmentObject var appLaunch: AppLaunch
     @EnvironmentObject var registrationService: RegistrationService
-
+    @Environment(\.dismiss) private var dismiss
+    
     @State private var username = ""
     @State private var isUsernameAvailable = false
     @State private var isCheckingUsername = false
@@ -121,6 +122,8 @@ struct SignUpView: View {
                 
                 DispatchQueue.main.async {
                     isRegistering = false
+                    // Dismiss current view to return to root view
+                    dismiss()
                 }
             } catch let error {
                 print("Registration error: \(error)")
