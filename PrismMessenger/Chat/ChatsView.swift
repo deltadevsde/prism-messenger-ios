@@ -15,24 +15,61 @@ struct ChatsView: View {
     
     @State private var showingNewChatSheet = false
     @State private var currentChats: [Chat] = []
+    @State private var filteredChats: [Chat] = []
     @State private var refreshTrigger = false  // Refresh trigger for manual refreshes
     
+    @State private var usernameQuery = ""
+
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading) {
                 HStack {
+                    // TODO: Navigate to profile? Or what should this do?
+                    Image(systemName: "person.circle.fill")
+                        .font(.system(size: 40))
+                        .foregroundColor(.gray)
+                        .frame(width: 40, height: 40)
+                    Spacer()
                     Text("Messages")
-                        .font(.title)
-                        .fontWeight(.bold)
+                        .font(.system(size: 16, weight: .semibold))
                     Spacer()
                     Button(action: {
                         showingNewChatSheet = true
                     }) {
                         Image(systemName: "square.and.pencil")
+//                            .font(.system(size: 20))
                             .foregroundColor(Color.blue)
+                            .frame(width: 40, height: 40)
                     }
-                }.padding(.horizontal)
-                Divider()
+                }
+                .padding(.horizontal, 20)
+                
+                // TODO: Couldn't find a better way to do this than stacking 2 hstacks (to apply margin to the outside of search bar)
+                HStack{
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(.gray)
+                        
+                        TextField("Search", text: $usernameQuery)
+                            .autocapitalization(.none)
+                            .disableAutocorrection(true)
+                            .onChange(of: usernameQuery) {
+                                DispatchQueue.main.async {
+                                    if usernameQuery != "" {
+                                        self.filteredChats = currentChats.filter { $0.participantUsername.lowercased().contains(usernameQuery.lowercased()) }
+                                    } else {
+                                        self.filteredChats = currentChats
+                                    }
+                                }
+                            }
+                    }
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
+                .padding(.top, 10)
                 
                 ScrollView {
                     LazyVStack(spacing: 16) {
@@ -54,7 +91,7 @@ struct ChatsView: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .padding(.top, 50)
                         } else {
-                            ForEach(currentChats) { chat in
+                            ForEach(filteredChats) { chat in
                                 NavigationLink(destination: {
                                     // Using a closure form that creates a new binding for each chat
                                     let bindableChat = chat
@@ -71,8 +108,7 @@ struct ChatsView: View {
                                 .buttonStyle(PlainButtonStyle())
                             }
                         }
-                    }.padding(.horizontal)
-                    Divider()
+                    }.padding(.horizontal, 20)
                 }
             }
             .sheet(
@@ -105,6 +141,7 @@ struct ChatsView: View {
             
             DispatchQueue.main.async {
                 self.currentChats = userChats
+                self.filteredChats = userChats
             }
         }
     }
