@@ -16,28 +16,67 @@ struct ProfileView: View {
     @State private var isEditingDisplayName = false
     @State private var newDisplayName = ""
     @State private var currentUser: User?
+    @State private var isLoading = true
     @State private var showingAccountSelection = false
     @Query private var allUsers: [User]
     
     var body: some View {
-        Group {
+        ZStack {
+            // Main content that's always rendered, even during loading
             if let user = currentUser {
                 profileView(for: user)
-        } else {
-            LoadingView()
-        }
+                    .opacity(isLoading ? 0 : 1) // Hide content during loading but keep layout stable
+            } else {
+                // Empty view with similar layout to maintain stability
+                ScrollView {
+                    VStack(spacing: 20) {
+                        HStack {
+                            Text("Profile")
+                                .font(.largeTitle)
+                                .fontWeight(.bold)
+                            Spacer()
+                        }.padding(.horizontal)
+                        
+                        Color.clear
+                            .frame(width: 150, height: 150) // Same size as profile image
+                            .padding(.top)
+                        
+                        Spacer()
+                    }
+                    .padding(.bottom)
+                }
+                .opacity(0) // Invisible but maintains layout
+            }
+            
+            // Loading overlay
+            if isLoading {
+                LoadingView()
+            }
         }
         .onAppear {
             loadCurrentUser()
         }
         .onChange(of: userService.selectedUsername) {
+            isLoading = true
             loadCurrentUser()
         }
     }
     
     private func loadCurrentUser() {
         Task {
-            currentUser = try? await userService.getCurrentUser()
+            do {
+                let user = try await userService.getCurrentUser()
+                
+                // Important: Update UI state on main thread
+                await MainActor.run {
+                    currentUser = user
+                    isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    isLoading = false
+                }
+            }
         }
     }
     

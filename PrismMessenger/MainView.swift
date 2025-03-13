@@ -64,6 +64,11 @@ struct MainView: View {
         .onAppear {
             // Start message polling when tab view appears
             startMessagePolling()
+            
+            // Preload user data for ProfileView to minimize loading time during tab transitions
+            Task {
+                try? await appContext.userService.getCurrentUser()
+            }
         }
         .onDisappear {
             // Stop message polling when tab view disappears
