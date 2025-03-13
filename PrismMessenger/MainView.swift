@@ -33,6 +33,12 @@ struct MainView: View {
                 }
             }
         }
+        .onChange(of: appLaunch.state) { oldState, newState in
+            if oldState != newState && newState == .ready {
+                // Reset navigation path when transitioning to ready state
+                path = NavigationPath()
+            }
+        }
         .modelContext(appContext.modelContext)
         .environmentObject(appContext.appLaunch)
         .environmentObject(appContext.chatManager)
@@ -83,6 +89,10 @@ struct MainView: View {
             .buttonStyle(.borderedProminent)
         }
         .padding()
+        .onAppear {
+            // Reset navigation path when error view appears
+            path = NavigationPath()
+        }
     }
     
     // Start polling for new messages

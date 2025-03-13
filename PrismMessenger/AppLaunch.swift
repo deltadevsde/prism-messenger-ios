@@ -33,6 +33,6 @@ class AppLaunch: ObservableObject {
     }
     
     func setError() {
-        state = .ready
+        state = .error
     }
 }
