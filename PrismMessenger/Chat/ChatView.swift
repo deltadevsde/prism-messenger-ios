@@ -16,12 +16,23 @@ struct ChatView: View {
     @FocusState private var isTextFieldFocused: Bool
     @EnvironmentObject private var appContext: AppContext
     @EnvironmentObject private var messageService: MessageService
+    @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
     
+    var btnBack : some View { Button(action: {
+        self.presentationMode.wrappedValue.dismiss()
+        }) {
+            HStack {
+                Image(systemName: "chevron.backward")
+                .aspectRatio(contentMode: .fit)
+                .foregroundColor(.black)
+                .frame(width: 40, height: 40)
+            }
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            // Chat header
             headerView
-            
             // Messages list
             messagesList
             
@@ -37,7 +48,8 @@ struct ChatView: View {
             // Input area
             inputView
         }
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+//        .navigationBarItems(leading: headerView)
         .onAppear {
             // Mark chat as read when view appears
             chat.markAsRead()
@@ -63,6 +75,19 @@ struct ChatView: View {
     
     private var headerView: some View {
         HStack {
+            btnBack
+            Spacer()
+            VStack(alignment: .center, spacing: 2) {
+                Text(chat.displayName ?? chat.participantUsername)
+                    .font(.headline)
+                
+                // TODO: Link with real API
+                Text("Online")
+                    .font(.caption)
+                    .foregroundColor(.green)
+            }
+            
+            Spacer()
             // Profile image
             if let imageURL = chat.imageURL, let url = URL(string: imageURL) {
                 AsyncImage(url: url) { image in
@@ -81,20 +106,9 @@ struct ChatView: View {
                     .foregroundColor(.gray)
                     .frame(width: 40, height: 40)
             }
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(chat.displayName ?? chat.participantUsername)
-                    .font(.headline)
-                
-                Text("Online") // This would be dynamic in a real implementation
-                    .font(.caption)
-                    .foregroundColor(.green)
-            }
-            
-            Spacer()
         }
         .padding(.horizontal)
-        .padding(.vertical, 10)
+        .padding(.bottom, 10)
         .background(Color(.systemBackground))
         .shadow(color: Color.black.opacity(0.1), radius: 1, y: 1)
     }
@@ -205,7 +219,7 @@ struct ChatView: View {
 
 struct MessageBubble: View {
     let message: MessageData
-    
+
     var body: some View {
         HStack {
             if message.isFromMe {
