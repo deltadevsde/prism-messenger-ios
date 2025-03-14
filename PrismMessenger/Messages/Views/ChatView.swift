@@ -16,15 +16,26 @@ struct ChatView: View {
     @FocusState private var isTextFieldFocused: Bool
     @EnvironmentObject private var chatService: ChatService
     @EnvironmentObject private var messageService: MessageService
-    
+    @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
+
+    var btnBack : some View { Button(action: {
+        self.presentationMode.wrappedValue.dismiss()
+        }) {
+            HStack {
+                Image(systemName: "chevron.backward")
+                .aspectRatio(contentMode: .fit)
+                .foregroundColor(.black)
+                .frame(width: 40, height: 40)
+            }
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            // Chat header
             headerView
-            
             // Messages list
             messagesList
-            
+
             // Error message display
             if let error = error {
                 Text(error)
@@ -33,11 +44,12 @@ struct ChatView: View {
                     .padding(.horizontal)
                     .padding(.top, 4)
             }
-            
+
             // Input area
             inputView
         }
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+//        .navigationBarItems(leading: headerView)
         .onAppear {
             // Mark chat as read when view appears
             chat.markAsRead()
@@ -60,9 +72,22 @@ struct ChatView: View {
             }
         }
     }
-    
+
     private var headerView: some View {
         HStack {
+            btnBack
+            Spacer()
+            VStack(alignment: .center, spacing: 2) {
+                Text(chat.displayName ?? chat.participantUsername)
+                    .font(.headline)
+
+                // TODO: Link with real API
+                Text("Online")
+                    .font(.caption)
+                    .foregroundColor(.green)
+            }
+
+            Spacer()
             // Profile image
             if let imageURL = chat.imageURL, let url = URL(string: imageURL) {
                 AsyncImage(url: url) { image in
@@ -81,24 +106,13 @@ struct ChatView: View {
                     .foregroundColor(.gray)
                     .frame(width: 40, height: 40)
             }
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(chat.displayName ?? chat.participantUsername)
-                    .font(.headline)
-                
-                Text("Online") // This would be dynamic in a real implementation
-                    .font(.caption)
-                    .foregroundColor(.green)
-            }
-            
-            Spacer()
         }
         .padding(.horizontal)
-        .padding(.vertical, 10)
+        .padding(.bottom, 10)
         .background(Color(.systemBackground))
         .shadow(color: Color.black.opacity(0.1), radius: 1, y: 1)
     }
-    
+
     private var messagesList: some View {
         ScrollViewReader { scrollProxy in
             ScrollView {
@@ -126,7 +140,7 @@ struct ChatView: View {
             }
         }
     }
-    
+
     private var inputView: some View {
         HStack(spacing: 12) {
             // Attachment button (placeholder for future functionality)
@@ -138,7 +152,7 @@ struct ChatView: View {
                     .foregroundColor(.blue)
                     .frame(width: 32, height: 32)
             }
-            
+
             // Text field
             ZStack(alignment: .trailing) {
                 TextField("Message", text: $messageText, axis: .vertical)
@@ -149,13 +163,13 @@ struct ChatView: View {
                     .focused($isTextFieldFocused)
                     .lineLimit(5)
                     .disabled(isLoading)
-                
+
                 if isLoading {
                     ProgressView()
                         .padding(.trailing, 10)
                 }
             }
-            
+
             // Send button
             Button {
                 sendMessage()
@@ -170,18 +184,18 @@ struct ChatView: View {
         .padding(.vertical, 8)
         .background(Color(.systemBackground))
     }
-    
+
     private func sendMessage() {
         let trimmedMessage = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedMessage.isEmpty else { return }
-        
+
         isLoading = true
         error = nil
-        
+
         // Clear the text field immediately for a better user experience
         let messageToSend = trimmedMessage
         messageText = ""
-        
+
         Task {
             do {
                 // Send the message using the MessageService
@@ -189,7 +203,7 @@ struct ChatView: View {
                     content: messageToSend,
                     in: chat
                 )
-                
+
                 DispatchQueue.main.async {
                     isLoading = false
                 }
@@ -217,12 +231,12 @@ struct MessageBubble: View {
                         .background(Color.blue)
                         .foregroundColor(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
-                    
+
                     HStack(spacing: 4) {
                         Text(formattedTime)
                             .font(.system(size: 10))
                             .foregroundColor(.gray)
-                        
+
                         // Status indicators
                         statusIcon
                     }
@@ -237,7 +251,7 @@ struct MessageBubble: View {
                         .background(Color(.systemGray5))
                         .foregroundColor(.primary)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
-                    
+
                     Text(formattedTime)
                         .font(.system(size: 10))
                         .foregroundColor(.gray)
@@ -248,13 +262,13 @@ struct MessageBubble: View {
             }
         }
     }
-    
+
     private var formattedTime: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "h:mm a"
         return formatter.string(from: message.timestamp)
     }
-    
+
     private var statusIcon: some View {
         Group {
             switch message.status {
