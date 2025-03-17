@@ -137,5 +137,9 @@ struct SignUpView: View {
 }
 
 #Preview {
+    let appContext = AppContext.forPreview()
+
     SignUpView()
+        .environmentObject(appContext.appLaunch)
+        .environmentObject(appContext.registrationService)
 }

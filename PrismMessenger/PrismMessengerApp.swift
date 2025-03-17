@@ -10,8 +10,8 @@ import SwiftData
 
 @main
 struct PrismMessengerApp: App {
-    @StateObject private var appContext = AppContext()
-    
+    @StateObject private var appContext = AppContext.forProd()
+
     var body: some Scene {
         WindowGroup {
             MainView()

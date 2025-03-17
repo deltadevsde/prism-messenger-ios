@@ -303,37 +303,20 @@ struct NewChatView: View {
 }
 
 #Preview {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(
-        for: User.self, Chat.self, MessageData.self, configurations: config)
-    let context = ModelContext(container)
+    let appContext = AppContext.forPreview()
+    let chatManager = appContext.chatManager
+    let userService = appContext.userService
+    let registrationService = appContext.registrationService
 
-    // Create sample data for the preview
-    let chat1 = Chat(
-        participantUsername: "johndoe",
-        ownerUsername: "alice",
-        displayName: "John Doe",
-        doubleRatchetSession: Data()
-    )
-    let message1 = MessageData(content: "Hello there!", isFromMe: false)
-    message1.chat = chat1
-    chat1.addMessage(message1)
+    Task {
+        try! await registrationService.registerNewUser(username: "Alice")
 
-    let chat2 = Chat(
-        participantUsername: "sarahsmith",
-        ownerUsername: "alice",
-        displayName: "Sarah Smith",
-        doubleRatchetSession: Data()
-    )
-    let message2 = MessageData(content: "Can't wait to see you tomorrow!", isFromMe: true)
-    message2.chat = chat2
-    chat2.addMessage(message2)
+        let chat1 = try! await chatManager.startChat(with: "Bob")
+        try! await chatManager.sendMessage(content: "Test", in: chat1)
 
-    context.insert(chat1)
-    context.insert(chat2)
-    
-    let appContext = AppContext(modelContext: context)
-    appContext.userService.selectAccount(username: "alice")
+        let chat2 = try! await chatManager.startChat(with: "Charlie")
+        try! await chatManager.sendMessage(content: "Hello", in: chat2)
+    }
 
     return ChatsView()
         .environmentObject(appContext.chatManager)

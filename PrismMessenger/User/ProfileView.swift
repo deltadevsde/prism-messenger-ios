@@ -303,21 +303,13 @@ struct ProfileImageView: View {
 }
 
 #Preview {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: User.self, configurations: config)
-    let modelContext = ModelContext(container)
-    
-    let user = User(
-        signedPrekey: P256.Signing.PrivateKey(),
-        username: "alice_prism",
-        displayName: "Alice Wonderland"
-    )
-//    modelContext.insert(user)
-//    let userService = UserService(userRepository: SwiftDataUserRepository(modelContext: modelContext))
-//    userService.selectAccount(username: "alice_prism")
-//    let appLaunch = AppLaunch()
-//    appLaunch.setRegistered()
-    ProfileView()
-//        .environmentObject(appLaunch)
-//        .environmentObject(userService)
+    let appContext = AppContext.forPreview()
+
+    Task {
+        try! await appContext.registrationService.registerNewUser(username: "Alice")
+    }
+
+    return ProfileView()
+        .environmentObject(appContext.appLaunch)
+        .environmentObject(appContext.userService)
 }
