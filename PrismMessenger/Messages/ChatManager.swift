@@ -282,7 +282,6 @@ class ChatManager: ObservableObject {
         // 5. Send the encrypted message to the server
         do {
             // Get username from a user context (this would come from your app's auth context)
-            // TODO: Why can't it be derived from the chat?
             let username = try await getCurrentUsername()
             
             // Send message to server using the MessageGateway

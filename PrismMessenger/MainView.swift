@@ -131,6 +131,6 @@ struct MainView: View {
 }
 
 #Preview {
-    return MainView()
-        .environmentObject(AppContext())
+    MainView()
+        .environmentObject(AppContext.forPreview())
 }

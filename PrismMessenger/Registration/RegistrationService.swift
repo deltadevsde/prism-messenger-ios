@@ -13,6 +13,7 @@ enum RegistrationError: Error {
     case failedToCreateKey
     case unableToSignChallenge
     case invalidChallenge
+    case signatureVerificationFailed
     case unknown
 }
 

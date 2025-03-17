@@ -14,7 +14,7 @@ struct ChatView: View {
     @State private var isLoading: Bool = false
     @State private var error: String? = nil
     @FocusState private var isTextFieldFocused: Bool
-    @EnvironmentObject private var appContext: AppContext
+    @EnvironmentObject private var chatManager: ChatManager
     @EnvironmentObject private var messageService: MessageService
     
     var body: some View {
@@ -45,7 +45,7 @@ struct ChatView: View {
         .refreshable {
             // Force refresh when user pulls down
             Task {
-                try? await appContext.messageService.fetchAndProcessMessages()
+                try? await messageService.fetchAndProcessMessages()
             }
         }
         // Periodically refresh messages when view is active
@@ -185,8 +185,8 @@ struct ChatView: View {
         Task {
             do {
                 // Send the message using the MessageService
-                _ = try await appContext.chatManager.sendMessage(
-                    content: messageToSend, 
+                _ = try await chatManager.sendMessage(
+                    content: messageToSend,
                     in: chat
                 )
                 
@@ -283,53 +283,40 @@ struct MessageBubble: View {
     }
 }
 
-struct ChatViewPreview: PreviewProvider {
-    static var previews: some View {
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try! ModelContainer(for: User.self, Chat.self, MessageData.self, configurations: config)
-        let context = ModelContext(container)
-        
-        // Create data preparation function
-        func prepareData() -> (Chat, AppContext) {
-            // Create sample data for the preview
-            let chat = Chat(
-                participantUsername: "johndoe", 
-                ownerUsername: "alice", 
-                displayName: "John Doe", 
-                doubleRatchetSession: Data()
-            )
-            
-            // Add a few sample messages
-            let message1 = MessageData(content: "Hey there! How's it going?", isFromMe: false)
-            message1.chat = chat
-            chat.addMessage(message1)
-            
-            let message2 = MessageData(content: "Not bad! Just working on this app. How about you?", isFromMe: true)
-            message2.chat = chat
-            chat.addMessage(message2)
-            
-            let message3 = MessageData(content: "That's cool! I've been exploring some new hiking trails nearby.", isFromMe: false)
-            message3.chat = chat
-            chat.addMessage(message3)
-            
-            let message4 = MessageData(content: "That sounds awesome! Which trails did you check out?", isFromMe: true, status: .delivered)
-            message4.chat = chat
-            chat.addMessage(message4)
-            
-            context.insert(chat)
-            
-            let appContext = AppContext(modelContext: context)
-            return (chat, appContext)
-        }
-        
-        // Get the prepared data
-        let (chat, appContext) = prepareData()
-        
-        // Return the preview
-        return NavigationStack {
-            ChatView(chat: chat)
-                .environmentObject(appContext)
-        }
-        .modelContainer(container)
+
+#Preview {
+    let chat = Chat(
+        participantUsername: "johndoe",
+        ownerUsername: "alice",
+        displayName: "John Doe",
+        doubleRatchetSession: Data()
+    )
+
+    // Add a few sample messages
+    let message1 = Message(content: "Hey there! How's it going?", isFromMe: false)
+    message1.chat = chat
+    chat.addMessage(message1)
+
+    let message2 = Message(content: "Not bad! Just working on this app. How about you?", isFromMe: true)
+    message2.chat = chat
+    chat.addMessage(message2)
+
+    let message3 = Message(content: "That's cool! I've been exploring some new hiking trails nearby.", isFromMe: false)
+    message3.chat = chat
+    chat.addMessage(message3)
+
+    let message4 = Message(
+        content: "That sounds awesome! Which trails did you check out?", isFromMe: true, status: .delivered)
+    message4.chat = chat
+    chat.addMessage(message4)
+
+    let appContext = AppContext.forPreview()
+
+
+    // Return the preview
+    return NavigationStack {
+        ChatView(chat: chat)
+            .environmentObject(appContext.chatManager)
+            .environmentObject(appContext.messageService)
     }
 }
