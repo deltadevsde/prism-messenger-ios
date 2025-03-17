@@ -81,7 +81,7 @@ class MessageService: ObservableObject {
     ///   - chatManager: The ChatManager to handle message storage
     /// - Returns: Array of processed message IDs that were successfully handled
     func processReceivedMessages(
-        messages: [APIMessage],
+        messages: [ReceivedMessage],
         currentUser: String
     ) async throws -> [UUID] {
         var processedMessageIds: [UUID] = []
