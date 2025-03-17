@@ -115,7 +115,7 @@ class ChatManager: ObservableObject {
         )
         
         // 4. Create a welcome message
-        let welcomeMessage = MessageData(
+        let welcomeMessage = Message(
             content: "Chat established securely",
             isFromMe: true,
             status: .sent
@@ -235,7 +235,7 @@ class ChatManager: ObservableObject {
         )
         
         // 8. Create a welcome message
-        let welcomeMessage = MessageData(
+        let welcomeMessage = Message(
             content: "Chat established securely",
             isFromMe: false,
             status: .delivered
@@ -252,11 +252,11 @@ class ChatManager: ObservableObject {
     /// - Parameters:
     ///   - content: The message content
     ///   - chat: The chat to send the message in
-    /// - Returns: The created MessageData object
+    /// - Returns: The created Message object
     func sendMessage(
         content: String, 
         in chat: Chat
-    ) async throws -> MessageData {
+    ) async throws -> Message {
         // 1. Deserialize the Double Ratchet session
         let session = try deserializeDoubleRatchetSession(from: chat.doubleRatchetSession)
         
@@ -265,7 +265,7 @@ class ChatManager: ObservableObject {
         let encryptedMessage = try session.encrypt(plaintext: contentData)
         
         // 3. Create the message with initial status of sending
-        let message = MessageData(
+        let message = Message(
             content: content,
             isFromMe: true,
             status: .sending
@@ -313,12 +313,12 @@ class ChatManager: ObservableObject {
     ///   - drMessage: The encrypted DoubleRatchetMessage
     ///   - chat: The chat this message belongs to
     ///   - sender: The sender's username
-    /// - Returns: The created MessageData object if successful
+    /// - Returns: The created Message object if successful
     func receiveMessage(
         _ drMessage: DoubleRatchetMessage,
         in chat: Chat,
         from sender: String
-    ) async throws -> MessageData? {
+    ) async throws -> Message? {
         print("DEBUG: Receiving message in chat with \(sender)")
         do {
             // 1. Deserialize the Double Ratchet session
@@ -360,7 +360,7 @@ class ChatManager: ObservableObject {
         }
         
         // 5. Create and save the message
-        let message = MessageData(
+        let message = Message(
             content: content,
             isFromMe: false,
             status: .delivered

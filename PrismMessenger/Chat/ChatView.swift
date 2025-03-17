@@ -204,8 +204,8 @@ struct ChatView: View {
 }
 
 struct MessageBubble: View {
-    let message: MessageData
-    
+    let message: Message
+
     var body: some View {
         HStack {
             if message.isFromMe {
