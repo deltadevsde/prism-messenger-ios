@@ -25,7 +25,10 @@ extension CryptoPayload {
     }
     
     func toP256KAPublicKey() throws -> P256.KeyAgreement.PublicKey {
-        return try P256.KeyAgreement.PublicKey(x963Representation: self.bytes)
+        switch bytes.count {
+            case 33: return try P256.KeyAgreement.PublicKey(compressedRepresentation: bytes)
+            default: return try P256.KeyAgreement.PublicKey(x963Representation: bytes)
+        }
     }
     
     func toP256PrivateKey() throws -> P256.Signing.PrivateKey {
@@ -33,7 +36,10 @@ extension CryptoPayload {
     }
     
     func toP256PublicKey() throws -> P256.Signing.PublicKey {
-        return try P256.Signing.PublicKey(x963Representation: self.bytes)
+        switch bytes.count {
+            case 33: return try P256.Signing.PublicKey(compressedRepresentation: bytes)
+            default: return try P256.Signing.PublicKey(x963Representation: bytes)
+        }
     }
 
     func toP256Signature() throws -> P256.Signing.ECDSASignature {
