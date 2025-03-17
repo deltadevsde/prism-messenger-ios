@@ -18,7 +18,7 @@ final class Chat: Identifiable {
     var doubleRatchetSession: Data
     
     // Messages in this chat
-    @Relationship(deleteRule: .cascade) var messages: [MessageData] = []
+    @Relationship(deleteRule: .cascade) var messages: [Message] = []
     
     init(participantUsername: String, 
          ownerUsername: String,
@@ -34,7 +34,7 @@ final class Chat: Identifiable {
         self.unreadCount = 0
     }
     
-    func addMessage(_ message: MessageData) {
+    func addMessage(_ message: Message) {
         messages.append(message)
         lastMessage = message.content
         lastMessageTimestamp = message.timestamp
