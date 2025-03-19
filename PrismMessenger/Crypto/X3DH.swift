@@ -45,16 +45,16 @@ struct X3DH {
         let ephemeralKey = P256.KeyAgreement.PrivateKey()
         
         // Convert responder's signing keys to key agreement keys
-        let responderIdentityKA = try convertSigningToKeyAgreement(publicKey: keyBundle.identity_key)
-        let responderSignedPreKeyKA = try convertSigningToKeyAgreement(publicKey: keyBundle.signed_prekey)
-        
+        let responderIdentityKA = keyBundle.identity_key.forKA()
+        let responderSignedPreKeyKA = keyBundle.signed_prekey
+
         // Select a one-time prekey if available
         var responderOneTimePreKeyKA: P256.KeyAgreement.PublicKey? = nil
         var usedPrekeyId: UInt64? = nil
         
         if let specificPrekeyId = prekeyId, 
            let selectedPrekey = keyBundle.prekeys.first(where: { $0.key_idx == specificPrekeyId }) {
-            responderOneTimePreKeyKA = try convertSigningToKeyAgreement(publicKey: selectedPrekey.key)
+            responderOneTimePreKeyKA = selectedPrekey.key
             usedPrekeyId = specificPrekeyId
         }
         
@@ -149,14 +149,5 @@ struct X3DH {
         let info = Data("X3DH".utf8)
         let derivedKeyData = hkdf(inputKeyingMaterial: combinedSecret, salt: salt, info: info, outputLength: 32)
         return SymmetricKey(data: derivedKeyData)
-    }
-    
-    /// Converts a P256.Signing.PublicKey to a P256.KeyAgreement.PublicKey
-    private func convertSigningToKeyAgreement(publicKey: P256.Signing.PublicKey) throws -> P256.KeyAgreement.PublicKey {
-        do {
-            return try P256.KeyAgreement.PublicKey(compressedRepresentation: publicKey.compressedRepresentation)
-        } catch {
-            throw X3DHError.keyConversionFailed
-        }
     }
 }
