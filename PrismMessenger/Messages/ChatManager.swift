@@ -55,7 +55,7 @@ class ChatManager: ObservableObject {
             }
             
             // Perform the X3DH handshake
-            let (sharedSecret, ephemeralPrivateKey, usedPrekeyId) = try await x3dh.initiateHandshake(with: keyBundle, using: prekey.key_idx)
+            let (sharedSecret, ephemeralPrivateKey, usedPrekeyId) = try await x3dh.initiateHandshake(with: keyBundle, using: prekey.keyIdx)
             
             print("Successfully performed X3DH handshake with user: \(otherUsername)")
             print("Used prekey ID: \(String(describing: usedPrekeyId))")
@@ -98,7 +98,7 @@ class ChatManager: ObservableObject {
             sharedSecret: sharedSecret,
             localEphemeral: ephemeralPrivateKey,
             remoteEphemeral: prekey.key,
-            prekeyID: prekey.key_idx
+            prekeyID: prekey.keyIdx
         )
         
         // 2. Serialize the session
@@ -297,7 +297,7 @@ class ChatManager: ObservableObject {
             
             // Update message status to "sent" after server confirms receipt
             message.status = .sent
-            message.serverId = response.message_id
+            message.serverId = response.messageId
             message.serverTimestamp = Date(timeIntervalSince1970: TimeInterval(response.timestamp) / 1000)
             
             try await chatRepository.saveChat(chat)

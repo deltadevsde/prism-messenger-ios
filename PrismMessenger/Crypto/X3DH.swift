@@ -45,15 +45,15 @@ struct X3DH {
         let ephemeralKey = P256.KeyAgreement.PrivateKey()
         
         // Convert responder's signing keys to key agreement keys
-        let responderIdentityKA = keyBundle.identity_key.forKA()
-        let responderSignedPreKeyKA = keyBundle.signed_prekey
+        let responderIdentityKA = keyBundle.identityKey.forKA()
+        let responderSignedPreKeyKA = keyBundle.signedPrekey
 
         // Select a one-time prekey if available
         var responderOneTimePreKeyKA: P256.KeyAgreement.PublicKey? = nil
         var usedPrekeyId: UInt64? = nil
         
         if let specificPrekeyId = prekeyId, 
-           let selectedPrekey = keyBundle.prekeys.first(where: { $0.key_idx == specificPrekeyId }) {
+           let selectedPrekey = keyBundle.prekeys.first(where: { $0.keyIdx == specificPrekeyId }) {
             responderOneTimePreKeyKA = selectedPrekey.key
             usedPrekeyId = specificPrekeyId
         }

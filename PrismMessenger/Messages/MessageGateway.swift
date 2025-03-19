@@ -6,14 +6,14 @@ enum MessageGatewayError: Error {
 }
 
 protocol MessageReceipt {
-    var message_id: UUID { get }
+    var messageId: UUID { get }
     var timestamp: UInt64 { get }
 }
 
 protocol ReceivedMessage {
-    var message_id: UUID { get }
-    var sender_id: String { get }
-    var recipient_id: String { get }
+    var messageId: UUID { get }
+    var senderId: String { get }
+    var recipientId: String { get }
     var message: DoubleRatchetMessage { get }
     var timestamp: UInt64 { get }
 }

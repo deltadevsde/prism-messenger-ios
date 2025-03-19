@@ -13,13 +13,13 @@ import CryptoKit
 /// Swift version of Rust `DoubleRatchetHeader`.
 struct DoubleRatchetHeader: Codable {
     /// Sender’s ephemeral public key
-    let ephemeral_key: P256.KeyAgreement.PublicKey
+    let ephemeralKey: P256.KeyAgreement.PublicKey
     /// Message counter within the current chain
-    let message_number: UInt64
+    let messageNumber: UInt64
     /// Last message number of the previous chain (for skipped keys)
-    let previous_message_number: UInt64
+    let previousMessageNumber: UInt64
     /// Identifier of the one-time prekey used in the handshake (if used)
-    let one_time_prekey_id: UInt64?
+    let oneTimePrekeyId: UInt64?
 }
 
 /// The complete double ratchet message, including header and AEAD-encrypted ciphertext.

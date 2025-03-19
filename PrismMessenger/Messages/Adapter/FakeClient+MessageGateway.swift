@@ -8,22 +8,22 @@
 import Foundation
 
 private struct SendMessageResponse: MessageReceipt {
-    let message_id: UUID
+    let messageId: UUID
     let timestamp = UInt64(Date.now.timeIntervalSince1970 * 1000)
 }
 
 private struct MessageResponse: ReceivedMessage {
-    let message_id = UUID()
-    let sender_id: String
-    let recipient_id: String
+    let messageId = UUID()
+    let senderId: String
+    let recipientId: String
     let message: DoubleRatchetMessage
     let timestamp = UInt64(Date.now.timeIntervalSince1970 * 1000)
 }
 
 private struct StoredMessage {
-    let message_id: UUID
-    let sender_id: String
-    let recipient_id: String
+    let messageId: UUID
+    let senderId: String
+    let recipientId: String
     let message: DoubleRatchetMessage
 }
 
@@ -33,19 +33,19 @@ extension FakeClient: MessageGateway {
         async throws -> MessageReceipt
     {
         let storedMessage = StoredMessage(
-            message_id: UUID(),
-            sender_id: sender, recipient_id: recipient, message: message)
+            messageId: UUID(),
+            senderId: sender, recipientId: recipient, message: message)
         store.addToList(storedMessage)
-        return SendMessageResponse(message_id: storedMessage.message_id)
+        return SendMessageResponse(messageId: storedMessage.messageId)
     }
 
     func fetchMessages(for username: String) async throws -> [ReceivedMessage] {
         store.getList(StoredMessage.self)
-            .filter { $0.recipient_id == username }
+            .filter { $0.recipientId == username }
             .map {
                 MessageResponse(
-                    sender_id: $0.sender_id,
-                    recipient_id: $0.recipient_id,
+                    senderId: $0.senderId,
+                    recipientId: $0.recipientId,
                     message: $0.message)
             }
     }
