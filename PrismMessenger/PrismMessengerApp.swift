@@ -6,11 +6,13 @@
 //
 
 import SwiftUI
-import SwiftData
 
 @main
 struct PrismMessengerApp: App {
-    @StateObject private var appContext = AppContext.forProd()
+
+    private static var isTesting = UserDefaults.standard.bool(forKey: UserDefaultsKeys.isTestingKey)
+
+    @StateObject private var appContext: AppContext = isTesting ? .forPreview() : .forProd()
 
     var body: some Scene {
         WindowGroup {
