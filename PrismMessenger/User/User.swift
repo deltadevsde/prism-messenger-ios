@@ -8,45 +8,55 @@ import SwiftData
 import Foundation
 import CryptoKit
 
+struct UserPrekey: Codable {
+    let idx: UInt64
+    let key: CryptoPayload
+}
+
 @Model
 final class User: Identifiable {
     @Attribute(.unique) var username: String
     var displayName: String?
     
-    private(set) var signedPrekey: CryptoPayload
-    private var prekeys: [PrivatePrekey]
+    private var signedPrekeyData: CryptoPayload
+    var signedPrekey: P256.KeyAgreement.PrivateKey {
+         get { try! signedPrekeyData.toP256KAPrivateKey() }
+    }
+
+    private var prekeys: [UserPrekey]
     private var prekeyCounter: UInt64 = 0
     
-    init(signedPrekey: P256.Signing.PrivateKey, username: String, displayName: String? = nil) {
-        self.signedPrekey = signedPrekey.toCryptoPayload()
+    init(signedPrekey: P256.KeyAgreement.PrivateKey, username: String, displayName: String? = nil) {
+        self.signedPrekeyData = signedPrekey.toCryptoPayload()
         self.prekeys = []
         self.prekeyCounter = 0
         self.username = username
         self.displayName = displayName
     }
     
-    func addPrekeys(keys: [P256.Signing.PrivateKey]) throws {
+    func addPrekeys(keys: [P256.KeyAgreement.PrivateKey]) throws {
         for key in keys {
-            prekeys.append(PrivatePrekey(key_idx: prekeyCounter, key: key.toCryptoPayload()))
+            prekeys.append(UserPrekey(idx: prekeyCounter, key: key.toCryptoPayload()))
             prekeyCounter += 1
         }
     }
     
-    func getPrekey(keyIdx: UInt64) throws -> P256.Signing.PrivateKey? {
-        let prekey = prekeys.first { $0.key_idx == keyIdx }
-        return try prekey?.key.toP256PrivateKey()
+    func getPrekey(keyIdx: UInt64) -> P256.KeyAgreement.PrivateKey? {
+        return try! prekeys.first(where: { $0.idx == keyIdx })?.key.toP256KAPrivateKey()
     }
-    
+
     /// Deletes the `Prekey` with the given index. To be called when a prekey is used by a conversation partner to initiate a conversation.
     func deletePrekey(keyIdx: UInt64) {
-        prekeys.removeAll { $0.key_idx == keyIdx }
+        prekeys.removeAll { $0.idx == keyIdx }
     }
     
-    func getPublicPrekeys() throws -> [Prekey] {
-        var publicPrekeys: [Prekey] = []
-        for prekey in prekeys {
-            publicPrekeys.append(Prekey(key_idx: prekey.key_idx, key: try prekey.key.toP256PrivateKey().publicKey))
-        }
-        return publicPrekeys
+    func getPublicPrekeys() -> [Prekey] {
+        return prekeys
+            .map {
+                Prekey(
+                    key_idx: $0.idx,
+                    key: try! $0.key.toP256KAPrivateKey().publicKey
+                )
+            }
     }
 }

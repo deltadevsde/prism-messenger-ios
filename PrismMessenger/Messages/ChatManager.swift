@@ -97,7 +97,7 @@ class ChatManager: ObservableObject {
         let session = try createDoubleRatchetSession(
             sharedSecret: sharedSecret,
             localEphemeral: ephemeralPrivateKey,
-            remoteEphemeral: P256.KeyAgreement.PublicKey(rawRepresentation: prekey.key.rawRepresentation),
+            remoteEphemeral: prekey.key,
             prekeyID: prekey.key_idx
         )
         
@@ -197,36 +197,40 @@ class ChatManager: ObservableObject {
             throw ChatManagerError.noCurrentUser
         }
         
-        // 2. Get our signed prekey
-        let signedPrekey = try user.signedPrekey.toP256KAPrivateKey()
-        
-        // 3. Get the one-time prekey if it was used
-        var prekeyKA: P256.KeyAgreement.PrivateKey? = nil
-        if let prekeyId = usedPrekeyId, let prekey = try user.getPrekey(keyIdx: prekeyId) {
-            prekeyKA = try P256.KeyAgreement.PrivateKey(rawRepresentation: prekey.rawRepresentation)
+        // 2. Get the one-time prekey if it was used
+        var receiverPrekey: P256.KeyAgreement.PrivateKey?
+
+        if let prekeyId = usedPrekeyId, let prekey = user.getPrekey(keyIdx: prekeyId) {
             print("DEBUG: USING PREKEY")
+            receiverPrekey = prekey
+
             // Mark the prekey as used
             user.deletePrekey(keyIdx: prekeyId)
             try await userService.saveUser(user)
         }
-        
-        // 4. Compute the X3DH shared secret (from receiver's perspective)
-        let symmetricKey = try await x3dh.performPassiveX3DH(senderEphemeralKey: senderEphemeralKey, senderIdentityKey: senderIdentityKey, receiverSignedPreKey: signedPrekey, receiverOneTimePreKey: prekeyKA)
-        
-        // 5. Create a Double Ratchet session with the shared secret
+
+        // 3. Compute the X3DH shared secret (from receiver's perspective)
+        let symmetricKey = try x3dh.performPassiveX3DH(
+            senderEphemeralKey: senderEphemeralKey,
+            senderIdentityKey: senderIdentityKey,
+            receiverSignedPreKey: user.signedPrekey,
+            receiverOneTimePreKey: receiverPrekey
+        )
+
+        // 4. Create a Double Ratchet session with the shared secret
         let session = try createDoubleRatchetSession(
             sharedSecret: symmetricKey,
-            localEphemeral: prekeyKA,
+            localEphemeral: receiverPrekey,
             remoteEphemeral: senderEphemeralKey,
             prekeyID: nil
         )
         
-        // 6. Serialize the session
+        // 5. Serialize the session
         let sessionData = try serializeDoubleRatchetSession(session)
         let jsonStr = String(data: sessionData, encoding: .utf8)!
         print("sessionData from recv: \(jsonStr)")
         
-        // 7. Create and save the chat
+        // 6. Create and save the chat
         let chat = Chat(
             participantUsername: senderUsername,
             ownerUsername: user.username,
@@ -234,7 +238,7 @@ class ChatManager: ObservableObject {
             doubleRatchetSession: sessionData
         )
         
-        // 8. Create a welcome message
+        // 7. Create a welcome message
         let welcomeMessage = Message(
             content: "Chat established securely",
             isFromMe: false,

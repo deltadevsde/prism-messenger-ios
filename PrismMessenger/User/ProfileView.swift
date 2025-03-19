@@ -256,21 +256,17 @@ struct ProfileView: View {
     }
     
     private func formatPublicKeyPreview(from user: User) -> String {
-        do {
-            let publicKey = try user.signedPrekey.toP256PrivateKey().publicKey
-            let keyData = publicKey.rawRepresentation
-            let keyString = keyData.base64EncodedString()
-            
-            // Show just the first 8 and last 8 characters with ... in between
-            if keyString.count > 16 {
-                let prefix = keyString.prefix(8)
-                let suffix = keyString.suffix(8)
-                return "\(prefix)...\(suffix)"
-            }
-            return keyString
-        } catch {
-            return "Error loading key"
+        let publicKey = user.signedPrekey.publicKey
+        let keyData = publicKey.rawRepresentation
+        let keyString = keyData.base64EncodedString()
+
+        // Show just the first 8 and last 8 characters with ... in between
+        if keyString.count > 16 {
+            let prefix = keyString.prefix(8)
+            let suffix = keyString.suffix(8)
+            return "\(prefix)...\(suffix)"
         }
+        return keyString
     }
 }
 
