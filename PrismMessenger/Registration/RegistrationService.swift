@@ -21,18 +21,18 @@ enum RegistrationError: Error {
 class RegistrationService: ObservableObject {
 
     private let registrationGateway: RegistrationGateway
-    private let keyManager: KeyManager
+    private let tee: TrustedExecutionEnvironment
     private let keyGateway: KeyGateway
     private let userService: UserService
 
     init(
         registrationGateway: RegistrationGateway,
-        keyManager: KeyManager,
+        tee: TrustedExecutionEnvironment,
         keyGateway: KeyGateway,
         userService: UserService
     ) {
         self.registrationGateway = registrationGateway
-        self.keyManager = keyManager
+        self.tee = tee
         self.keyGateway = keyGateway
         self.userService = userService
     }
@@ -53,10 +53,7 @@ class RegistrationService: ObservableObject {
     }
 
     private func requestRegistration(username: String) async throws -> RegistrationChallenge {
-        guard
-            let key = (try? await keyManager.fetchIdentityKeyFromKeychain())
-                ?? (try? keyManager.createIdentityKeyPair())
-        else {
+        guard let key = try? tee.fetchOrCreateIdentityKey() else {
             throw RegistrationError.unableToAcquireKey
         }
 
@@ -70,7 +67,7 @@ class RegistrationService: ObservableObject {
     private func finalizeRegistration(username: String, challenge: RegistrationChallenge)
         async throws
     {
-        guard let key = try? await keyManager.fetchIdentityKeyFromKeychain() else {
+        guard let key = try? tee.fetchOrCreateIdentityKey() else {
             throw RegistrationError.unableToAcquireKey
         }
 
@@ -79,7 +76,7 @@ class RegistrationService: ObservableObject {
         }
 
         // Sign the challenge
-        guard let signature = try? await keyManager.requestIdentitySignature(dataToSign: challenge)
+        guard let signature = try? tee.requestIdentitySignature(dataToSign: challenge)
         else {
             throw RegistrationError.unableToSignChallenge
         }
@@ -95,31 +92,29 @@ class RegistrationService: ObservableObject {
     private func uploadNewKeybundleAndCreateUser(username: String) async throws {
         do {
             // Create all neccessary keys for the user's key bundle
-            let idKey = try await keyManager.fetchIdentityKeyFromKeychain()
-            let (signedPrekey, signedPrekeySignature) = try await keyManager.createSignedPrekey()
-            let privatePrekeys = try await keyManager.createPrekeys(count: 10)
-            
+            let userKeys = try tee.createUserKeys()
+
             // Create user and key bundle
-            let user = User(signedPrekey: signedPrekey, username: username)
-            try user.addPrekeys(keys: privatePrekeys)
-            
-            let prekeys = try user.getPublicPrekeys()
-            
+            let user = User(signedPrekey: userKeys.signedPrekey, username: username)
+            try user.addPrekeys(keys: userKeys.prekeys)
+
+            let prekeys = user.getPublicPrekeys()
+
             let keyBundle = KeyBundle(
-                identity_key: idKey,
-                signed_prekey: signedPrekey.publicKey,
-                signed_prekey_signature: signedPrekeySignature,
+                identity_key: userKeys.identityKey,
+                signed_prekey: userKeys.signedPrekey.publicKey,
+                signed_prekey_signature: userKeys.signedPrekeySignature,
                 prekeys: prekeys
             )
-            
+
             // Upload the new key bundle to the server
             try await keyGateway.submitKeyBundle(for: username, keyBundle: keyBundle)
-            
+
             // When the key bundle has been uploaded to the server, save the user locally
             try await userService.saveUser(user)
             await userService.selectAccount(username: username)
-            
-        } catch is KeyManagerError {
+
+        } catch is TeeError {
             throw RegistrationError.failedToCreateKey
         } catch KeyGatewayError.requestFailed(let errorCode) {
             throw RegistrationError.networkFailure(errorCode)
