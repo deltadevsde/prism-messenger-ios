@@ -41,7 +41,7 @@ struct MainView: View {
         }
         .modelContext(appContext.modelContext)
         .environmentObject(appContext.appLaunch)
-        .environmentObject(appContext.chatManager)
+        .environmentObject(appContext.chatService)
         .environmentObject(appContext.messageService)
         .environmentObject(appContext.registrationService)
         .environmentObject(appContext.userService)

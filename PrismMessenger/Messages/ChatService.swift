@@ -1,5 +1,5 @@
 //
-//  ChatManager.swift
+//  ChatService.swift
 //  PrismMessenger
 //
 //  Copyright © 2025 prism. All rights reserved.
@@ -9,7 +9,7 @@ import Foundation
 import SwiftData
 import CryptoKit
 
-enum ChatManagerError: Error {
+enum ChatServiceError: Error {
     case noCurrentUser
     case otherUserNotFound
     case keyExchangeFailed
@@ -18,7 +18,7 @@ enum ChatManagerError: Error {
     case networkFailure(Int)
 }
 
-class ChatManager: ObservableObject {
+class ChatService: ObservableObject {
     private let chatRepository: ChatRepository
     private let userService: UserService
     private let messageGateway: MessageGateway
@@ -47,15 +47,15 @@ class ChatManager: ObservableObject {
             // Try to get the key bundle from the other user
             guard
                 let keyBundle = try await keyGateway.fetchKeyBundle(for: otherUsername) else {
-                throw ChatManagerError.missingKeyBundle
+                throw ChatServiceError.missingKeyBundle
             }
             
             guard let prekey = keyBundle.prekeys.first else {
-                throw ChatManagerError.missingPreKeys
+                throw ChatServiceError.missingPreKeys
             }
             
             // Perform the X3DH handshake
-            let (sharedSecret, ephemeralPrivateKey, usedPrekeyId) = try await x3dh.initiateHandshake(with: keyBundle, using: prekey.keyIdx)
+            let (sharedSecret, ephemeralPrivateKey, usedPrekeyId) = try x3dh.initiateHandshake(with: keyBundle, using: prekey.keyIdx)
             
             print("Successfully performed X3DH handshake with user: \(otherUsername)")
             print("Used prekey ID: \(String(describing: usedPrekeyId))")
@@ -68,11 +68,11 @@ class ChatManager: ObservableObject {
             )
             
         } catch KeyGatewayError.requestFailed(let statusCode) {
-            throw ChatManagerError.networkFailure(statusCode)
+            throw ChatServiceError.networkFailure(statusCode)
         }  catch KeyGatewayError.userNotFound {
-            throw ChatManagerError.otherUserNotFound
+            throw ChatServiceError.otherUserNotFound
         }  catch is X3DHError {
-            throw ChatManagerError.keyExchangeFailed
+            throw ChatServiceError.keyExchangeFailed
         }
     }
     
@@ -182,8 +182,6 @@ class ChatManager: ObservableObject {
     ///   - senderIdentityKey: The sender's identity key from their KeyBundle
     ///   - senderEphemeralKey: The sender's ephemeral key from the message header
     ///   - usedPrekeyId: The ID of our prekey that was used (if any)
-    ///   - keyManager: The KeyManager to perform secure cryptographic operations
-    ///   - userRepository: The user repository to retrieve the current user data
     /// - Returns: The newly created Chat
     @MainActor
     func createChatFromIncomingMessage(
@@ -194,7 +192,7 @@ class ChatManager: ObservableObject {
     ) async throws -> Chat {
         // 1. Get the current user's data
         guard let user = try await userService.getCurrentUser() else {
-            throw ChatManagerError.noCurrentUser
+            throw ChatServiceError.noCurrentUser
         }
         
         // 2. Get the one-time prekey if it was used
@@ -388,7 +386,7 @@ class ChatManager: ObservableObject {
     
     private func getCurrentUsername() async throws -> String  {
         guard let currentUsername = await userService.selectedUsername else {
-            throw ChatManagerError.noCurrentUser
+            throw ChatServiceError.noCurrentUser
         }
         return currentUsername
     }

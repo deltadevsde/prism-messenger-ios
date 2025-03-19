@@ -14,7 +14,7 @@ struct ChatView: View {
     @State private var isLoading: Bool = false
     @State private var error: String? = nil
     @FocusState private var isTextFieldFocused: Bool
-    @EnvironmentObject private var chatManager: ChatManager
+    @EnvironmentObject private var chatService: ChatService
     @EnvironmentObject private var messageService: MessageService
     
     var body: some View {
@@ -185,7 +185,7 @@ struct ChatView: View {
         Task {
             do {
                 // Send the message using the MessageService
-                _ = try await chatManager.sendMessage(
+                _ = try await chatService.sendMessage(
                     content: messageToSend,
                     in: chat
                 )
@@ -316,7 +316,7 @@ struct MessageBubble: View {
     // Return the preview
     return NavigationStack {
         ChatView(chat: chat)
-            .environmentObject(appContext.chatManager)
+            .environmentObject(appContext.chatService)
             .environmentObject(appContext.messageService)
     }
 }

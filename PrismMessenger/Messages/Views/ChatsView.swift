@@ -10,7 +10,7 @@ import SwiftData
 import SwiftUI
 
 struct ChatsView: View {
-    @EnvironmentObject private var chatManager: ChatManager
+    @EnvironmentObject private var chatService: ChatService
     @EnvironmentObject private var userService: UserService
     
     @State private var showingNewChatSheet = false
@@ -101,7 +101,7 @@ struct ChatsView: View {
     
     private func loadChats() {
         Task {
-            let userChats = (try? await chatManager.getAllChats()) ?? []
+            let userChats = (try? await chatService.getAllChats()) ?? []
             
             DispatchQueue.main.async {
                 self.currentChats = userChats
@@ -196,7 +196,7 @@ struct ChatPreview: View {
 
 struct NewChatView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var chatManager: ChatManager
+    @EnvironmentObject private var chatService: ChatService
 
     @State private var username = ""
     @State private var isLoading = false
@@ -261,7 +261,7 @@ struct NewChatView: View {
 
         Task {
             do {
-                let chat = try await chatManager.startChat(with: username)
+                let chat = try await chatService.startChat(with: username)
 
                 print("Successfully created chat with \(username)")
 
@@ -272,22 +272,22 @@ struct NewChatView: View {
                     isLoading = false
                     dismiss()
                 }
-            } catch ChatManagerError.missingKeyBundle {
+            } catch ChatServiceError.missingKeyBundle {
                 DispatchQueue.main.async {
                     errorMessage = "No key bundle found for \(username)"
                     isLoading = false
                 }
-            } catch ChatManagerError.missingPreKeys {
+            } catch ChatServiceError.missingPreKeys {
                 DispatchQueue.main.async {
                     errorMessage = "No pre keys found for \(username)"
                     isLoading = false
                 }
-            } catch ChatManagerError.otherUserNotFound {
+            } catch ChatServiceError.otherUserNotFound {
                 DispatchQueue.main.async {
                     errorMessage = "User not found. Please check the username."
                     isLoading = false
                 }
-            } catch ChatManagerError.keyExchangeFailed {
+            } catch ChatServiceError.keyExchangeFailed {
                 DispatchQueue.main.async {
                     errorMessage = "Key exchange failed"
                     isLoading = false
@@ -304,21 +304,21 @@ struct NewChatView: View {
 
 #Preview {
     let appContext = AppContext.forPreview()
-    let chatManager = appContext.chatManager
+    let chatService = appContext.chatService
     let userService = appContext.userService
     let registrationService = appContext.registrationService
 
     Task {
         try! await registrationService.registerNewUser(username: "Alice")
 
-        let chat1 = try! await chatManager.startChat(with: "Bob")
-        try! await chatManager.sendMessage(content: "Test", in: chat1)
+        let chat1 = try! await chatService.startChat(with: "Bob")
+        try! await chatService.sendMessage(content: "Test", in: chat1)
 
-        let chat2 = try! await chatManager.startChat(with: "Charlie")
-        try! await chatManager.sendMessage(content: "Hello", in: chat2)
+        let chat2 = try! await chatService.startChat(with: "Charlie")
+        try! await chatService.sendMessage(content: "Hello", in: chat2)
     }
 
     return ChatsView()
-        .environmentObject(appContext.chatManager)
+        .environmentObject(appContext.chatService)
         .environmentObject(appContext.userService)
 }

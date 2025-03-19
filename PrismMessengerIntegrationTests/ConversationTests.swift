@@ -21,10 +21,10 @@ final class ConversationTests {
         try! await appContext.registrationService.registerNewUser(username: "Bob")
         try! await appContext.registrationService.registerNewUser(username: "Alice")
 
-        let chat = try await appContext.chatManager.startChat(with: "Bob")
+        let chat = try await appContext.chatService.startChat(with: "Bob")
 
         for i in 0..<20 {
-            try await appContext.chatManager.sendMessage(content: "Hello \(i)", in: chat)
+            try await appContext.chatService.sendMessage(content: "Hello \(i)", in: chat)
             try await Task.sleep(for: .milliseconds(100))
         }
     }

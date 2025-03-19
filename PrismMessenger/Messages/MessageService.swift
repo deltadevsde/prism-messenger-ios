@@ -22,13 +22,13 @@ class MessageService: ObservableObject {
     private let messageGateway: MessageGateway
     private let keyGateway: KeyGateway
     private let userService: UserService
-    private let chatManager: ChatManager
+    private let chatService: ChatService
     
-    init(messageGateway: MessageGateway, keyGateway: KeyGateway, userService: UserService, chatManager: ChatManager) {
+    init(messageGateway: MessageGateway, keyGateway: KeyGateway, userService: UserService, chatService: ChatService) {
         self.messageGateway = messageGateway
         self.keyGateway = keyGateway
         self.userService = userService
-        self.chatManager = chatManager
+        self.chatService = chatService
     }
     
     /// Fetches new messages from the server and processes them
@@ -78,7 +78,7 @@ class MessageService: ObservableObject {
     /// - Parameters:
     ///   - messages: Array of messages from the API
     ///   - currentUser: The current user's username
-    ///   - chatManager: The ChatManager to handle message storage
+    ///   - chatService: The ChatService to handle message storage
     /// - Returns: Array of processed message IDs that were successfully handled
     func processReceivedMessages(
         messages: [ReceivedMessage],
@@ -97,7 +97,7 @@ class MessageService: ObservableObject {
                 
                 // Get or create the chat for this sender
                 var chat: Chat
-                if let existingChat = try await chatManager.getChat(with: apiMessage.senderId) {
+                if let existingChat = try await chatService.getChat(with: apiMessage.senderId) {
                     chat = existingChat
                 } else {
                     // We have an incoming message from an unknown sender - try to establish X3DH
@@ -123,7 +123,7 @@ class MessageService: ObservableObject {
                         )
                         
                         // 5. Create the secure chat using X3DH passive mode
-                        chat = try await chatManager.createChatFromIncomingMessage(
+                        chat = try await chatService.createChatFromIncomingMessage(
                             senderUsername: apiMessage.senderId,
                             senderIdentityKey: senderIdentityKA,
                             senderEphemeralKey: senderEphemeralKey,
@@ -139,7 +139,7 @@ class MessageService: ObservableObject {
                 }
                 
                 // Process the decrypted message and save it to the database
-                let receivedMessage = try await chatManager.receiveMessage(
+                let receivedMessage = try await chatService.receiveMessage(
                     drMessage,
                     in: chat,
                     from: apiMessage.senderId
