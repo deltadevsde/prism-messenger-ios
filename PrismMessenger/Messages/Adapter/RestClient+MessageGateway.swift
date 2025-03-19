@@ -2,30 +2,30 @@ import Foundation
 
 /// API request model for sending a message
 private struct SendMessageRequest: Encodable {
-    let sender_id: String
-    let recipient_id: String
+    let senderId: String
+    let recipientId: String
     let message: DoubleRatchetMessage
 }
 
 /// API response when sending a message
 private struct SendMessageResponse: Decodable, MessageReceipt {
-    let message_id: UUID
+    let messageId: UUID
     let timestamp: UInt64
 }
 
 /// API model for a message received from the server
 private struct MessageResponse: Decodable, ReceivedMessage {
-    let message_id: UUID
-    let sender_id: String
-    let recipient_id: String
+    let messageId: UUID
+    let senderId: String
+    let recipientId: String
     let message: DoubleRatchetMessage
     let timestamp: UInt64
 }
 
 /// API model for marking messages as delivered
 private struct MarkDeliveredRequest: Encodable {
-    let user_id: String
-    let message_ids: [UUID]
+    let userId: String
+    let messageIds: [UUID]
 }
 
 extension RestClient: MessageGateway {
@@ -33,8 +33,8 @@ extension RestClient: MessageGateway {
         async throws -> MessageReceipt
     {
         let request = SendMessageRequest(
-            sender_id: sender,
-            recipient_id: recipient,
+            senderId: sender,
+            recipientId: recipient,
             message: message
         )
 
@@ -60,8 +60,8 @@ extension RestClient: MessageGateway {
 
     func markMessagesAsDelivered(messageIds: [UUID], for username: String) async throws {
         let request = MarkDeliveredRequest(
-            user_id: username,
-            message_ids: messageIds
+            userId: username,
+            messageIds: messageIds
         )
 
         do {

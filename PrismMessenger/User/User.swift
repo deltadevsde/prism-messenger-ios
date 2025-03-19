@@ -54,7 +54,7 @@ final class User: Identifiable {
         return prekeys
             .map {
                 Prekey(
-                    key_idx: $0.idx,
+                    keyIdx: $0.idx,
                     key: try! $0.key.toP256KAPrivateKey().publicKey
                 )
             }

@@ -8,18 +8,18 @@
 import Foundation
 
 struct KeyBundleResponse: Codable {
-    var key_bundle: KeyBundle?
+    var keyBundle: KeyBundle?
     // TODO: Account and HashedMerkleProof
 }
 
 struct UploadKeyBundleRequest: Codable {
-    var user_id: String
-    var keybundle: KeyBundle
+    var userId: String
+    var keyBundle: KeyBundle
 }
 
 extension RestClient: KeyGateway {
     func submitKeyBundle(for username: String, keyBundle: KeyBundle) async throws {
-        let req = UploadKeyBundleRequest(user_id: username, keybundle: keyBundle)
+        let req = UploadKeyBundleRequest(userId: username, keyBundle: keyBundle)
         do {
             try await post(req, to: "/keys/upload_bundle")
         } catch RestClientError.httpError(let httpStatusCode) {
@@ -31,7 +31,7 @@ extension RestClient: KeyGateway {
         do {
             let keyBundle: KeyBundleResponse = try await fetch(
                 from: "/keys/bundle/\(username)")
-            return keyBundle.key_bundle
+            return keyBundle.keyBundle
         } catch RestClientError.httpError(let httpStatusCode) {
             if httpStatusCode == 404 {
                 throw KeyGatewayError.userNotFound

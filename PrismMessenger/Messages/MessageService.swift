@@ -89,7 +89,7 @@ class MessageService: ObservableObject {
         print("DEBUG: Processing \(messages.count) messages for user \(currentUser)")
         
         for apiMessage in messages {
-            print("DEBUG: Processing message ID: \(apiMessage.message_id) from \(apiMessage.sender_id)")
+            print("DEBUG: Processing message ID: \(apiMessage.messageId) from \(apiMessage.senderId)")
             
             do {
                 
@@ -97,40 +97,40 @@ class MessageService: ObservableObject {
                 
                 // Get or create the chat for this sender
                 var chat: Chat
-                if let existingChat = try await chatManager.getChat(with: apiMessage.sender_id) {
+                if let existingChat = try await chatManager.getChat(with: apiMessage.senderId) {
                     chat = existingChat
                 } else {
                     // We have an incoming message from an unknown sender - try to establish X3DH
                     print("Received message from unknown sender, establishing secure channel with X3DH")
                     
                     do {
-                        guard let keyBundle = try await keyGateway.fetchKeyBundle(for: apiMessage.sender_id) else {
-                            print("Failed to get key bundle for \(apiMessage.sender_id)")
+                        guard let keyBundle = try await keyGateway.fetchKeyBundle(for: apiMessage.senderId) else {
+                            print("Failed to get key bundle for \(apiMessage.senderId)")
                             // TODO: Throw error?
                             continue
                         }
                         
-                        print("DEBUG: Got key bundle for \(apiMessage.sender_id)")
-                        print("DEBUG: Identity key representation size: \(keyBundle.identity_key.rawRepresentation.count)")
-                        print("DEBUG: Identity key compressed size: \(keyBundle.identity_key.compressedRepresentation.count)")
+                        print("DEBUG: Got key bundle for \(apiMessage.senderId)")
+                        print("DEBUG: Identity key representation size: \(keyBundle.identityKey.rawRepresentation.count)")
+                        print("DEBUG: Identity key compressed size: \(keyBundle.identityKey.compressedRepresentation.count)")
                         print("DEBUG: Message header dump: \(drMessage.header)")
                         
-                        let senderEphemeralKey = drMessage.header.ephemeral_key
+                        let senderEphemeralKey = drMessage.header.ephemeralKey
                         
                         print("DEBUG: Converting identity key")
                         let senderIdentityKA = try P256.KeyAgreement.PublicKey(
-                            compressedRepresentation: keyBundle.identity_key.compressedRepresentation
+                            compressedRepresentation: keyBundle.identityKey.compressedRepresentation
                         )
                         
                         // 5. Create the secure chat using X3DH passive mode
                         chat = try await chatManager.createChatFromIncomingMessage(
-                            senderUsername: apiMessage.sender_id,
+                            senderUsername: apiMessage.senderId,
                             senderIdentityKey: senderIdentityKA,
                             senderEphemeralKey: senderEphemeralKey,
-                            usedPrekeyId: drMessage.header.one_time_prekey_id
+                            usedPrekeyId: drMessage.header.oneTimePrekeyId
                         )
                         
-                        print("Successfully established secure channel with \(apiMessage.sender_id)")
+                        print("Successfully established secure channel with \(apiMessage.senderId)")
                     } catch {
                         print("Failed to establish secure channel: \(error)")
                         // TODO: throw
@@ -142,11 +142,11 @@ class MessageService: ObservableObject {
                 let receivedMessage = try await chatManager.receiveMessage(
                     drMessage,
                     in: chat,
-                    from: apiMessage.sender_id
+                    from: apiMessage.senderId
                 )
                 
                 if receivedMessage != nil {
-                    processedMessageIds.append(apiMessage.message_id)
+                    processedMessageIds.append(apiMessage.messageId)
                 }
             } catch {
                 print("Failed to process message: \(error)")

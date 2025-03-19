@@ -101,9 +101,9 @@ class RegistrationService: ObservableObject {
             let prekeys = user.getPublicPrekeys()
 
             let keyBundle = KeyBundle(
-                identity_key: userKeys.identityKey,
-                signed_prekey: userKeys.signedPrekey.publicKey,
-                signed_prekey_signature: userKeys.signedPrekeySignature,
+                identityKey: userKeys.identityKey,
+                signedPrekey: userKeys.signedPrekey.publicKey,
+                signedPrekeySignature: userKeys.signedPrekeySignature,
                 prekeys: prekeys
             )
 
