@@ -17,6 +17,13 @@ extension FakeClient: KeyGateway {
     }
 
     func fetchKeyBundle(for username: String) async throws -> KeyBundle? {
-        try KeyBundle.random()
+        let userKeys = try InMemoryTee().createUserKeys()
+        return KeyBundle(
+            identity_key: userKeys.identityKey,
+            signed_prekey: userKeys.signedPrekey.publicKey,
+            signed_prekey_signature: userKeys.signedPrekeySignature,
+            prekeys: userKeys.prekeys
+                .enumerated()
+                .map { Prekey(key_idx: UInt64($0.offset), key: $0.element.publicKey) })
     }
 }

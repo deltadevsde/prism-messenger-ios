@@ -43,8 +43,8 @@ class AppContext: ObservableObject {
         let userService = UserService(userRepository: userRepository)
 
         // Initialize crypto services
-        let keyManager = KeyManager()
-        let x3dh = X3DH(keyManager: keyManager)
+        let tee = SecurePersistentTee()
+        let x3dh = X3DH(tee: tee)
 
         // Initialize chat services
         let chatRepository = SwiftDataChatRepository(modelContext: modelContext)
@@ -67,7 +67,7 @@ class AppContext: ObservableObject {
         // Initialize registration services
         let registrationService = RegistrationService(
             registrationGateway: restClient,
-            keyManager: keyManager,
+            tee: tee,
             keyGateway: restClient,
             userService: userService
         )
@@ -89,8 +89,8 @@ class AppContext: ObservableObject {
         let userService = UserService(userRepository: userRepository)
 
         // Initialize crypto services
-        let keyManager = KeyManager()
-        let x3dh = X3DH(keyManager: keyManager)
+        let tee = InMemoryTee()
+        let x3dh = X3DH(tee: tee)
 
         // Initialize chat services
         let chatRepository = SwiftDataChatRepository(modelContext: modelContext)
@@ -113,7 +113,7 @@ class AppContext: ObservableObject {
         // Initialize registration services
         let registrationService = RegistrationService(
             registrationGateway: simulatedBackend,
-            keyManager: keyManager,
+            tee: tee,
             keyGateway: simulatedBackend,
             userService: userService
         )

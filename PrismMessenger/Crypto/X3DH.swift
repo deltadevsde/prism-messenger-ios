@@ -24,10 +24,10 @@ enum X3DHError: Error {
 ///             || DH(initiatorEphemeral, responderSignedPreKey)
 ///             [ || DH(initiatorEphemeral, responderOneTimePreKey) ] )
 struct X3DH {
-    private let keyManager: KeyManager
-    
-    init(keyManager: KeyManager) {
-        self.keyManager = keyManager
+    private let tee: TrustedExecutionEnvironment
+
+    init(tee: TrustedExecutionEnvironment) {
+        self.tee = tee
     }
     
     /// Initiates the X3DH handshake with a responder using their key bundle
@@ -40,7 +40,7 @@ struct X3DH {
     func initiateHandshake(
         with keyBundle: KeyBundle,
         using prekeyId: UInt64? = nil
-    ) async throws -> (symmetricKey: SymmetricKey, ephemeralKey: P256.KeyAgreement.PrivateKey, usedPrekeyId: UInt64?) {
+    ) throws -> (symmetricKey: SymmetricKey, ephemeralKey: P256.KeyAgreement.PrivateKey, usedPrekeyId: UInt64?) {
         // Generate ephemeral key for this session
         let ephemeralKey = P256.KeyAgreement.PrivateKey()
         
@@ -60,7 +60,7 @@ struct X3DH {
         
         // Delegate the key agreement calculation to the KeyManager
         // This keeps the private key operations safely within KeyManager
-        let symmetricKey = try await performX3DH(
+        let symmetricKey = try performX3DH(
             ephemeralKey: ephemeralKey,
             responderIdentity: responderIdentityKA,
             responderSignedPreKey: responderSignedPreKeyKA,
@@ -84,9 +84,9 @@ struct X3DH {
         senderIdentityKey: P256.KeyAgreement.PublicKey,
         receiverSignedPreKey: P256.KeyAgreement.PrivateKey,
         receiverOneTimePreKey: P256.KeyAgreement.PrivateKey?
-    ) async throws -> SymmetricKey {
+    ) throws -> SymmetricKey {
         let dh1 = try receiverSignedPreKey.sharedSecretFromKeyAgreement(with: senderIdentityKey)
-        let dh2 = try keyManager.computeSharedSecretWithIdentity(remoteKey: senderEphemeralKey)
+        let dh2 = try tee.computeSharedSecretWithIdentity(remoteKey: senderEphemeralKey)
         let dh3 = try receiverSignedPreKey.sharedSecretFromKeyAgreement(with: senderEphemeralKey)
         
         var dh4: SharedSecret? = nil
@@ -112,10 +112,10 @@ struct X3DH {
         responderIdentity: P256.KeyAgreement.PublicKey,
         responderSignedPreKey: P256.KeyAgreement.PublicKey,
         responderOneTimePreKey: P256.KeyAgreement.PublicKey? = nil
-    ) async throws -> SymmetricKey {
+    ) throws -> SymmetricKey {
         // DH1: between our derived identity key and responder's signed pre-key
-        let dh1 = try keyManager.computeSharedSecretWithIdentity(remoteKey: responderSignedPreKey)
-        
+        let dh1 = try tee.computeSharedSecretWithIdentity(remoteKey: responderSignedPreKey)
+
         // DH2: between our ephemeral key and responder's identity key
         let dh2 = try ephemeralKey.sharedSecretFromKeyAgreement(with: responderIdentity)
         
