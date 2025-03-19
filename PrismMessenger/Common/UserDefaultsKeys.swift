@@ -7,4 +7,5 @@
 
 enum UserDefaultsKeys {
     static let schemaVersionKey = "PrismMessenger.SchemaVersion"
+    static let isTestingKey = "PrismMessenger.IsTesting"
 }
