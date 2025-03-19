@@ -14,21 +14,21 @@ class AppContext: ObservableObject {
     let modelContext: ModelContext
     let appLaunch: AppLaunch
 
-    let chatManager: ChatManager
+    let chatService: ChatService
     let messageService: MessageService
     let userService: UserService
     let registrationService: RegistrationService
 
     required init(
         modelContext: ModelContext,
-        chatManager: ChatManager,
+        chatService: ChatService,
         messageService: MessageService,
         userService: UserService,
         registrationService: RegistrationService
     ) {
         self.appLaunch = AppLaunch()
         self.modelContext = modelContext
-        self.chatManager = chatManager
+        self.chatService = chatService
         self.messageService = messageService
         self.userService = userService
         self.registrationService = registrationService
@@ -48,7 +48,7 @@ class AppContext: ObservableObject {
 
         // Initialize chat services
         let chatRepository = SwiftDataChatRepository(modelContext: modelContext)
-        let chatManager = ChatManager(
+        let chatService = ChatService(
             chatRepository: chatRepository,
             userService: userService,
             messageGateway: restClient,
@@ -61,7 +61,7 @@ class AppContext: ObservableObject {
             messageGateway: restClient,
             keyGateway: restClient,
             userService: userService,
-            chatManager: chatManager
+            chatService: chatService
         )
 
         // Initialize registration services
@@ -74,7 +74,7 @@ class AppContext: ObservableObject {
 
         return Self(
             modelContext: modelContext,
-            chatManager: chatManager,
+            chatService: chatService,
             messageService: messageService,
             userService: userService,
             registrationService: registrationService)
@@ -94,7 +94,7 @@ class AppContext: ObservableObject {
 
         // Initialize chat services
         let chatRepository = SwiftDataChatRepository(modelContext: modelContext)
-        let chatManager = ChatManager(
+        let chatService = ChatService(
             chatRepository: chatRepository,
             userService: userService,
             messageGateway: simulatedBackend,
@@ -107,7 +107,7 @@ class AppContext: ObservableObject {
             messageGateway: simulatedBackend,
             keyGateway: simulatedBackend,
             userService: userService,
-            chatManager: chatManager
+            chatService: chatService
         )
 
         // Initialize registration services
@@ -120,7 +120,7 @@ class AppContext: ObservableObject {
 
         return Self(
             modelContext: modelContext,
-            chatManager: chatManager,
+            chatService: chatService,
             messageService: messageService,
             userService: userService,
             registrationService: registrationService)
