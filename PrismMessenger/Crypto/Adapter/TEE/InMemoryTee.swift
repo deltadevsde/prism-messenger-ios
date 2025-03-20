@@ -20,7 +20,7 @@ class InMemoryTee: TrustedExecutionEnvironment {
         let signedPrekey = P256.KeyAgreement.PrivateKey()
 
         guard let signedPrekeySignature = try? identityKey.signature(
-                for: signedPrekey.publicKey.derRepresentation)
+                for: signedPrekey.publicKey.x963Representation)
         else {
             throw TeeError.signingFailed
         }

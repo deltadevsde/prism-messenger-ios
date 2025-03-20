@@ -73,7 +73,7 @@ class SecurePersistentTee: TrustedExecutionEnvironment {
     ) {
         let signedPrekey = P256.KeyAgreement.PrivateKey()
         let signedPrekeySignature = try requestIdentitySignature(
-            dataToSign: Data(signedPrekey.publicKey.derRepresentation))
+            dataToSign: Data(signedPrekey.publicKey.x963Representation))
 
         return (signedPrekey: signedPrekey, signedPrekeySignature: signedPrekeySignature)
     }
