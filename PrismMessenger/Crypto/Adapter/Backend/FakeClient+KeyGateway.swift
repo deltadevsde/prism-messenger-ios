@@ -7,11 +7,6 @@
 
 import Foundation
 
-private struct StoredKeyBundle {
-    let username: String
-    let keyBundle: KeyBundle
-}
-
 extension FakeClient: KeyGateway {
     func submitKeyBundle(for username: String, keyBundle: KeyBundle) async throws {
     }
