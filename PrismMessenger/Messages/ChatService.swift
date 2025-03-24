@@ -18,6 +18,8 @@ enum ChatServiceError: Error {
     case missingKeyBundle
     case missingPreKeys
     case networkFailure(Int)
+    case databaseFailure
+    case decodingMessageFailed
 }
 
 class ChatService: ObservableObject {
@@ -136,7 +138,13 @@ class ChatService: ObservableObject {
     @MainActor
     func getChat(with username: String) async throws -> Chat? {
         let currentUsername = try await getCurrentUsername()
-        return try await chatRepository.getChat(withParticipant: username, forOwner: currentUsername)
+
+        do {
+            return try await chatRepository.getChat(withParticipant: username,
+                                                    forOwner: currentUsername)
+        } catch {
+            throw ChatServiceError.databaseFailure
+        }
     }
     
     /// Gets a list of all chats for the current user, sorted by last message timestamp
@@ -349,7 +357,7 @@ class ChatService: ObservableObject {
         // 3. Convert decrypted data to a string
         guard let content = String(data: decryptedData, encoding: .utf8) else {
             log.debug("Failed to decode string from data")
-            throw MessageError.messageDecodingFailed
+            throw ChatServiceError.decodingMessageFailed
         }
         log.debug("Decoded message: \(content)")
         
