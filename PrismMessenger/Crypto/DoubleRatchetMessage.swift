@@ -8,6 +8,8 @@
 import Foundation
 import CryptoKit
 
+private let log = Log.crypto
+
 // MARK: - Header & Message Types
 
 /// Swift version of Rust `DoubleRatchetHeader`.
@@ -29,51 +31,51 @@ struct DoubleRatchetMessage: Codable {
     let ciphertext: Data
     /// The nonce used for AES-GCM encryption
     let nonce: AES.GCM.Nonce
-    
+
     enum CodingKeys: String, CodingKey {
         case header, ciphertext, nonce
     }
-    
+
     init(header: DoubleRatchetHeader, ciphertext: Data, nonce: AES.GCM.Nonce) {
         self.header = header
         self.ciphertext = ciphertext
         self.nonce = nonce
     }
-    
+
     init(from decoder: Decoder) throws {
-        print("DEBUG: Decoding DoubleRatchetMessage")
+        log.debug("Decoding DoubleRatchetMessage")
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        
+
         do {
             header = try container.decode(DoubleRatchetHeader.self, forKey: .header)
-            print("DEBUG: Decoded header")
+            log.debug("Decoded header")
         } catch {
-            print("DEBUG: Failed to decode header: \(error)")
+            log.debug("Failed to decode header: \(error)")
             throw error
         }
-        
+
         do {
             ciphertext = try container.decode(Data.self, forKey: .ciphertext)
-            print("DEBUG: Decoded ciphertext")
+            log.debug("Decoded ciphertext")
         } catch {
-            print("DEBUG: Failed to decode ciphertext: \(error)")
+            log.debug("Failed to decode ciphertext: \(error)")
             throw error
         }
-        
+
         do {
             let nonceData = try container.decode(Data.self, forKey: .nonce)
-            print("DEBUG: Decoded nonceData: \(nonceData.count) bytes")
+            log.debug("Decoded nonceData: \(nonceData.count) bytes")
             nonce = try AES.GCM.Nonce(data: nonceData)
-            print("DEBUG: Created AES.GCM.Nonce")
+            log.debug("Created AES.GCM.Nonce")
         } catch {
-            print("DEBUG: Failed to decode nonce: \(error)")
+            log.debug("Failed to decode nonce: \(error)")
             throw error
         }
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        
+
         try container.encode(header, forKey: .header)
         try container.encode(ciphertext, forKey: .ciphertext)
         try container.encode(Data(nonce), forKey: .nonce)

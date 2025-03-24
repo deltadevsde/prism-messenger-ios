@@ -1,5 +1,7 @@
 import Foundation
 
+private let log = Log.messages
+
 /// API request model for sending a message
 private struct SendMessageRequest: Encodable {
     let senderId: String
@@ -47,13 +49,13 @@ extension RestClient: MessageGateway {
     }
 
     func fetchMessages(for username: String) async throws -> [ReceivedMessage] {
-        print("DEBUG: Fetching messages for \(username)")
+        log.debug("Fetching messages for \(username)")
         do {
             let messages: [MessageResponse] = try await fetch(from: "/messages/get/\(username)")
-            print("DEBUG: Fetched \(messages.count) messages successfully")
+            log.debug("Fetched \(messages.count) messages successfully")
             return messages
         } catch RestClientError.httpError(let statusCode) {
-            print("DEBUG: HTTP Error \(statusCode) when fetching messages")
+            log.debug("HTTP Error \(statusCode) when fetching messages")
             throw MessageGatewayError.requestFailed(statusCode)
         }
     }

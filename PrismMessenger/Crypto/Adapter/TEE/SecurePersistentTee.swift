@@ -11,6 +11,8 @@ import KeychainAccess
 import LocalAuthentication
 import Security
 
+private let log = Log.crypto
+
 /// Implementation of a TEE that uses SecureEnclave to keep the private identity key save.
 /// Uses Keychain to persist data that can be used to re-create the private key in SecureEnclave.
 class SecurePersistentTee: TrustedExecutionEnvironment {
@@ -101,12 +103,13 @@ class SecurePersistentTee: TrustedExecutionEnvironment {
     }
 
     private func createIdentityKey() throws -> SecureEnclave.P256.Signing.PrivateKey {
+        log.notice("Creating new identity key")
+        
         var error: Unmanaged<CFError>?
 
         let authenticationContext = LAContext()
 
         #if targetEnvironment(simulator)
-            print("CREATING IDENTITY KEY")
             let accessControlFlags: SecAccessControlCreateFlags = [.privateKeyUsage]
         #else
             let accessControlFlags: SecAccessControlCreateFlags = [

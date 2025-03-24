@@ -9,6 +9,8 @@
 import Foundation
 import CryptoKit
 
+private let log = Log.crypto
+
 // MARK: - Ratchet Key Derivation Helpers
 
 /// Given the current root key and a DH shared secret, derive a new root key and a chain key.
@@ -307,7 +309,7 @@ final class DoubleRatchetSession: Codable {
             skippedMessageKeys.removeValue(forKey: header.messageNumber)
             let symmetricKey = SymmetricKey(data: cachedKey)
             
-            print("DEBUG: Using zero nonce for cached key decryption")
+            log.debug("Using zero nonce for cached key decryption")
             return try decryptCiphertext(ciphertext, using: symmetricKey, nonce: nonce)
         }
         
@@ -352,17 +354,17 @@ final class DoubleRatchetSession: Codable {
     
     /// Helper function to decrypt a ciphertext (which includes the authentication tag).
     private func decryptCiphertext(_ ciphertext: Data, using symmetricKey: SymmetricKey, nonce: AES.GCM.Nonce) throws -> Data {
-        print("DEBUG: Decrypting ciphertext of length \(ciphertext.count)")
-        print("DEBUG: Using nonce: \(Data(nonce).map { String(format: "%02x", $0) }.joined())")
+        log.debug("Decrypting ciphertext of length \(ciphertext.count)")
+        log.debug("Using nonce: \(Data(nonce).map { String(format: "%02x", $0) }.joined())")
         
         // AES-GCM produces a 16-byte tag; ensure ciphertext is long enough.
         guard ciphertext.count >= 16 else {
-            print("DEBUG: Ciphertext too short: \(ciphertext.count)")
+            log.debug("Ciphertext too short: \(ciphertext.count)")
             throw DoubleRatchetError.invalidCiphertext(length: ciphertext.count)
         }
        
         // Dump the raw bytes for debugging
-        print("DEBUG: Ciphertext raw bytes: \(ciphertext.map { String(format: "%02x", $0) }.joined())")
+        log.debug("Ciphertext raw bytes: \(ciphertext.map { String(format: "%02x", $0) }.joined())")
         
         let ct = ciphertext.prefix(ciphertext.count - 16)
         let tag = ciphertext.suffix(16)
@@ -373,8 +375,8 @@ final class DoubleRatchetSession: Codable {
         combinedData.append(Data(nonce))  // Add the 12-byte nonce first
         combinedData.append(ciphertext)   // Then add our stored ciphertext+tag
         
-        print("DEBUG: Reconstructed combined format: \(combinedData.count) bytes")
-        print("DEBUG: Combined data: \(combinedData.map { String(format: "%02x", $0) }.joined())")
+        log.debug("Reconstructed combined format: \(combinedData.count) bytes")
+        log.debug("Combined data: \(combinedData.map { String(format: "%02x", $0) }.joined())")
         return try AES.GCM.open(sealedBox, using: symmetricKey)
     }
     

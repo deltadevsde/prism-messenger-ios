@@ -9,6 +9,8 @@ import Foundation
 import SwiftData
 import CryptoKit
 
+private let log = Log.messages
+
 enum ChatServiceError: Error {
     case noCurrentUser
     case otherUserNotFound
@@ -57,8 +59,8 @@ class ChatService: ObservableObject {
             // Perform the X3DH handshake
             let (sharedSecret, ephemeralPrivateKey, usedPrekeyId) = try x3dh.initiateHandshake(with: keyBundle, using: prekey.keyIdx)
             
-            print("Successfully performed X3DH handshake with user: \(otherUsername)")
-            print("Used prekey ID: \(String(describing: usedPrekeyId))")
+            log.debug("Successfully performed X3DH handshake with user: \(otherUsername)")
+            log.debug("Used prekey ID: \(String(describing: usedPrekeyId))")
             
             // Create a new chat with the Double Ratchet session
             return try await createChat(with: otherUsername,
@@ -104,7 +106,7 @@ class ChatService: ObservableObject {
         // 2. Serialize the session
         let sessionData = try serializeDoubleRatchetSession(session)
         let jsonStr = String(data: sessionData, encoding: .utf8)!
-        print("sessionData from sender: \(jsonStr)")
+        log.debug("sessionData from sender: \(jsonStr)")
 
         // 3. Create and save the chat
         let chat = Chat(
@@ -199,7 +201,7 @@ class ChatService: ObservableObject {
         var receiverPrekey: P256.KeyAgreement.PrivateKey?
 
         if let prekeyId = usedPrekeyId, let prekey = user.getPrekey(keyIdx: prekeyId) {
-            print("DEBUG: USING PREKEY")
+            log.debug("USING PREKEY")
             receiverPrekey = prekey
 
             // Mark the prekey as used
@@ -226,7 +228,7 @@ class ChatService: ObservableObject {
         // 5. Serialize the session
         let sessionData = try serializeDoubleRatchetSession(session)
         let jsonStr = String(data: sessionData, encoding: .utf8)!
-        print("sessionData from recv: \(jsonStr)")
+        log.debug("sessionData from recv: \(jsonStr)")
         
         // 6. Create and save the chat
         let chat = Chat(
@@ -320,17 +322,17 @@ class ChatService: ObservableObject {
         in chat: Chat,
         from sender: String
     ) async throws -> Message? {
-        print("DEBUG: Receiving message in chat with \(sender)")
+        log.debug("Receiving message in chat with \(sender)")
         do {
             // 1. Deserialize the Double Ratchet session
-            print("DEBUG: Deserializing Double Ratchet session from \(chat.doubleRatchetSession.count) bytes")
+            log.debug("Deserializing Double Ratchet session from \(chat.doubleRatchetSession.count) bytes")
             let session = try deserializeDoubleRatchetSession(from: chat.doubleRatchetSession)
-            print("DEBUG: Successfully deserialized session")
+            log.debug("Successfully deserialized session")
 
             // 2. Decrypt the message content
-            print("DEBUG: About to decrypt message")
-            print("DEBUG: Ciphertext size: \(drMessage.ciphertext.count) bytes")
-            print("DEBUG: Nonce size: \(Data(drMessage.nonce).count) bytes")
+            log.debug("About to decrypt message")
+            log.debug("Ciphertext size: \(drMessage.ciphertext.count) bytes")
+            log.debug("Nonce size: \(Data(drMessage.nonce).count) bytes")
 
             // Try multiple decryption approaches due to potential format issues
             let decryptedData: Data
@@ -338,25 +340,25 @@ class ChatService: ObservableObject {
             do {
                 // Method 1: Use decrypt function with message
                 decryptedData = try session.decrypt(message: drMessage)
-                print("DEBUG: Successfully decrypted message using method 1")
+                log.debug("Successfully decrypted message using method 1")
             } catch let error1 {
-                print("DEBUG: Method 1 failed: \(error1)")
+                log.debug("Method 1 failed: \(error1)")
                 throw error1
             }
 
         // 3. Convert decrypted data to a string
         guard let content = String(data: decryptedData, encoding: .utf8) else {
-            print("DEBUG: Failed to decode string from data")
+            log.debug("Failed to decode string from data")
             throw MessageError.messageDecodingFailed
         }
-        print("DEBUG: Decoded message: \(content)")
+        log.debug("Decoded message: \(content)")
         
         // 4. Re-serialize the updated session state after decryption
         do {
             chat.doubleRatchetSession = try serializeDoubleRatchetSession(session)
-            print("DEBUG: Re-serialized session")
+            log.debug("Re-serialized session")
         } catch {
-            print("DEBUG: Failed to re-serialize session: \(error)")
+            log.debug("Failed to re-serialize session: \(error)")
             throw error
         }
         
@@ -371,15 +373,15 @@ class ChatService: ObservableObject {
         
         do {
             try await chatRepository.saveChat(chat)
-            print("DEBUG: Saved message to database")
+            log.debug("Saved message to database")
         } catch {
-            print("DEBUG: Failed to save message: \(error)")
+            log.debug("Failed to save message: \(error)")
             throw error
         }
         
         return message
         } catch {
-            print("DEBUG: Error in receiveMessage: \(error)")
+            log.debug("Error in receiveMessage: \(error)")
             throw error
         }
     }

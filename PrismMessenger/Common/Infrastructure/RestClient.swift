@@ -7,6 +7,8 @@
 
 import Foundation
 
+private let log = Log.common
+
 enum RestClientError: Error {
     case invalidURL
     case serdeFailed(String)
@@ -112,7 +114,7 @@ class RestClient {
 
         do {
             request.httpBody = try encoder.encode(data)
-            print("\(path): \(String(data: request.httpBody!, encoding: .utf8) ?? "No body")")
+            log.debug("\(path): \(String(data: request.httpBody!, encoding: .utf8) ?? "No body")")
         } catch EncodingError.invalidValue(_, let context) {
             throw RestClientError.serdeFailed(context.debugDescription)
         }

@@ -9,6 +9,8 @@ import Foundation
 import CryptoKit
 import SwiftData
 
+private let log = Log.messages
+
 enum MessageError: Error {
     case networkFailure(Int)
     case messageEncryptionFailed
@@ -70,6 +72,7 @@ class MessageService: ObservableObject {
             
             return processedIds.count
         } catch {
+            log.warning("Error processing messages: \(error)")
             return 0
         }
     }
@@ -85,9 +88,9 @@ class MessageService: ObservableObject {
         currentUser: String
     ) async throws -> [UUID] {
         var processedMessageIds: [UUID] = []
-        
+
         print("DEBUG: Processing \(messages.count) messages for user \(currentUser)")
-        
+
         for apiMessage in messages {
             print("DEBUG: Processing message ID: \(apiMessage.messageId) from \(apiMessage.senderId)")
             
@@ -149,7 +152,7 @@ class MessageService: ObservableObject {
                     processedMessageIds.append(apiMessage.messageId)
                 }
             } catch {
-                print("Failed to process message: \(error)")
+                log.error("Failed to process message \(message.messageId): \(error)")
             }
         }
         

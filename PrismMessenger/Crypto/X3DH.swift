@@ -8,6 +8,8 @@
 import Foundation
 import CryptoKit
 
+private let log = Log.crypto
+
 enum X3DHError: Error {
     case keyConversionFailed
     case missingPrekeys
@@ -138,10 +140,10 @@ struct X3DH {
         combinedSecret.append(dh3.withUnsafeBytes { Data($0) })
         
         if let dhOPK = dh4 {
-            print("X3DH: Using DH4: \(dhOPK)")
+            log.debug("X3DH: Using DH4: \(dhOPK)")
             combinedSecret.append(dhOPK.withUnsafeBytes { Data($0) })
         } else {
-            print("X3DH: Not using DH4")
+            log.debug("X3DH: Not using DH4")
         }
 
         // Derive the final key via HKDF
