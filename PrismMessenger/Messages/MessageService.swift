@@ -12,11 +12,7 @@ import SwiftData
 private let log = Log.messages
 
 enum MessageError: Error {
-    case networkFailure(Int)
-    case messageEncryptionFailed
-    case messageDecodingFailed
-    case unauthorized
-    case serverError
+    case assigningChatFailed
 }
 
 /// Concrete implementation of the MessageServiceProtocol
@@ -89,67 +85,27 @@ class MessageService: ObservableObject {
     ) async throws -> [UUID] {
         var processedMessageIds: [UUID] = []
 
-        print("DEBUG: Processing \(messages.count) messages for user \(currentUser)")
+        log.info("Processing \(messages.count) messages for user \(currentUser)")
 
-        for apiMessage in messages {
-            print("DEBUG: Processing message ID: \(apiMessage.messageId) from \(apiMessage.senderId)")
+        for message in messages {
+            log.debug("Processing message ID: \(message.messageId) from \(message.senderId)")
             
             do {
-                
-                let drMessage = apiMessage.message
+                let drMessage = message.message
                 
                 // Get or create the chat for this sender
-                var chat: Chat
-                if let existingChat = try await chatService.getChat(with: apiMessage.senderId) {
-                    chat = existingChat
-                } else {
-                    // We have an incoming message from an unknown sender - try to establish X3DH
-                    print("Received message from unknown sender, establishing secure channel with X3DH")
-                    
-                    do {
-                        guard let keyBundle = try await keyGateway.fetchKeyBundle(for: apiMessage.senderId) else {
-                            print("Failed to get key bundle for \(apiMessage.senderId)")
-                            // TODO: Throw error?
-                            continue
-                        }
-                        
-                        print("DEBUG: Got key bundle for \(apiMessage.senderId)")
-                        print("DEBUG: Identity key representation size: \(keyBundle.identityKey.rawRepresentation.count)")
-                        print("DEBUG: Identity key compressed size: \(keyBundle.identityKey.compressedRepresentation.count)")
-                        print("DEBUG: Message header dump: \(drMessage.header)")
-                        
-                        let senderEphemeralKey = drMessage.header.ephemeralKey
-                        
-                        print("DEBUG: Converting identity key")
-                        let senderIdentityKA = try P256.KeyAgreement.PublicKey(
-                            compressedRepresentation: keyBundle.identityKey.compressedRepresentation
-                        )
-                        
-                        // 5. Create the secure chat using X3DH passive mode
-                        chat = try await chatService.createChatFromIncomingMessage(
-                            senderUsername: apiMessage.senderId,
-                            senderIdentityKey: senderIdentityKA,
-                            senderEphemeralKey: senderEphemeralKey,
-                            usedPrekeyId: drMessage.header.oneTimePrekeyId
-                        )
-                        
-                        print("Successfully established secure channel with \(apiMessage.senderId)")
-                    } catch {
-                        print("Failed to establish secure channel: \(error)")
-                        // TODO: throw
-                        continue
-                    }
-                }
-                
+                let chat = try await fetchOrCreateChat(for: message)
+                log.info("Successfully established secure channel with \(message.senderId)")
+
                 // Process the decrypted message and save it to the database
                 let receivedMessage = try await chatService.receiveMessage(
                     drMessage,
                     in: chat,
-                    from: apiMessage.senderId
+                    from: message.senderId
                 )
                 
                 if receivedMessage != nil {
-                    processedMessageIds.append(apiMessage.messageId)
+                    processedMessageIds.append(message.messageId)
                 }
             } catch {
                 log.error("Failed to process message \(message.messageId): \(error)")
@@ -157,6 +113,44 @@ class MessageService: ObservableObject {
         }
         
         return processedMessageIds
+    }
+
+    private func fetchOrCreateChat(for message: ReceivedMessage) async throws -> Chat {
+        do {
+            if let existingChat = try await chatService.getChat(with: message.senderId) {
+                return existingChat
+            }
+        } catch {
+            throw MessageError.assigningChatFailed
+        }
+
+        // We have an incoming message from an unknown sender - try to establish X3DH
+        log.debug("Received message from unknown sender, establishing secure channel with X3DH")
+
+        let drMessage = message.message
+
+        do {
+            guard let keyBundle = try await keyGateway.fetchKeyBundle(for: message.senderId) else {
+                throw MessageError.assigningChatFailed
+            }
+
+            log.debug("Got key bundle for \(message.senderId)")
+            log.debug("Identity key representation size: \(keyBundle.identityKey.rawRepresentation.count)")
+            log.debug("Identity key compressed size: \(keyBundle.identityKey.compressedRepresentation.count)")
+            log.debug("Message header dump: \(String(describing: drMessage.header))")
+
+            let senderEphemeralKey = drMessage.header.ephemeralKey
+
+            // 5. Create the secure chat using X3DH passive mode
+            return try await chatService.createChatFromIncomingMessage(
+                senderUsername: message.senderId,
+                senderIdentityKey: keyBundle.identityKey.forKA(),
+                senderEphemeralKey: senderEphemeralKey,
+                usedPrekeyId: drMessage.header.oneTimePrekeyId
+            )
+        } catch {
+            throw MessageError.assigningChatFailed
+        }
     }
 }
 
