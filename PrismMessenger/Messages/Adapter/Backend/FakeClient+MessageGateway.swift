@@ -14,31 +14,34 @@ private struct SendMessageResponse: MessageReceipt {
 
 private struct MessageResponse: ReceivedMessage {
     let messageId = UUID()
-    let senderId: String
-    let recipientId: String
+    let senderUsername: String
+    let recipientUsername: String
     let message: DoubleRatchetMessage
     let timestamp = UInt64(Date.now.timeIntervalSince1970 * 1000)
 }
 
 extension FakeClient: MessageGateway {
 
-    func sendMessage(_ message: DoubleRatchetMessage, from sender: String, to recipient: String)
+    func sendMessage(_ message: DoubleRatchetMessage, to recipientUsername: String)
         async throws -> MessageReceipt
     {
+        let senderUsername = await userService.selectedUsername!
         let storedMessage = MessageResponse(
-            senderId: sender,
-            recipientId: recipient,
+            senderUsername: senderUsername,
+            recipientUsername: recipientUsername,
             message: message)
         store.addToList(storedMessage)
         return SendMessageResponse(messageId: storedMessage.messageId)
     }
 
-    func fetchMessages(for username: String) async throws -> [ReceivedMessage] {
+    func fetchMessages() async throws -> [ReceivedMessage] {
+        let currentUser = try await userService.getCurrentUser()
+
         return store.getList(MessageResponse.self)
-            .filter { $0.recipientId == username }
+            .filter { $0.recipientUsername == currentUser?.username }
     }
 
-    func markMessagesAsDelivered(messageIds: [UUID], for username: String) async throws {
+    func markMessagesAsDelivered(messageIds: [UUID]) async throws {
         store.removeFromList(MessageResponse.self) {
             messageIds.contains($0.messageId)
         }
