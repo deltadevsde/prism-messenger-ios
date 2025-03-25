@@ -16,6 +16,7 @@ private struct RegisteredUser {
 }
 
 extension FakeClient: RegistrationGateway {
+
     func checkUsernameAvailability(_ username: String) async -> Bool {
         !store.getList(RegisteredUser.self).contains { $0.username == username }
     }
@@ -28,7 +29,8 @@ extension FakeClient: RegistrationGateway {
     }
 
     func finalizeRegistration(
-        username: String, key: P256.Signing.PublicKey, signature: P256.Signing.ECDSASignature
+        username: String, key: P256.Signing.PublicKey, signature: P256.Signing.ECDSASignature,
+        authPassword: String
     )
         async throws
     {
