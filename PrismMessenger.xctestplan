@@ -9,7 +9,14 @@
     }
   ],
   "defaultOptions" : {
-
+    "commandLineArgumentEntries" : [
+      {
+        "argument" : "-PrismMessenger.IsTesting"
+      },
+      {
+        "argument" : "YES"
+      }
+    ]
   },
   "testTargets" : [
     {
