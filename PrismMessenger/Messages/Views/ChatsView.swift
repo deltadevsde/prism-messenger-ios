@@ -305,10 +305,11 @@ struct NewChatView: View {
 #Preview {
     let appContext = AppContext.forPreview()
     let chatService = appContext.chatService
-    let userService = appContext.userService
     let registrationService = appContext.registrationService
 
     Task {
+        try! await registrationService.registerNewUser(username: "Bob")
+        try! await registrationService.registerNewUser(username: "Charlie")
         try! await registrationService.registerNewUser(username: "Alice")
 
         let chat1 = try! await chatService.startChat(with: "Bob")

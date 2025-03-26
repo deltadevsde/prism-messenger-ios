@@ -7,18 +7,17 @@
 
 import Foundation
 
+private struct StoredKeyBundle {
+    let username: String
+    let keyBundle: KeyBundle
+}
+
 extension FakeClient: KeyGateway {
     func submitKeyBundle(for username: String, keyBundle: KeyBundle) async throws {
+        store.addToList(StoredKeyBundle(username: username, keyBundle: keyBundle))
     }
 
     func fetchKeyBundle(for username: String) async throws -> KeyBundle? {
-        let userKeys = try InMemoryTee().createUserKeys()
-        return KeyBundle(
-            identityKey: userKeys.identityKey,
-            signedPrekey: userKeys.signedPrekey.publicKey,
-            signedPrekeySignature: userKeys.signedPrekeySignature,
-            prekeys: userKeys.prekeys
-                .enumerated()
-                .map { Prekey(keyIdx: UInt64($0.offset), key: $0.element.publicKey) })
+        store.getList(StoredKeyBundle.self).first { $0.username == username }?.keyBundle
     }
 }
