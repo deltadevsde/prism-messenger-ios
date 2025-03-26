@@ -20,7 +20,7 @@ extension RestClient: KeyGateway {
     func submitKeyBundle(for username: String, keyBundle: KeyBundle) async throws {
         let req = UploadKeyBundleRequest(keyBundle: keyBundle)
         do {
-            try await post(req, to: "/keys/upload_bundle", accessLevel: .authenticated)
+            try await post(req, to: "/keys/bundle", accessLevel: .authenticated)
         } catch RestClientError.httpError(let httpStatusCode) {
             throw KeyGatewayError.requestFailed(httpStatusCode)
         }
