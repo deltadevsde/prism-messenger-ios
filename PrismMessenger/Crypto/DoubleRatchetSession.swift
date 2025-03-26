@@ -173,11 +173,13 @@ final class DoubleRatchetSession: Codable {
     ///
     /// - Parameter newRemoteEphemeral: The new remote ephemeral public key.
     func performDHRatchet(with newRemoteEphemeral: P256.KeyAgreement.PublicKey) throws {
+        log.debug("Performing DH ratchet step with new remote ephemeral key")
         // Update remote ephemeral key.
         self.remoteEphemeral = newRemoteEphemeral
         
         // If local ephemeral has not been set yet (the recipient receives no ephemeral key for partner), a DH ratchet is not yet possible because the rootKey is still the shared secret from the initial X3DH handshake
         if localEphemeral == nil {
+            log.debug("Local ephemeral not set yet. Ratchet step not possible.")
             return
         }
         
@@ -271,6 +273,7 @@ final class DoubleRatchetSession: Codable {
         // If using a prekey ID, don't use it again, it was just to establish the chain
         self.prekeyID = nil
 
+        log.debug("Encrypt \(plaintext.count) bytes using key \(messageKeyData.base64EncodedString())")
         let symmetricKey = SymmetricKey(data: messageKeyData)
         let nonce = AES.GCM.Nonce()  // Randomly generated nonce.
         let sealedBox = try AES.GCM.seal(plaintext, using: symmetricKey, nonce: nonce)
@@ -337,6 +340,7 @@ final class DoubleRatchetSession: Codable {
         self.recvMessageNumber += 1
         
         let symmetricKey = SymmetricKey(data: messageKey)
+        log.debug("Decrypt using key \(messageKey.base64EncodedString())")
         return try decryptCiphertext(ciphertext, using: symmetricKey, nonce: nonce)
     }
     
@@ -355,17 +359,17 @@ final class DoubleRatchetSession: Codable {
     /// Helper function to decrypt a ciphertext (which includes the authentication tag).
     private func decryptCiphertext(_ ciphertext: Data, using symmetricKey: SymmetricKey, nonce: AES.GCM.Nonce) throws -> Data {
         log.debug("Decrypting ciphertext of length \(ciphertext.count)")
-        log.debug("Using nonce: \(Data(nonce).map { String(format: "%02x", $0) }.joined())")
-        
+        log.debug("Using nonce: \(Data(nonce).base64EncodedString())")
+
         // AES-GCM produces a 16-byte tag; ensure ciphertext is long enough.
         guard ciphertext.count >= 16 else {
             log.debug("Ciphertext too short: \(ciphertext.count)")
             throw DoubleRatchetError.invalidCiphertext(length: ciphertext.count)
         }
-       
+
         // Dump the raw bytes for debugging
-        log.debug("Ciphertext raw bytes: \(ciphertext.map { String(format: "%02x", $0) }.joined())")
-        
+        log.debug("Ciphertext raw bytes: \(ciphertext.base64EncodedString())")
+
         let ct = ciphertext.prefix(ciphertext.count - 16)
         let tag = ciphertext.suffix(16)
         let sealedBox = try AES.GCM.SealedBox(nonce: nonce, ciphertext: ct, tag: tag)
@@ -376,7 +380,7 @@ final class DoubleRatchetSession: Codable {
         combinedData.append(ciphertext)   // Then add our stored ciphertext+tag
         
         log.debug("Reconstructed combined format: \(combinedData.count) bytes")
-        log.debug("Combined data: \(combinedData.map { String(format: "%02x", $0) }.joined())")
+        log.debug("Combined data: \(combinedData.base64EncodedString())")
         return try AES.GCM.open(sealedBox, using: symmetricKey)
     }
     
