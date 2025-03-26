@@ -25,9 +25,15 @@ class InMemoryStore {
         setList(currentList)
     }
 
-    func removeFromList<T: Equatable>(_ item: T, for type: T.Type) {
-        var currentList = getList(type)
+    func removeFromList<T: Equatable>(_ item: T) {
+        var currentList = getList(T.self)
         currentList.removeAll { $0 == item }
+        setList(currentList)
+    }
+
+    func removeFromList<T>(_ type: T.Type, where condition: (T) -> Bool) {
+        var currentList = getList(type)
+        currentList.removeAll { condition($0) }
         setList(currentList)
     }
 
