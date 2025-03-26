@@ -265,8 +265,9 @@ class ChatService: ObservableObject {
     ///   - content: The message content
     ///   - chat: The chat to send the message in
     /// - Returns: The created Message object
+    @MainActor
     func sendMessage(
-        content: String, 
+        content: String,
         in chat: Chat
     ) async throws -> Message {
         // 1. Deserialize the Double Ratchet session
@@ -325,6 +326,7 @@ class ChatService: ObservableObject {
     ///   - chat: The chat this message belongs to
     ///   - sender: The sender's username
     /// - Returns: The created Message object if successful
+    @MainActor
     func receiveMessage(
         _ drMessage: DoubleRatchetMessage,
         in chat: Chat,
