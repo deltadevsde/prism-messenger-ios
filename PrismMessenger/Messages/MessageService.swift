@@ -28,51 +28,50 @@ class MessageService: ObservableObject {
         self.userService = userService
         self.chatService = chatService
     }
-    
+
     /// Fetches new messages from the server and processes them
     /// - Returns: The number of new messages processed
     @MainActor
+    @discardableResult
     func fetchAndProcessMessages() async throws -> Int {
         guard let currentUser = try await userService.getCurrentUser() else {
             return 0
         }
-        
+
         return try await processMessagesForUser(currentUser.username)
     }
-    
+
     /// Helper method to process messages for a specific username
     @MainActor
     private func processMessagesForUser(_ username: String) async throws -> Int {
-        
+
         do {
-            // 1. Fetch new messages from the server
             let messages = try await messageGateway.fetchMessages(for: username)
-            
+
+            log.debug("Processing \(messages.count) fetched messages ...")
             if messages.isEmpty {
                 return 0
             }
-            
-            // 2. Process the messages and get the IDs of processed messages
             let processedIds = try await processReceivedMessages(
-                messages: messages,
+                receivedMessages: messages,
                 currentUser: username
             )
-            
+
             if !processedIds.isEmpty {
-                // 3. Mark the processed messages as delivered on the server
+                log.debug("Marking \(processedIds.count) messages as delivered on the server ...")
                 try await messageGateway.markMessagesAsDelivered(
                     messageIds: processedIds,
                     for: username
                 )
             }
-            
+
             return processedIds.count
         } catch {
             log.warning("Error processing messages: \(error)")
             return 0
         }
     }
-    
+
     /// Processes received messages, decrypts them, and updates the chat database
     /// - Parameters:
     ///   - messages: Array of messages from the API
@@ -80,35 +79,33 @@ class MessageService: ObservableObject {
     ///   - chatService: The ChatService to handle message storage
     /// - Returns: Array of processed message IDs that were successfully handled
     func processReceivedMessages(
-        messages: [ReceivedMessage],
+        receivedMessages: [ReceivedMessage],
         currentUser: String
     ) async throws -> [UUID] {
         var processedMessageIds: [UUID] = []
 
-        log.info("Processing \(messages.count) messages for user \(currentUser)")
+        for receivedMessage in receivedMessages {
+            log.debug("Processing message ID: \(receivedMessage.messageId) from \(receivedMessage.senderId)")
 
-        for message in messages {
-            log.debug("Processing message ID: \(message.messageId) from \(message.senderId)")
-            
             do {
-                let drMessage = message.message
+                let drMessage = receivedMessage.message
                 
                 // Get or create the chat for this sender
-                let chat = try await fetchOrCreateChat(for: message)
-                log.info("Successfully established secure channel with \(message.senderId)")
+                let chat = try await fetchOrCreateChat(for: receivedMessage)
+                log.info("Successfully established secure channel with \(receivedMessage.senderId)")
 
                 // Process the decrypted message and save it to the database
-                let receivedMessage = try await chatService.receiveMessage(
+                let message = try await chatService.receiveMessage(
                     drMessage,
                     in: chat,
-                    from: message.senderId
+                    from: receivedMessage.senderId
                 )
                 
-                if receivedMessage != nil {
-                    processedMessageIds.append(message.messageId)
+                if message != nil {
+                    processedMessageIds.append(receivedMessage.messageId)
                 }
             } catch {
-                log.error("Failed to process message \(message.messageId): \(error)")
+                log.error("Failed to process message \(receivedMessage.messageId): \(error)")
             }
         }
         
