@@ -5,27 +5,35 @@
 //  Copyright © 2025 prism. All rights reserved.
 //
 
-import XCTest
+import Testing
 import Foundation
 import CryptoKit
 @testable import PrismMessenger
 
 
-final class X3DHTests: XCTestCase {
-    func testX3DHKeyAgreement() throws {
+final class X3DHTests {
+
+    var tee: TrustedExecutionEnvironment!
+    var x3dh: X3DH!
+
+    init() {
+        tee = InMemoryTee()
+        x3dh = X3DH(tee: tee)
+    }
+
+    @Test func x3dhKeyAgreement() throws {
         // === Initiator (Alice) Key Generation ===
-        let aliceIdentity = P256.KeyAgreement.PrivateKey()    // Alice's long-term identity key
-        let aliceEphemeral = P256.KeyAgreement.PrivateKey()   // Alice's ephemeral key
-        
+        let aliceIdentity = try tee.fetchOrCreateIdentityKey().forKA() // Alice's long-term identity key
+        let aliceEphemeral = P256.KeyAgreement.PrivateKey() // Alice's ephemeral key
+
         // === Responder (Bob) Key Generation ===
-        let bobIdentity = P256.KeyAgreement.PrivateKey()        // Bob's long-term identity key
-        let bobSignedPreKey = P256.KeyAgreement.PrivateKey()    // Bob's signed pre-key (published)
-        let bobOneTimePreKey = P256.KeyAgreement.PrivateKey()     // Bob's one-time pre-key (published)
+        let bobIdentity = P256.KeyAgreement.PrivateKey()      // Bob's long-term identity key
+        let bobSignedPreKey = P256.KeyAgreement.PrivateKey()  // Bob's signed pre-key (published)
+        let bobOneTimePreKey = P256.KeyAgreement.PrivateKey() // Bob's one-time pre-key (published)
         
         // Alice performs X3DH key agreement using Bob's public keys.
-        let sharedKeyAlice = try X3DH.perform(
-            initiatorIdentity: aliceIdentity,
-            initiatorEphemeral: aliceEphemeral,
+        let sharedKeyAlice = try x3dh.performX3DH(
+            ephemeralKey: aliceEphemeral,
             responderIdentity: bobIdentity.publicKey,
             responderSignedPreKey: bobSignedPreKey.publicKey,
             responderOneTimePreKey: bobOneTimePreKey.publicKey  // Optional – can be nil
@@ -33,7 +41,7 @@ final class X3DHTests: XCTestCase {
         
         // --- Bob's Perspective ---
         // Bob computes the shared key using his private keys and Alice's public keys.
-        let dh1_Bob = try bobSignedPreKey.sharedSecretFromKeyAgreement(with: aliceIdentity.publicKey)
+        let dh1_Bob = try bobSignedPreKey.sharedSecretFromKeyAgreement(with: aliceIdentity)
         let dh2_Bob = try bobIdentity.sharedSecretFromKeyAgreement(with: aliceEphemeral.publicKey)
         let dh3_Bob = try bobSignedPreKey.sharedSecretFromKeyAgreement(with: aliceEphemeral.publicKey)
         
@@ -57,22 +65,21 @@ final class X3DHTests: XCTestCase {
         let bobKeyData   = sharedKeyBob.withUnsafeBytes { Data($0) }
         
         // Assert that both parties derive the same shared key.
-        XCTAssertEqual(aliceKeyData, bobKeyData, "The shared keys must be equal.")
+        #expect(aliceKeyData == bobKeyData, "The shared keys must be equal.")
     }
     
-    func testX3DHWithoutOneTimePrekey() throws {
+    @Test func x3dhWithoutOneTimePrekey() throws {
         // === Initiator (Alice) Key Generation ===
-        let aliceIdentity = P256.KeyAgreement.PrivateKey()    // Alice's long-term identity key
-        let aliceEphemeral = P256.KeyAgreement.PrivateKey()   // Alice's ephemeral key
-        
+        let aliceIdentity = try tee.fetchOrCreateIdentityKey().forKA() // Alice's long-term identity key
+        let aliceEphemeral = P256.KeyAgreement.PrivateKey() // Alice's ephemeral key
+
         // === Responder (Bob) Key Generation ===
-        let bobIdentity = P256.KeyAgreement.PrivateKey()        // Bob's long-term identity key
-        let bobSignedPreKey = P256.KeyAgreement.PrivateKey()    // Bob's signed pre-key (published)
-        
+        let bobIdentity = P256.KeyAgreement.PrivateKey()     // Bob's long-term identity key
+        let bobSignedPreKey = P256.KeyAgreement.PrivateKey() // Bob's signed pre-key (published)
+
         // Alice performs X3DH key agreement using Bob's public keys.
-        let sharedKeyAlice = try X3DH.perform(
-            initiatorIdentity: aliceIdentity,
-            initiatorEphemeral: aliceEphemeral,
+        let sharedKeyAlice = try x3dh.performX3DH(
+            ephemeralKey: aliceEphemeral,
             responderIdentity: bobIdentity.publicKey,
             responderSignedPreKey: bobSignedPreKey.publicKey,
             responderOneTimePreKey: nil
@@ -80,7 +87,7 @@ final class X3DHTests: XCTestCase {
         
         // --- Bob's Perspective ---
         // Bob computes the shared key using his private keys and Alice's public keys.
-        let dh1_Bob = try bobSignedPreKey.sharedSecretFromKeyAgreement(with: aliceIdentity.publicKey)
+        let dh1_Bob = try bobSignedPreKey.sharedSecretFromKeyAgreement(with: aliceIdentity)
         let dh2_Bob = try bobIdentity.sharedSecretFromKeyAgreement(with: aliceEphemeral.publicKey)
         let dh3_Bob = try bobSignedPreKey.sharedSecretFromKeyAgreement(with: aliceEphemeral.publicKey)
         
@@ -100,6 +107,6 @@ final class X3DHTests: XCTestCase {
         let bobKeyData   = sharedKeyBob.withUnsafeBytes { Data($0) }
         
         // Assert that both parties derive the same shared key.
-        XCTAssertEqual(aliceKeyData, bobKeyData, "The shared keys must be equal.")
+        #expect(aliceKeyData == bobKeyData, "The shared keys must be equal.")
     }
 }

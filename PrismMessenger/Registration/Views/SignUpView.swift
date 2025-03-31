@@ -11,12 +11,10 @@ import CryptoKit
 import SwiftUI
 
 struct SignUpView: View {
-    @Environment(\.modelContext) var context
-    
     @EnvironmentObject var appLaunch: AppLaunch
-    @EnvironmentObject var signupService: RegistrationService
-    @EnvironmentObject var keyService: KeyService
-
+    @EnvironmentObject var registrationService: RegistrationService
+    @Environment(\.dismiss) private var dismiss
+    
     @State private var username = ""
     @State private var isUsernameAvailable = false
     @State private var isCheckingUsername = false
@@ -25,19 +23,54 @@ struct SignUpView: View {
     private var cancellables = Set<AnyCancellable>()
     
     var body: some View {
-        VStack(alignment: .leading) {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("Create a New Account")
+                .font(.title)
+                .fontWeight(.bold)
+                .padding(.bottom)
+            
             TextField("Username", text: $username)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
+                .autocapitalization(.none)
+                .disableAutocorrection(true)
+                .disabled(isRegistering)
                 .onChange(of: username) {
                     handleUsernameChange()
                 }
 
             availabilityStatusView
-
-            Button("Create Account") {
-                handleCreateAccount()
+            
+            if let error = registrationError {
+                Text(error)
+                    .foregroundColor(.red)
+                    .font(.caption)
+                    .padding(.top, 5)
             }
-            .disabled(!isUsernameAvailable)
+            
+            Spacer()
+
+            Button(action: handleCreateAccount) {
+                if isRegistering {
+                    HStack {
+                        ProgressView()
+                            .tint(.white)
+                        Text("Creating Account...")
+                            .foregroundColor(.white)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue.opacity(0.7))
+                    .cornerRadius(10)
+                } else {
+                    Text("Create Account")
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(isUsernameAvailable ? Color.blue : Color.gray)
+                        .cornerRadius(10)
+                }
+            }
+            .disabled(!isUsernameAvailable || isRegistering)
         }
         .padding()
         .onReceive(debounceTimer) { _ in
@@ -69,38 +102,44 @@ struct SignUpView: View {
         }
 
         Task {
-            isUsernameAvailable = (await signupService.checkUsernameAvailability(username))
+            isUsernameAvailable = (await registrationService.checkUsernameAvailability(username))
             isCheckingUsername = false
         }
     }
 
+    @State private var isRegistering = false
+    @State private var registrationError: String?
+    
     private func handleCreateAccount() {
+        isRegistering = true
+        registrationError = nil
+        
         Task {
             do {
-                try await signupService.register(username: username)
-                
-                let (keybundle, user) = try await keyService.initializeKeyBundle(username: username)
-                
-                context.insert(user)
-                try context.save()
-                
-                try await keyService.submitKeyBundle(username: username, keyBundle: keybundle)
+                try await registrationService.registerNewUser(username: username)
 
-                // Handle success
-                // TODO How to proceed from here?
-                // Wait until settled on prism?
-                print(context.sqliteCommand)
-                await appLaunch.setRegistered()
+                appLaunch.setRegistered()
+                
+                DispatchQueue.main.async {
+                    isRegistering = false
+                    // Dismiss current view to return to root view
+                    dismiss()
+                }
             } catch let error {
-                print(error)
+                print("Registration error: \(error)")
+                DispatchQueue.main.async {
+                    isRegistering = false
+                    registrationError = "Registration failed: \(error.localizedDescription)"
+                }
             }
         }
     }
 }
 
 #Preview {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: UserData.self, configurations: config)
+    let appContext = AppContext.forPreview()
 
-    SignUpView().modelContainer(container)
+    SignUpView()
+        .environmentObject(appContext.appLaunch)
+        .environmentObject(appContext.registrationService)
 }

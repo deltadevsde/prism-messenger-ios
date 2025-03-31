@@ -1,0 +1,38 @@
+{
+  "configurations" : [
+    {
+      "id" : "46B6452C-1473-4DAF-A807-A7B2385FB348",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "commandLineArgumentEntries" : [
+      {
+        "argument" : "-PrismMessenger.IsTesting"
+      },
+      {
+        "argument" : "YES"
+      }
+    ]
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:PrismMessenger.xcodeproj",
+        "identifier" : "DD508DF42D8AB2F900293B79",
+        "name" : "PrismMessengerIntegrationTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:PrismMessenger.xcodeproj",
+        "identifier" : "DD0CC66B2D4B88E800DAC02D",
+        "name" : "PrismMessengerTests"
+      }
+    }
+  ],
+  "version" : 1
+}
