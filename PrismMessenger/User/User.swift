@@ -18,6 +18,8 @@ final class User: Identifiable {
     @Attribute(.unique) var username: String
     var displayName: String?
     
+    var authPassword: String
+
     private var signedPrekeyData: CryptoPayload
     var signedPrekey: P256.KeyAgreement.PrivateKey {
          get { try! signedPrekeyData.toP256KAPrivateKey() }
@@ -26,12 +28,13 @@ final class User: Identifiable {
     private var prekeys: [UserPrekey]
     private var prekeyCounter: UInt64 = 0
     
-    init(signedPrekey: P256.KeyAgreement.PrivateKey, username: String, displayName: String? = nil) {
+    init(signedPrekey: P256.KeyAgreement.PrivateKey, username: String, displayName: String? = nil, authPassword: String) {
         self.signedPrekeyData = signedPrekey.toCryptoPayload()
         self.prekeys = []
         self.prekeyCounter = 0
         self.username = username
         self.displayName = displayName
+        self.authPassword = authPassword
     }
     
     func addPrekeys(keys: [P256.KeyAgreement.PrivateKey]) throws {

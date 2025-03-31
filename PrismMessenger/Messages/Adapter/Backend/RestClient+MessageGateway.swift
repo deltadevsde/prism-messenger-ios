@@ -4,8 +4,7 @@ private let log = Log.messages
 
 /// API request model for sending a message
 private struct SendMessageRequest: Encodable {
-    let senderId: String
-    let recipientId: String
+    let recipientUsername: String
     let message: DoubleRatchetMessage
 }
 
@@ -18,40 +17,44 @@ private struct SendMessageResponse: Decodable, MessageReceipt {
 /// API model for a message received from the server
 private struct MessageResponse: Decodable, ReceivedMessage {
     let messageId: UUID
-    let senderId: String
-    let recipientId: String
+    let senderUsername: String
+    let recipientUsername: String
     let message: DoubleRatchetMessage
     let timestamp: UInt64
 }
 
 /// API model for marking messages as delivered
 private struct MarkDeliveredRequest: Encodable {
-    let userId: String
     let messageIds: [UUID]
 }
 
 extension RestClient: MessageGateway {
-    func sendMessage(_ message: DoubleRatchetMessage, from sender: String, to recipient: String)
+
+    func sendMessage(_ message: DoubleRatchetMessage, to recipientUsername: String)
         async throws -> MessageReceipt
     {
         let request = SendMessageRequest(
-            senderId: sender,
-            recipientId: recipient,
+            recipientUsername: recipientUsername,
             message: message
         )
 
         do {
-            let response: SendMessageResponse = try await post(request, to: "/messages/send")
+            let response: SendMessageResponse = try await post(
+                request,
+                to: "/messages/send",
+                accessLevel: .authenticated
+            )
             return response
         } catch RestClientError.httpError(let statusCode) {
             throw MessageGatewayError.requestFailed(statusCode)
         }
     }
 
-    func fetchMessages(for username: String) async throws -> [ReceivedMessage] {
-        log.debug("Fetching messages for \(username)")
+    func fetchMessages() async throws -> [ReceivedMessage] {
+        log.debug("Fetching messages")
         do {
-            let messages: [MessageResponse] = try await fetch(from: "/messages/get/\(username)")
+            let messages: [MessageResponse] = try await fetch(
+                from: "/messages/get", accessLevel: .authenticated)
             log.debug("Fetched \(messages.count) messages successfully")
             return messages
         } catch RestClientError.httpError(let statusCode) {
@@ -60,14 +63,13 @@ extension RestClient: MessageGateway {
         }
     }
 
-    func markMessagesAsDelivered(messageIds: [UUID], for username: String) async throws {
+    func markMessagesAsDelivered(messageIds: [UUID]) async throws {
         let request = MarkDeliveredRequest(
-            userId: username,
             messageIds: messageIds
         )
 
         do {
-            try await post(request, to: "/messages/mark-delivered")
+            try await post(request, to: "/messages/mark-delivered", accessLevel: .authenticated)
         } catch RestClientError.httpError(let statusCode) {
             throw MessageGatewayError.requestFailed(statusCode)
         }

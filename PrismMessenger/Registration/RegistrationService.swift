@@ -45,11 +45,17 @@ class RegistrationService: ObservableObject {
         // Step 1: Request registration and get challenge
         let challenge = try await requestRegistration(username: username)
 
+        let authPassword = try generateServerAuthPassword()
+
         // Step 2: Sign challenge and finalize registration
-        try await finalizeRegistration(username: username, challenge: challenge)
+        try await finalizeRegistration(
+            username: username,
+            authPassword: authPassword,
+            challenge: challenge
+        )
 
         // Step 3: Initialize key bundle and create user
-        try await uploadNewKeybundleAndCreateUser(username: username)
+        try await uploadNewKeybundleAndCreateUser(username: username, authPassword: authPassword)
     }
 
     private func requestRegistration(username: String) async throws -> RegistrationChallenge {
@@ -64,7 +70,9 @@ class RegistrationService: ObservableObject {
         }
     }
 
-    private func finalizeRegistration(username: String, challenge: RegistrationChallenge)
+    private func finalizeRegistration(
+        username: String, authPassword: String, challenge: RegistrationChallenge
+    )
         async throws
     {
         guard let key = try? tee.fetchOrCreateIdentityKey() else {
@@ -83,21 +91,28 @@ class RegistrationService: ObservableObject {
 
         do {
             try await registrationGateway
-                .finalizeRegistration(username: username, key: key, signature: signature)
+                .finalizeRegistration(
+                    username: username, key: key, signature: signature, authPassword: authPassword)
         } catch RegistrationGatewayError.requestFailed(let errorCode) {
             throw RegistrationError.networkFailure(errorCode)
         }
     }
 
-    private func uploadNewKeybundleAndCreateUser(username: String) async throws {
+    private func uploadNewKeybundleAndCreateUser(username: String, authPassword: String) async throws
+    {
         do {
             // Create all neccessary keys for the user's key bundle
             let userKeys = try tee.createUserKeys()
 
             // Create user and key bundle
-            let user = User(signedPrekey: userKeys.signedPrekey, username: username)
+            let user = User(signedPrekey: userKeys.signedPrekey, username: username, authPassword: authPassword)
             try user.addPrekeys(keys: userKeys.prekeys)
 
+            // When the user has been created, save it and set is as active user
+            try await userService.saveUser(user)
+            await userService.selectAccount(username: username)
+
+            // Upload the created key bundle to the server
             let prekeys = user.getPublicPrekeys()
 
             let keyBundle = KeyBundle(
@@ -107,17 +122,15 @@ class RegistrationService: ObservableObject {
                 prekeys: prekeys
             )
 
-            // Upload the new key bundle to the server
             try await keyGateway.submitKeyBundle(for: username, keyBundle: keyBundle)
-
-            // When the key bundle has been uploaded to the server, save the user locally
-            try await userService.saveUser(user)
-            await userService.selectAccount(username: username)
-
         } catch is TeeError {
             throw RegistrationError.failedToCreateKey
         } catch KeyGatewayError.requestFailed(let errorCode) {
             throw RegistrationError.networkFailure(errorCode)
         }
+    }
+
+    private func generateServerAuthPassword() throws -> String {
+        return try Random.generateRandomBytes(16).base64EncodedString()
     }
 }
