@@ -38,15 +38,8 @@ class MessageService: ObservableObject {
             return 0
         }
 
-        return try await processMessagesForUser(currentUser.username)
-    }
-
-    /// Helper method to process messages for a specific username
-    @MainActor
-    private func processMessagesForUser(_ username: String) async throws -> Int {
-
         do {
-            let messages = try await messageGateway.fetchMessages(for: username)
+            let messages = try await messageGateway.fetchMessages()
 
             log.debug("Processing \(messages.count) fetched messages ...")
             if messages.isEmpty {
@@ -54,14 +47,13 @@ class MessageService: ObservableObject {
             }
             let processedIds = try await processReceivedMessages(
                 receivedMessages: messages,
-                currentUser: username
+                currentUser: currentUser.username
             )
 
             if !processedIds.isEmpty {
                 log.debug("Marking \(processedIds.count) messages as delivered on the server ...")
                 try await messageGateway.markMessagesAsDelivered(
-                    messageIds: processedIds,
-                    for: username
+                    messageIds: processedIds
                 )
             }
 
@@ -85,20 +77,22 @@ class MessageService: ObservableObject {
         var processedMessageIds: [UUID] = []
 
         for receivedMessage in receivedMessages {
-            log.debug("Processing message ID: \(receivedMessage.messageId) from \(receivedMessage.senderId)")
+            log.debug(
+                "Processing message ID: \(receivedMessage.messageId) from \(receivedMessage.senderUsername)"
+            )
 
             do {
                 let drMessage = receivedMessage.message
                 
                 // Get or create the chat for this sender
                 let chat = try await fetchOrCreateChat(for: receivedMessage)
-                log.info("Successfully established secure channel with \(receivedMessage.senderId)")
+                log.info("Successfully established secure channel with \(receivedMessage.senderUsername)")
 
                 // Process the decrypted message and save it to the database
                 let message = try await chatService.receiveMessage(
                     drMessage,
                     in: chat,
-                    from: receivedMessage.senderId
+                    from: receivedMessage.senderUsername
                 )
                 
                 if message != nil {
@@ -114,7 +108,7 @@ class MessageService: ObservableObject {
 
     private func fetchOrCreateChat(for message: ReceivedMessage) async throws -> Chat {
         do {
-            if let existingChat = try await chatService.getChat(with: message.senderId) {
+            if let existingChat = try await chatService.getChat(with: message.senderUsername) {
                 return existingChat
             }
         } catch {
@@ -127,11 +121,11 @@ class MessageService: ObservableObject {
         let drMessage = message.message
 
         do {
-            guard let keyBundle = try await keyGateway.fetchKeyBundle(for: message.senderId) else {
+            guard let keyBundle = try await keyGateway.fetchKeyBundle(for: message.senderUsername) else {
                 throw MessageError.assigningChatFailed
             }
 
-            log.debug("Got key bundle for \(message.senderId)")
+            log.debug("Got key bundle for \(message.senderUsername)")
             log.debug("Identity key representation size: \(keyBundle.identityKey.rawRepresentation.count)")
             log.debug("Identity key compressed size: \(keyBundle.identityKey.compressedRepresentation.count)")
             log.debug("Message header dump: \(String(describing: drMessage.header))")
@@ -140,7 +134,7 @@ class MessageService: ObservableObject {
 
             // 5. Create the secure chat using X3DH passive mode
             return try await chatService.createChatFromIncomingMessage(
-                senderUsername: message.senderId,
+                senderUsername: message.senderUsername,
                 senderIdentityKey: keyBundle.identityKey.forKA(),
                 senderEphemeralKey: senderEphemeralKey,
                 usedPrekeyId: drMessage.header.oneTimePrekeyId

@@ -13,15 +13,14 @@ struct KeyBundleResponse: Codable {
 }
 
 struct UploadKeyBundleRequest: Codable {
-    var userId: String
     var keyBundle: KeyBundle
 }
 
 extension RestClient: KeyGateway {
     func submitKeyBundle(for username: String, keyBundle: KeyBundle) async throws {
-        let req = UploadKeyBundleRequest(userId: username, keyBundle: keyBundle)
+        let req = UploadKeyBundleRequest(keyBundle: keyBundle)
         do {
-            try await post(req, to: "/keys/upload_bundle")
+            try await post(req, to: "/keys/bundle", accessLevel: .authenticated)
         } catch RestClientError.httpError(let httpStatusCode) {
             throw KeyGatewayError.requestFailed(httpStatusCode)
         }
@@ -30,7 +29,7 @@ extension RestClient: KeyGateway {
     func fetchKeyBundle(for username: String) async throws -> KeyBundle? {
         do {
             let keyBundle: KeyBundleResponse = try await fetch(
-                from: "/keys/bundle/\(username)")
+                from: "/keys/bundle", accessLevel: .authenticated)
             return keyBundle.keyBundle
         } catch RestClientError.httpError(let httpStatusCode) {
             if httpStatusCode == 404 {

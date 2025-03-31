@@ -5,9 +5,8 @@
 //  Copyright © 2025 prism. All rights reserved.
 //
 
-import Foundation
 import CryptoKit
-
+import Foundation
 
 struct RegistrationRequestData: Encodable {
     var username: String
@@ -25,6 +24,7 @@ struct FinalizeRegistrationRequest: Encodable {
 }
 
 extension RestClient: RegistrationGateway {
+
     func checkUsernameAvailability(_ username: String) async -> Bool {
         let response = try? await head(from: "/accounts/account/\(username)")
         // If username not found, it is available
@@ -49,19 +49,26 @@ extension RestClient: RegistrationGateway {
     }
 
     func finalizeRegistration(
-        username: String, key: P256.Signing.PublicKey, signature: P256.Signing.ECDSASignature
+        username: String, key: P256.Signing.PublicKey,
+        signature: P256.Signing.ECDSASignature,
+        authPassword: String
     ) async throws {
         let req = FinalizeRegistrationRequest(
             username: username,
             key: key.toCryptoPayload(),
             signature: signature.toCryptoPayload()
         )
-        
+
         do {
-            try await post(req, to: "/registration/finalize")
+            // is not really authenticated, but providing auth credentials here is
+            // how the server attaches an auth token to newly registered accounts
+            try await post(
+                req,
+                to: "/registration/finalize",
+                authMethod: .basic(username: username, password: authPassword)
+            )
         } catch RestClientError.httpError(let httpStatusCode) {
             throw RegistrationGatewayError.requestFailed(httpStatusCode)
         }
     }
-
 }

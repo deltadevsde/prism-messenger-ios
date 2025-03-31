@@ -36,11 +36,11 @@ class AppContext: ObservableObject {
 
     static func forProd() -> Self {
         let modelContext = AppContext.createDefaultModelContext()
-        let restClient = try! RestClient(baseURLStr: "http://127.0.0.1:48080")
 
-        // Initialize UserService (since it has @MainActor methods but is not fully isolated)
         let userRepository = SwiftDataUserRepository(modelContext: modelContext)
         let userService = UserService(userRepository: userRepository)
+
+        let restClient = try! RestClient(baseURLStr: "http://127.0.0.1:48080", userService: userService)
 
         // Initialize crypto services
         let tee = SecurePersistentTee()
@@ -82,11 +82,11 @@ class AppContext: ObservableObject {
 
     static func forPreview() -> Self {
         let modelContext = AppContext.createInMemoryModelContext()
-        let simulatedBackend = FakeClient()
 
-        // Initialize UserService (since it has @MainActor methods but is not fully isolated)
         let userRepository = SwiftDataUserRepository(modelContext: modelContext)
         let userService = UserService(userRepository: userRepository)
+
+        let simulatedBackend = FakeClient(userService: userService)
 
         // Initialize crypto services
         let tee = InMemoryTee()
