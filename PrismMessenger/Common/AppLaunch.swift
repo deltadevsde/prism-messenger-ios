@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftData
 
 
 @MainActor
@@ -19,18 +20,19 @@ class AppLaunch: ObservableObject {
     
     @Published private(set) var state: LoadingState = .loading
     
-    func initialize() async {
+    func setLoading() {
         state = .loading
-        do {
-            try await Task.sleep(nanoseconds: 1500000000)
-            // For now, we just assume
-            state = .unregistered
-        } catch {
-            state = .error
-        }
     }
     
-    func setRegistered() async {
+    func setUnregistered() {
+        state = .unregistered
+    }
+    
+    func setRegistered() {
         state = .ready
+    }
+    
+    func setError() {
+        state = .error
     }
 }

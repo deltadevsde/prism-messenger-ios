@@ -6,16 +6,23 @@
 //
 
 import SwiftUI
-import SwiftData
 
 @main
 struct PrismMessengerApp: App {
-    let container: ModelContainer = try! ModelContainer(for: UserData.self)
+
+    private static var isTesting = UserDefaults.standard.bool(forKey: UserDefaultsKeys.isTestingKey)
+
+    @StateObject private var appContext: AppContext = isTesting ? .forPreview() : .forProd()
 
     var body: some Scene {
         WindowGroup {
             MainView()
+                .environmentObject(appContext)
+                .environmentObject(appContext.appLaunch)
+                .task {
+                    await appContext.onAppStart()
+                }
         }
-        .modelContainer(container)
     }
 }
+
