@@ -43,7 +43,16 @@ class AppContext: ObservableObject {
         let userRepository = SwiftDataUserRepository(modelContext: modelContext)
         let userService = UserService(userRepository: userRepository)
 
-        let restClient = try! RestClient(baseURLStr: "http://127.0.0.1:48080", userService: userService)
+        #if targetEnvironment(simulator)
+            let serverUrl = "http://127.0.0.1:48080"
+        #else
+            let serverUrl = BuildSettings.serverURL
+        #endif
+
+        let restClient = try! RestClient(
+            baseURLStr: serverUrl,
+            userService: userService
+        )
 
         // Initialize crypto services
         let tee = SecurePersistentTee()
