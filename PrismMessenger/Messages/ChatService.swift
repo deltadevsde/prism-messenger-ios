@@ -118,15 +118,6 @@ class ChatService: ObservableObject {
             doubleRatchetSession: sessionData
         )
         
-        // 4. Create a welcome message
-        let welcomeMessage = Message(
-            content: "Chat established securely",
-            isFromMe: true,
-            status: .sent
-        )
-        welcomeMessage.chat = chat
-        chat.addMessage(welcomeMessage)
-        
         try await chatRepository.saveChat(chat)
         
         return chat
@@ -245,15 +236,6 @@ class ChatService: ObservableObject {
             displayName: senderUsername, // Default to username for display
             doubleRatchetSession: sessionData
         )
-        
-        // 7. Create a welcome message
-        let welcomeMessage = Message(
-            content: "Chat established securely",
-            isFromMe: false,
-            status: .delivered
-        )
-        welcomeMessage.chat = chat
-        chat.addMessage(welcomeMessage)
         
         try await chatRepository.saveChat(chat)
         

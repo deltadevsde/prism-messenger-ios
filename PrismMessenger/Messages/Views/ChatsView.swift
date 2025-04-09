@@ -17,11 +17,12 @@ struct ChatsView: View {
     @State private var currentChats: [Chat] = []
     @State private var filteredChats: [Chat] = []
     @State private var refreshTrigger = false  // Refresh trigger for manual refreshes
+    @State private var navigationPath = NavigationPath()
     
     @State private var usernameQuery = ""
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             VStack(alignment: .leading) {
                 HStack {
                     // TODO: Navigate to profile? Or what should this do?
@@ -92,20 +93,18 @@ struct ChatsView: View {
                             .padding(.top, 50)
                         } else {
                             ForEach(filteredChats) { chat in
-                                NavigationLink(destination: {
-                                    // Using a closure form that creates a new binding for each chat
-                                    let bindableChat = chat
-                                    ChatView(chat: bindableChat)
-                                }) {
-                                    ChatPreview(
-                                        username: chat.displayName ?? chat.participantUsername,
-                                        imageURL: chat.imageURL,
-                                        message: chat.lastMessage ?? "No messages yet",
-                                        lastMessageTime: chat.lastMessageTimestamp,
-                                        unreadCount: chat.unreadCount
-                                    )
-                                }
-                                .buttonStyle(PlainButtonStyle())
+                                Button {
+                                     navigationPath.append(chat)
+                                 } label: {
+                                     ChatPreview(
+                                         username: chat.displayName ?? chat.participantUsername,
+                                         imageURL: chat.imageURL,
+                                         message: chat.lastMessage ?? "No messages yet",
+                                         lastMessageTime: chat.lastMessageTimestamp,
+                                         unreadCount: chat.unreadCount
+                                     )
+                                 }
+                                 .buttonStyle(PlainButtonStyle())
                             }
                         }
                     }.padding(.horizontal, 20)
@@ -118,7 +117,18 @@ struct ChatsView: View {
                     refreshTrigger.toggle()
                 }
             ) {
-                NewChatView()
+                NewChatView(onChatCreated: { newChat in
+                    showingNewChatSheet = false
+                    loadChats()
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        // Use programmatic navigation
+                        navigationPath.append(newChat)
+                    }
+                })
+            }
+            .navigationDestination(for: Chat.self) { chat in
+                ChatView(chat: chat)
             }
             .onAppear {
                 loadChats()
@@ -234,6 +244,8 @@ struct ChatPreview: View {
 struct NewChatView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var chatService: ChatService
+    
+    var onChatCreated: (Chat) -> Void
 
     @State private var username = ""
     @State private var isLoading = false
@@ -300,15 +312,12 @@ struct NewChatView: View {
             do {
                 let chat = try await chatService.startChat(with: username)
 
-                print("Successfully created chat with \(username)")
+                 print("Successfully created chat with \(username)")
 
-                // Store the created chat and navigate to it
-                DispatchQueue.main.async {
-                    createdChat = chat
-                    shouldNavigateToChat = true
-                    isLoading = false
-                    dismiss()
-                }
+                 DispatchQueue.main.async {
+                     onChatCreated(chat)
+                     isLoading = false
+                 }
             } catch ChatServiceError.missingKeyBundle {
                 DispatchQueue.main.async {
                     errorMessage = "No key bundle found for \(username)"

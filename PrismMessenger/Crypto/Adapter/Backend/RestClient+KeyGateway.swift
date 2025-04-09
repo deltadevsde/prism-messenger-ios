@@ -29,7 +29,7 @@ extension RestClient: KeyGateway {
     func fetchKeyBundle(for username: String) async throws -> KeyBundle? {
         do {
             let keyBundle: KeyBundleResponse = try await fetch(
-                from: "/keys/bundle", accessLevel: .authenticated)
+                from: "/keys/bundle/\(username)", accessLevel: .authenticated)
             return keyBundle.keyBundle
         } catch RestClientError.httpError(let httpStatusCode) {
             if httpStatusCode == 404 {
