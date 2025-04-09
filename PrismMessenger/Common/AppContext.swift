@@ -16,6 +16,7 @@ class AppContext: ObservableObject {
 
     let chatService: ChatService
     let messageService: MessageService
+    let pushNotificationService: PushNotificationService
     let userService: UserService
     let registrationService: RegistrationService
 
@@ -23,6 +24,7 @@ class AppContext: ObservableObject {
         modelContext: ModelContext,
         chatService: ChatService,
         messageService: MessageService,
+        pushNotificationService: PushNotificationService,
         userService: UserService,
         registrationService: RegistrationService
     ) {
@@ -30,6 +32,7 @@ class AppContext: ObservableObject {
         self.modelContext = modelContext
         self.chatService = chatService
         self.messageService = messageService
+        self.pushNotificationService = pushNotificationService
         self.userService = userService
         self.registrationService = registrationService
     }
@@ -64,11 +67,15 @@ class AppContext: ObservableObject {
             chatService: chatService
         )
 
+        // Initialize notification services
+        let pushNotificationService = PushNotificationService()
+
         // Initialize registration services
         let registrationService = RegistrationService(
             registrationGateway: restClient,
             tee: tee,
             keyGateway: restClient,
+            pushNotificationService: pushNotificationService,
             userService: userService
         )
 
@@ -76,6 +83,7 @@ class AppContext: ObservableObject {
             modelContext: modelContext,
             chatService: chatService,
             messageService: messageService,
+            pushNotificationService: pushNotificationService,
             userService: userService,
             registrationService: registrationService)
     }
@@ -110,11 +118,15 @@ class AppContext: ObservableObject {
             chatService: chatService
         )
 
+        // Initialize notification services
+        let pushNotificationService = PushNotificationService()
+
         // Initialize registration services
         let registrationService = RegistrationService(
             registrationGateway: simulatedBackend,
             tee: tee,
             keyGateway: simulatedBackend,
+            pushNotificationService: pushNotificationService,
             userService: userService
         )
 
@@ -122,6 +134,7 @@ class AppContext: ObservableObject {
             modelContext: modelContext,
             chatService: chatService,
             messageService: messageService,
+            pushNotificationService: pushNotificationService,
             userService: userService,
             registrationService: registrationService)
     }
