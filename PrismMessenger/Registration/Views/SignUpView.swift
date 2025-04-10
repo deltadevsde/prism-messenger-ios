@@ -14,21 +14,21 @@ struct SignUpView: View {
     @EnvironmentObject var appLaunch: AppLaunch
     @EnvironmentObject var registrationService: RegistrationService
     @Environment(\.dismiss) private var dismiss
-    
+
     @State private var username = ""
+    @State private var debouncedUsername = ""
     @State private var isUsernameAvailable = false
     @State private var isCheckingUsername = false
-    
-    private var debounceTimer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()
-    private var cancellables = Set<AnyCancellable>()
-    
+
+    @State private var usernameWorkItem: DispatchWorkItem?
+
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Create a New Account")
                 .font(.title)
                 .fontWeight(.bold)
                 .padding(.bottom)
-            
+
             TextField("Username", text: $username)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .autocapitalization(.none)
@@ -39,14 +39,14 @@ struct SignUpView: View {
                 }
 
             availabilityStatusView
-            
+
             if let error = registrationError {
                 Text(error)
                     .foregroundColor(.red)
                     .font(.caption)
                     .padding(.top, 5)
             }
-            
+
             Spacer()
 
             Button(action: handleCreateAccount) {
@@ -73,9 +73,6 @@ struct SignUpView: View {
             .disabled(!isUsernameAvailable || isRegistering)
         }
         .padding()
-        .onReceive(debounceTimer) { _ in
-            checkAvailability()
-        }
     }
 
     private var availabilityStatusView: some View {
@@ -91,35 +88,48 @@ struct SignUpView: View {
     }
 
     private func handleUsernameChange() {
+        usernameWorkItem?.cancel()
+
         isUsernameAvailable = false
-        isCheckingUsername = true
+        isCheckingUsername = !username.isEmpty
+
+        let workItem = DispatchWorkItem {
+            debouncedUsername = username
+
+            checkAvailability()
+        }
+
+        usernameWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: workItem)
     }
 
     private func checkAvailability() {
-        guard !username.isEmpty else {
+        guard !debouncedUsername.isEmpty else {
             isCheckingUsername = false
             return
         }
 
+        isCheckingUsername = true
+
         Task {
-            isUsernameAvailable = (await registrationService.checkUsernameAvailability(username))
+            isUsernameAvailable = (await registrationService.checkUsernameAvailability(debouncedUsername))
             isCheckingUsername = false
         }
     }
 
     @State private var isRegistering = false
     @State private var registrationError: String?
-    
+
     private func handleCreateAccount() {
         isRegistering = true
         registrationError = nil
-        
+
         Task {
             do {
                 try await registrationService.registerNewUser(username: username)
 
                 appLaunch.setRegistered()
-                
+
                 DispatchQueue.main.async {
                     isRegistering = false
                     // Dismiss current view to return to root view
