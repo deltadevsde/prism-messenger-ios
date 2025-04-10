@@ -12,6 +12,9 @@ private let log = Log.notifications
 
 class PushNotificationService {
 
+    // Timeout in seconds for push notification token registration
+    private let tokenRegistrationTimeoutSeconds: UInt64 = 30
+
     private var tokenContinuation: CheckedContinuation<Data, Error>?
 
     // Get token using async/await
@@ -24,6 +27,16 @@ class PushNotificationService {
             throw NSError(domain: "PushNotification", code: 1, userInfo: [NSLocalizedDescriptionKey: "Notification permission denied"])
         }
 
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        print("Notification settings: \(settings)")
+        guard settings.authorizationStatus == .authorized else {
+            throw NSError(
+                domain: "PushNotification",
+                code: 2,
+                userInfo: [NSLocalizedDescriptionKey: "Notification permission not there"]
+            )
+        }
+
         log.debug("Getting token through continuation")
         return try await withCheckedThrowingContinuation { continuation in
             self.tokenContinuation = continuation
@@ -31,6 +44,20 @@ class PushNotificationService {
             log.info("Registering for remote notifications")
             DispatchQueue.main.async {
                 UIApplication.shared.registerForRemoteNotifications()
+            }
+
+            // Add timeout to prevent indefinite waiting
+            Task {
+                try await Task.sleep(nanoseconds: tokenRegistrationTimeoutSeconds * 1_000_000_000) // Timeout from constant
+                if self.tokenContinuation != nil {
+                    log.error("Timeout while waiting for push notification token")
+                    self.tokenContinuation?.resume(throwing: NSError(
+                        domain: "PushNotification",
+                        code: 3,
+                        userInfo: [NSLocalizedDescriptionKey: "Timeout while waiting for push notification token"]
+                    ))
+                    self.tokenContinuation = nil
+                }
             }
         }
     }
