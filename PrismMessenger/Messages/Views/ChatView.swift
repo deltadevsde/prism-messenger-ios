@@ -49,16 +49,6 @@ struct ChatView: View {
             }
         }
         // Periodically refresh messages when view is active
-        .task {
-            while !Task.isCancelled {
-                do {
-                    try await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
-                    try? await messageService.fetchAndProcessMessages()
-                } catch {
-                    break
-                }
-            }
-        }
     }
     
     private var headerView: some View {

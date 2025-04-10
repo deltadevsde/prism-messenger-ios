@@ -14,6 +14,8 @@ struct PrismMessengerApp: App {
 
     @StateObject private var appContext: AppContext = isTesting ? .forPreview() : .forProd()
 
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
     var body: some Scene {
         WindowGroup {
             MainView()
@@ -22,7 +24,12 @@ struct PrismMessengerApp: App {
                 .task {
                     await appContext.onAppStart()
                 }
+                .onAppear {
+                    appDelegate.setServices(
+                        pushNotificationService: appContext.pushNotificationService,
+                        messageService: appContext.messageService
+                    )
+                }
         }
     }
 }
-

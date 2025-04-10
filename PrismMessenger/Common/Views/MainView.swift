@@ -62,17 +62,10 @@ struct MainView: View {
             // CallsView() ?
         }
         .onAppear {
-            // Start message polling when tab view appears
-            startMessagePolling()
-            
             // Preload user data for ProfileView to minimize loading time during tab transitions
             Task {
                 try? await appContext.userService.getCurrentUser()
             }
-        }
-        .onDisappear {
-            // Stop message polling when tab view disappears
-            stopMessagePolling()
         }
     }
     
@@ -98,35 +91,6 @@ struct MainView: View {
             // Reset navigation path when error view appears
             path = NavigationPath()
         }
-    }
-    
-    // Start polling for new messages
-    private func startMessagePolling() {
-        // Cancel any existing task
-        messagePollingTask?.cancel()
-        
-        // Create a new task for message polling
-        messagePollingTask = Task {
-            while !Task.isCancelled {
-                do {
-                    let newMessageCount = try await appContext.messageService.fetchAndProcessMessages()
-                    if newMessageCount > 0 {
-                        print("Fetched \(newMessageCount) new messages")
-                    }
-                } catch {
-                    print("Error fetching messages: \(error)")
-                }
-                
-                // Wait 5 seconds before polling again
-                try? await Task.sleep(nanoseconds: 5_000_000_000)
-            }
-        }
-    }
-    
-    // Stop polling for new messages
-    private func stopMessagePolling() {
-        messagePollingTask?.cancel()
-        messagePollingTask = nil
     }
 }
 

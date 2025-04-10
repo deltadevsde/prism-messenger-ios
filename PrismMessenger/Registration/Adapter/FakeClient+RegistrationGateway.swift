@@ -30,8 +30,7 @@ extension FakeClient: RegistrationGateway {
 
     func finalizeRegistration(
         username: String, key: P256.Signing.PublicKey, signature: P256.Signing.ECDSASignature,
-        authPassword: String
-    )
+        authPassword: String, apnsToken: Data)
         async throws
     {
         guard key.isValidSignature(signature, for: simulatedRegistrationChallenge) else {

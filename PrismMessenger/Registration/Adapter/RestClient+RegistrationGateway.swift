@@ -21,6 +21,7 @@ struct FinalizeRegistrationRequest: Encodable {
     var username: String
     var key: CryptoPayload
     var signature: CryptoPayload
+    var apnsToken: Data
 }
 
 extension RestClient: RegistrationGateway {
@@ -51,12 +52,14 @@ extension RestClient: RegistrationGateway {
     func finalizeRegistration(
         username: String, key: P256.Signing.PublicKey,
         signature: P256.Signing.ECDSASignature,
-        authPassword: String
+        authPassword: String,
+        apnsToken: Data
     ) async throws {
         let req = FinalizeRegistrationRequest(
             username: username,
             key: key.toCryptoPayload(),
-            signature: signature.toCryptoPayload()
+            signature: signature.toCryptoPayload(),
+            apnsToken: apnsToken
         )
 
         do {
