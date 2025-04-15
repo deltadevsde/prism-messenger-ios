@@ -62,7 +62,11 @@ class RegistrationService: ObservableObject {
         )
 
         // Step 3: Initialize key bundle and create user
-        try await uploadNewKeybundleAndCreateUser(username: username, authPassword: authPassword)
+        try await uploadNewKeybundleAndCreateUser(
+            username: username,
+            authPassword: authPassword,
+            apnsToken: apnsToken
+        )
     }
 
     private func requestRegistration(username: String) async throws -> RegistrationChallenge {
@@ -78,7 +82,10 @@ class RegistrationService: ObservableObject {
     }
 
     private func finalizeRegistration(
-        username: String, authPassword: String, apnsToken: Data, challenge: RegistrationChallenge
+        username: String,
+        authPassword: String,
+        apnsToken: Data,
+        challenge: RegistrationChallenge
     )
         async throws
     {
@@ -99,14 +106,22 @@ class RegistrationService: ObservableObject {
         do {
             try await registrationGateway
                 .finalizeRegistration(
-                    username: username, key: key, signature: signature, authPassword: authPassword,
-                    apnsToken: apnsToken)
+                    username: username,
+                    key: key,
+                    signature: signature,
+                    authPassword: authPassword,
+                    apnsToken: apnsToken
+                )
         } catch RegistrationGatewayError.requestFailed(let errorCode) {
             throw RegistrationError.networkFailure(errorCode)
         }
     }
 
-    private func uploadNewKeybundleAndCreateUser(username: String, authPassword: String)
+    private func uploadNewKeybundleAndCreateUser(
+        username: String,
+        authPassword: String,
+        apnsToken: Data
+    )
         async throws
     {
         do {
@@ -114,9 +129,12 @@ class RegistrationService: ObservableObject {
             let userKeys = try tee.createUserKeys()
 
             // Create user and key bundle
-            // TODO: Clarify, whether we need to store apns token on device?
             let user = User(
-                signedPrekey: userKeys.signedPrekey, username: username, authPassword: authPassword)
+                signedPrekey: userKeys.signedPrekey,
+                username: username,
+                authPassword: authPassword,
+                apnsToken: apnsToken
+            )
             try user.addPrekeys(keys: userKeys.prekeys)
 
             // When the user has been created, save it and set is as active user
