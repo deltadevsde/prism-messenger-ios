@@ -10,7 +10,7 @@ import os
 import Foundation
 
 public enum Log {
-    private static let subsystem = Bundle.main.bundleIdentifier ?? "xyz.prism.messenger"
+    private static let subsystem = Bundle.main.bundleIdentifier ?? "xyz.prism.PrismMessenger"
 
     public static func forCategory(_ category: String) -> Logger {
         return Logger(subsystem: subsystem, category: category)
