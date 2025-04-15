@@ -17,6 +17,7 @@ class AppContext: ObservableObject {
     let chatService: ChatService
     let messageService: MessageService
     let pushNotificationService: PushNotificationService
+    let updatePushTokenService: UpdatePushTokenService
     let userService: UserService
     let registrationService: RegistrationService
 
@@ -25,6 +26,7 @@ class AppContext: ObservableObject {
         chatService: ChatService,
         messageService: MessageService,
         pushNotificationService: PushNotificationService,
+        updatePushTokenService: UpdatePushTokenService,
         userService: UserService,
         registrationService: RegistrationService
     ) {
@@ -33,6 +35,7 @@ class AppContext: ObservableObject {
         self.chatService = chatService
         self.messageService = messageService
         self.pushNotificationService = pushNotificationService
+        self.updatePushTokenService = updatePushTokenService
         self.userService = userService
         self.registrationService = registrationService
     }
@@ -88,11 +91,19 @@ class AppContext: ObservableObject {
             userService: userService
         )
 
+        // Initialize remaining account services
+        let updatePushTokenService = UpdatePushTokenService(
+            userService: userService,
+            userGateway: restClient,
+            pushNotificationService: pushNotificationService
+        )
+
         return Self(
             modelContext: modelContext,
             chatService: chatService,
             messageService: messageService,
             pushNotificationService: pushNotificationService,
+            updatePushTokenService: updatePushTokenService,
             userService: userService,
             registrationService: registrationService)
     }
@@ -139,11 +150,19 @@ class AppContext: ObservableObject {
             userService: userService
         )
 
+        // Initialize remaining account services
+        let updatePushTokenService = UpdatePushTokenService(
+            userService: userService,
+            userGateway: simulatedBackend,
+            pushNotificationService: pushNotificationService
+        )
+
         return Self(
             modelContext: modelContext,
             chatService: chatService,
             messageService: messageService,
             pushNotificationService: pushNotificationService,
+            updatePushTokenService: updatePushTokenService,
             userService: userService,
             registrationService: registrationService)
     }
@@ -157,6 +176,7 @@ class AppContext: ObservableObject {
 
             if userService.selectedUsername != nil {
                 appLaunch.setRegistered()
+                try await updatePushTokenService.updatePushToken()
             } else {
                 appLaunch.setUnregistered()
             }

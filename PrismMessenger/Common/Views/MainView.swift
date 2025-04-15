@@ -45,6 +45,7 @@ struct MainView: View {
         .environmentObject(appContext.messageService)
         .environmentObject(appContext.registrationService)
         .environmentObject(appContext.userService)
+        .environmentObject(appContext.updatePushTokenService)
     }
     
     private var mainContentView: some View {
@@ -60,12 +61,6 @@ struct MainView: View {
                 }
             // ContactsView() ?
             // CallsView() ?
-        }
-        .onAppear {
-            // Preload user data for ProfileView to minimize loading time during tab transitions
-            Task {
-                try? await appContext.userService.getCurrentUser()
-            }
         }
     }
     
