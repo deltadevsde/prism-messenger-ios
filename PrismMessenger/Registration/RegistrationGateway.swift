@@ -23,6 +23,6 @@ protocol RegistrationGateway {
     /// Requests finalization of user registration on the server
     func finalizeRegistration(
         username: String, key: P256.Signing.PublicKey, signature: P256.Signing.ECDSASignature,
-        authPassword: String
+        authPassword: String, apnsToken: Data
     ) async throws;
 }

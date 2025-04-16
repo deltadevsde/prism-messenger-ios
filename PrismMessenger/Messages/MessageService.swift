@@ -21,7 +21,7 @@ class MessageService: ObservableObject {
     private let keyGateway: KeyGateway
     private let userService: UserService
     private let chatService: ChatService
-    
+
     init(messageGateway: MessageGateway, keyGateway: KeyGateway, userService: UserService, chatService: ChatService) {
         self.messageGateway = messageGateway
         self.keyGateway = keyGateway
@@ -83,7 +83,7 @@ class MessageService: ObservableObject {
 
             do {
                 let drMessage = receivedMessage.message
-                
+
                 // Get or create the chat for this sender
                 let chat = try await fetchOrCreateChat(for: receivedMessage)
                 log.info("Successfully established secure channel with \(receivedMessage.senderUsername)")
@@ -94,7 +94,7 @@ class MessageService: ObservableObject {
                     in: chat,
                     from: receivedMessage.senderUsername
                 )
-                
+
                 if message != nil {
                     processedMessageIds.append(receivedMessage.messageId)
                 }
@@ -102,7 +102,7 @@ class MessageService: ObservableObject {
                 log.error("Failed to process message \(receivedMessage.messageId): \(error)")
             }
         }
-        
+
         return processedMessageIds
     }
 
@@ -140,8 +140,8 @@ class MessageService: ObservableObject {
                 usedPrekeyId: drMessage.header.oneTimePrekeyId
             )
         } catch {
+            log.error("Failed to establish secure channel: \(error)")
             throw MessageError.assigningChatFailed
         }
     }
 }
-

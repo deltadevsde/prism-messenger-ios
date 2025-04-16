@@ -7,6 +7,8 @@
 
 import Foundation
 
+private let log = Log.registration
+
 enum RegistrationError: Error {
     case networkFailure(Int)
     case unableToAcquireKey
@@ -23,17 +25,20 @@ class RegistrationService: ObservableObject {
     private let registrationGateway: RegistrationGateway
     private let tee: TrustedExecutionEnvironment
     private let keyGateway: KeyGateway
+    private let pushNotificationService: PushNotificationService
     private let userService: UserService
 
     init(
         registrationGateway: RegistrationGateway,
         tee: TrustedExecutionEnvironment,
         keyGateway: KeyGateway,
+        pushNotificationService: PushNotificationService,
         userService: UserService
     ) {
         self.registrationGateway = registrationGateway
         self.tee = tee
         self.keyGateway = keyGateway
+        self.pushNotificationService = pushNotificationService
         self.userService = userService
     }
 
@@ -46,16 +51,22 @@ class RegistrationService: ObservableObject {
         let challenge = try await requestRegistration(username: username)
 
         let authPassword = try generateServerAuthPassword()
+        let apnsToken = try await pushNotificationService.requestPushNotificationToken()
 
         // Step 2: Sign challenge and finalize registration
         try await finalizeRegistration(
             username: username,
             authPassword: authPassword,
+            apnsToken: apnsToken,
             challenge: challenge
         )
 
         // Step 3: Initialize key bundle and create user
-        try await uploadNewKeybundleAndCreateUser(username: username, authPassword: authPassword)
+        try await uploadNewKeybundleAndCreateUser(
+            username: username,
+            authPassword: authPassword,
+            apnsToken: apnsToken
+        )
     }
 
     private func requestRegistration(username: String) async throws -> RegistrationChallenge {
@@ -71,7 +82,10 @@ class RegistrationService: ObservableObject {
     }
 
     private func finalizeRegistration(
-        username: String, authPassword: String, challenge: RegistrationChallenge
+        username: String,
+        authPassword: String,
+        apnsToken: Data,
+        challenge: RegistrationChallenge
     )
         async throws
     {
@@ -92,20 +106,35 @@ class RegistrationService: ObservableObject {
         do {
             try await registrationGateway
                 .finalizeRegistration(
-                    username: username, key: key, signature: signature, authPassword: authPassword)
+                    username: username,
+                    key: key,
+                    signature: signature,
+                    authPassword: authPassword,
+                    apnsToken: apnsToken
+                )
         } catch RegistrationGatewayError.requestFailed(let errorCode) {
             throw RegistrationError.networkFailure(errorCode)
         }
     }
 
-    private func uploadNewKeybundleAndCreateUser(username: String, authPassword: String) async throws
+    private func uploadNewKeybundleAndCreateUser(
+        username: String,
+        authPassword: String,
+        apnsToken: Data
+    )
+        async throws
     {
         do {
             // Create all neccessary keys for the user's key bundle
             let userKeys = try tee.createUserKeys()
 
             // Create user and key bundle
-            let user = User(signedPrekey: userKeys.signedPrekey, username: username, authPassword: authPassword)
+            let user = User(
+                signedPrekey: userKeys.signedPrekey,
+                username: username,
+                authPassword: authPassword,
+                apnsToken: apnsToken
+            )
             try user.addPrekeys(keys: userKeys.prekeys)
 
             // When the user has been created, save it and set is as active user

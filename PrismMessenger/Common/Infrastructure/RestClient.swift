@@ -78,6 +78,8 @@ class RestClient {
         let authMethod = try await authMethod(for: accessLevel)
         try request.applyAuth(authMethod)
 
+        log.debug("\(request.httpMethod!) \(path): \(String(describing: request.allHTTPHeaderFields))")
+
         let (_, response) = try await session.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -97,7 +99,7 @@ class RestClient {
         let authMethod = try await authMethod(for: accessLevel)
         try request.applyAuth(authMethod)
 
-        log.debug("\(path): \(String(describing: request.allHTTPHeaderFields))")
+        log.debug("\(request.httpMethod!) \(path): \(String(describing: request.allHTTPHeaderFields))")
 
         let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -174,7 +176,52 @@ class RestClient {
         do {
             request.httpBody = try encoder.encode(data)
             log.debug(
-                "\(path): \(String(describing: request.allHTTPHeaderFields)) \(String(data: request.httpBody!, encoding: .utf8) ?? "No body")"
+                "\(request.httpMethod!) \(path): \(String(describing: request.allHTTPHeaderFields)) \(String(data: request.httpBody!, encoding: .utf8) ?? "No body")"
+            )
+        } catch EncodingError.invalidValue(_, let context) {
+            throw RestClientError.serdeFailed(context.debugDescription)
+        }
+
+        let (responseData, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw RestClientError.unknown
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw RestClientError.httpError(httpResponse.statusCode)
+        }
+        return responseData
+    }
+
+    func put<T: Encodable>(_ data: T, to path: String, accessLevel: RestAccessLevel = .pub)
+    async throws
+    {
+        let authMethod = try await authMethod(for: accessLevel)
+        try await self.put(data, to: path, authMethod: authMethod)
+    }
+
+    private func put<T: Encodable>(_ data: T, to path: String, authMethod: RestAuthMethod)
+    async throws
+    {
+        let _ = try await self.putForData(data, to: path, authMethod: authMethod)
+    }
+
+    private func putForData<T: Encodable>(
+        _ data: T, to path: String, authMethod: RestAuthMethod
+    ) async throws -> Data
+    {
+        let fullURL = baseURL.appendingPathComponent(path)
+
+        var request = URLRequest(url: fullURL)
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        try request.applyAuth(authMethod)
+
+        do {
+            request.httpBody = try encoder.encode(data)
+            log.debug(
+                "\(request.httpMethod!) \(path): \(String(describing: request.allHTTPHeaderFields)) \(String(data: request.httpBody!, encoding: .utf8) ?? "No body")"
             )
         } catch EncodingError.invalidValue(_, let context) {
             throw RestClientError.serdeFailed(context.debugDescription)
