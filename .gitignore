@@ -33,3 +33,4 @@ playground.xcworkspace
 
 # Configs
 Development.xcconfig
+Production.xcconfig
