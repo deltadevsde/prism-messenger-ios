@@ -128,7 +128,7 @@ struct SignUpView: View {
             do {
                 try await registrationService.registerNewUser(username: username)
 
-                appLaunch.setRegistered()
+                appLaunch.launchState = .ready
 
                 DispatchQueue.main.async {
                     isRegistering = false

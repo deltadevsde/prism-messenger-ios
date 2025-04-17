@@ -168,22 +168,22 @@ class AppContext: ObservableObject {
     }
 
     func onAppStart() async {
-        appLaunch.setLoading()
+        appLaunch.launchState = .loading
         do {
             resetSwiftDataStoreIfNeeded()
 
             try await userService.populateSelectedUser()
 
             if userService.selectedUsername != nil {
-                appLaunch.setRegistered()
+                appLaunch.launchState = .ready
                 try await updatePushTokenService.updatePushToken()
             } else {
-                appLaunch.setUnregistered()
+                appLaunch.launchState = .unregistered
             }
 
-            print("APP LAUNCH IS NOW: \(appLaunch.state)")
+            print("LaunchState is: \(appLaunch.launchState)")
         } catch {
-            appLaunch.setError()
+            appLaunch.launchState = .error
         }
     }
 }

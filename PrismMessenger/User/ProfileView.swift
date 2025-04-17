@@ -230,7 +230,7 @@ struct ProfileView: View {
             
             // Create new account button
             Button(action: {
-                appLaunch.setUnregistered()
+                appLaunch.launchState = .unregistered
                 showingAccountSelection = false
             }) {
                 HStack {

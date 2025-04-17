@@ -8,31 +8,16 @@
 import Foundation
 import SwiftData
 
+enum LaunchState {
+    case loading
+    case unregistered
+    case ready
+    case error
+}
 
 @MainActor
 class AppLaunch: ObservableObject {
-    enum LoadingState {
-        case loading
-        case unregistered
-        case ready
-        case error
-    }
-    
-    @Published private(set) var state: LoadingState = .loading
-    
-    func setLoading() {
-        state = .loading
-    }
-    
-    func setUnregistered() {
-        state = .unregistered
-    }
-    
-    func setRegistered() {
-        state = .ready
-    }
-    
-    func setError() {
-        state = .error
-    }
+
+    @Published var launchState: LaunchState = .loading
+
 }

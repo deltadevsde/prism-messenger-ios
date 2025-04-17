@@ -19,7 +19,7 @@ struct MainView: View {
     var body: some View {
         NavigationStack(path: $path) {
             Group {
-                switch appLaunch.state {
+                switch appLaunch.launchState {
                 case .loading:
                     LoadingView()
                         .navigationTitle("")
@@ -33,7 +33,7 @@ struct MainView: View {
                 }
             }
         }
-        .onChange(of: appLaunch.state) { oldState, newState in
+        .onChange(of: appLaunch.launchState) { oldState, newState in
             if oldState != newState && newState == .ready {
                 // Reset navigation path when transitioning to ready state
                 path = NavigationPath()
