@@ -1,5 +1,5 @@
 //
-//  AppLaunch.swift
+//  AppNavigationState.swift
 //  PrismMessenger
 //
 //  Copyright © 2025 prism. All rights reserved.
@@ -16,7 +16,7 @@ enum LaunchState {
 }
 
 @MainActor
-class AppLaunch: ObservableObject {
+class AppNavigationState: ObservableObject {
 
     @Published var launchState: LaunchState = .loading
 

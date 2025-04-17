@@ -12,7 +12,7 @@ import SwiftData
 class AppContext: ObservableObject {
 
     let modelContext: ModelContext
-    let appLaunch: AppLaunch
+    let navState: AppNavigationState
 
     let chatService: ChatService
     let messageService: MessageService
@@ -30,7 +30,7 @@ class AppContext: ObservableObject {
         userService: UserService,
         registrationService: RegistrationService
     ) {
-        self.appLaunch = AppLaunch()
+        self.navState = AppNavigationState()
         self.modelContext = modelContext
         self.chatService = chatService
         self.messageService = messageService
@@ -168,22 +168,22 @@ class AppContext: ObservableObject {
     }
 
     func onAppStart() async {
-        appLaunch.launchState = .loading
+        navState.launchState = .loading
         do {
             resetSwiftDataStoreIfNeeded()
 
             try await userService.populateSelectedUser()
 
             if userService.selectedUsername != nil {
-                appLaunch.launchState = .ready
+                navState.launchState = .ready
                 try await updatePushTokenService.updatePushToken()
             } else {
-                appLaunch.launchState = .unregistered
+                navState.launchState = .unregistered
             }
 
-            print("LaunchState is: \(appLaunch.launchState)")
+            print("LaunchState is: \(navState.launchState)")
         } catch {
-            appLaunch.launchState = .error
+            navState.launchState = .error
         }
     }
 }

@@ -20,7 +20,7 @@ struct PrismMessengerApp: App {
         WindowGroup {
             MainView()
                 .environmentObject(appContext)
-                .environmentObject(appContext.appLaunch)
+                .environmentObject(appContext.navState)
                 .task {
                     await appContext.onAppStart()
                 }

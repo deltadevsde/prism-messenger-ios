@@ -10,8 +10,7 @@ import SwiftData
 
 struct MainView: View {
     @EnvironmentObject private var appContext: AppContext
-    @EnvironmentObject private var appLaunch: AppLaunch
-    
+
     @State private var path = NavigationPath()
     @State private var messagePollingTask: Task<Void, Never>?
     @State private var lastMessageCheckTime = Date()
@@ -19,7 +18,7 @@ struct MainView: View {
     var body: some View {
         NavigationStack(path: $path) {
             Group {
-                switch appLaunch.launchState {
+                switch appContext.navState.launchState {
                 case .loading:
                     LoadingView()
                         .navigationTitle("")
@@ -33,14 +32,14 @@ struct MainView: View {
                 }
             }
         }
-        .onChange(of: appLaunch.launchState) { oldState, newState in
+        .onChange(of: appContext.navState.launchState) { oldState, newState in
             if oldState != newState && newState == .ready {
                 // Reset navigation path when transitioning to ready state
                 path = NavigationPath()
             }
         }
         .modelContext(appContext.modelContext)
-        .environmentObject(appContext.appLaunch)
+        .environmentObject(appContext.navState)
         .environmentObject(appContext.chatService)
         .environmentObject(appContext.messageService)
         .environmentObject(appContext.registrationService)
