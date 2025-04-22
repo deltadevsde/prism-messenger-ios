@@ -23,20 +23,33 @@ struct SignUpView: View {
     @State private var usernameWorkItem: DispatchWorkItem?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Create a New Account")
+        VStack(alignment: .leading) {
+            Text("Create Username")
                 .font(.title)
-                .fontWeight(.bold)
+                .fontWeight(.semibold)
+
+            Text("Please create a unique username.\nOnce set, it cannot be changed.")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .fontWeight(.medium)
                 .padding(.bottom)
 
-            TextField("Username", text: $username)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .autocapitalization(.none)
-                .disableAutocorrection(true)
-                .disabled(isRegistering)
-                .onChange(of: username) {
-                    handleUsernameChange()
-                }
+            HStack {
+                Text("@")
+                    .foregroundColor(.black)
+                    .bold()
+
+                TextField("Username", text: $username)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                    .disabled(isRegistering)
+                    .onChange(of: username) {
+                        handleUsernameChange()
+                    }
+            }
+            .padding()
+            .background(Color(.systemGray6))
+            .cornerRadius(12)
 
             availabilityStatusView
 
@@ -59,20 +72,21 @@ struct SignUpView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.blue.opacity(0.7))
+                    .background(.blue.opacity(0.7))
                     .cornerRadius(10)
                 } else {
-                    Text("Create Account")
+                    Text("Continue")
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(isUsernameAvailable ? Color.blue : Color.gray)
-                        .cornerRadius(10)
+                        .background(.black.opacity(isUsernameAvailable ? 1.0 : 0.5))
+                        .cornerRadius(30)
                 }
             }
             .disabled(!isUsernameAvailable || isRegistering)
         }
-        .padding()
+        .padding(.vertical, 20)
+        .padding(.horizontal, 30)
     }
 
     private var availabilityStatusView: some View {

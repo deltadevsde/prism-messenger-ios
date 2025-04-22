@@ -16,24 +16,21 @@ struct ChatsView: View {
     @State private var showingNewChatSheet = false
     @State private var currentChats: [Chat] = []
     @State private var refreshTrigger = false  // Refresh trigger for manual refreshes
-    
+
+    @State private var usernameQuery = ""
+
+    private var filteredChats: [Chat] {
+        guard !usernameQuery.isEmpty else { return currentChats }
+        return currentChats.filter {
+            $0.participantUsername.lowercased().contains(usernameQuery.lowercased())
+        }
+    }
+
     var body: some View {
-        NavigationStack {
+        ZStack(alignment: .bottomTrailing) {
             VStack(alignment: .leading) {
-                HStack {
-                    Text("Messages")
-                        .font(.title)
-                        .fontWeight(.bold)
-                    Spacer()
-                    Button(action: {
-                        showingNewChatSheet = true
-                    }) {
-                        Image(systemName: "square.and.pencil")
-                            .foregroundColor(Color.blue)
-                    }
-                }.padding(.horizontal)
-                Divider()
-                
+                searchBar
+
                 ScrollView {
                     LazyVStack(spacing: 16) {
                         if currentChats.isEmpty {
@@ -54,7 +51,7 @@ struct ChatsView: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .padding(.top, 50)
                         } else {
-                            ForEach(currentChats) { chat in
+                            ForEach(filteredChats) { chat in
                                 NavigationLink(value: Route.chat(chat)) {
                                     ChatPreview(
                                         username: chat.displayName ?? chat.participantUsername,
@@ -67,43 +64,72 @@ struct ChatsView: View {
                                 .buttonStyle(PlainButtonStyle())
                             }
                         }
-                    }.padding(.horizontal)
-                    Divider()
-                }
-                .navigationDestination(for: Route.self) {
-                    if case let .chat(targetChat) = $0 {
-                        ChatView(chat: targetChat)
-                    }
+                    }.padding(.horizontal, 20)
                 }
             }
-            .sheet(
-                isPresented: $showingNewChatSheet,
-                onDismiss: {
-                    // Refresh the chats list when the sheet is dismissed
-                    refreshTrigger.toggle()
+
+            Button(action: {
+                showingNewChatSheet = true
+            }) {
+                HStack {
+                    Image(systemName: "square.and.pencil")
+                    Text("Start Chat")
                 }
-            ) {
-                NewChatView()
+                .padding(10)
+                .background(Color.black)
+                .foregroundColor(.white)
+                .cornerRadius(8)
             }
-            .onAppear {
-                loadChats()
-            }
-            .onChange(of: userService.selectedUsername) {
-                loadChats()
-            }
-            .onChange(of: refreshTrigger) {
-                loadChats()
-            }
-            .refreshable {
-                loadChats()
+            .padding()  // This adds padding from the edge
+        }
+        .navigationDestination(for: Route.self) {
+            if case let .chat(targetChat) = $0 {
+                ChatView(chat: targetChat)
             }
         }
+        .sheet(
+            isPresented: $showingNewChatSheet,
+            onDismiss: {
+                // Refresh the chats list when the sheet is dismissed
+                refreshTrigger.toggle()
+            }
+        ) {
+            NewChatView()
+        }
+        .onAppear {
+            loadChats()
+        }
+        .onChange(of: userService.selectedUsername) {
+            loadChats()
+        }
+        .onChange(of: refreshTrigger) {
+            loadChats()
+        }
+        .refreshable {
+            loadChats()
+        }
     }
-    
+
+    private var searchBar: some View {
+        HStack {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(.gray)
+
+            TextField("Search", text: $usernameQuery)
+                .autocapitalization(.none)
+                .disableAutocorrection(true)
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 10)
+    }
+
     private func loadChats() {
         Task {
             let userChats = (try? await chatService.getAllChats()) ?? []
-            
+
             DispatchQueue.main.async {
                 self.currentChats = userChats
             }
@@ -119,7 +145,10 @@ struct ChatPreview: View {
     private let unreadCount: Int
 
     init(
-        username: String, imageURL: String? = nil, message: String, lastMessageTime: Date? = nil,
+        username: String,
+        imageURL: String? = nil,
+        message: String,
+        lastMessageTime: Date? = nil,
         unreadCount: Int = 0
     ) {
         self.username = username
@@ -319,7 +348,13 @@ struct NewChatView: View {
         try! await chatService.sendMessage(content: "Hello", in: chat2)
     }
 
-    return ChatsView()
-        .environmentObject(appContext.chatService)
-        .environmentObject(appContext.userService)
+    return NavigationStack {
+        Text("Root View")
+            .navigationDestination(isPresented: .constant(true)) {
+                ChatsView()
+                    .environmentObject(appContext.chatService)
+                    .environmentObject(appContext.userService)
+            }
+    }
+    .tint(.black)
 }
