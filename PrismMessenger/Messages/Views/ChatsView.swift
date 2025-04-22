@@ -16,7 +16,7 @@ struct ChatsView: View {
     @State private var showingNewChatSheet = false
     @State private var currentChats: [Chat] = []
     @State private var refreshTrigger = false  // Refresh trigger for manual refreshes
-    
+
     @State private var usernameQuery = ""
 
     private var filteredChats: [Chat] {
@@ -27,47 +27,10 @@ struct ChatsView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        ZStack(alignment: .bottomTrailing) {
             VStack(alignment: .leading) {
-                HStack {
-                    // TODO: Navigate to profile? Or what should this do?
-                    Image(systemName: "person.circle.fill")
-                        .font(.system(size: 40))
-                        .foregroundColor(.gray)
-                        .frame(width: 40, height: 40)
-                    Spacer()
-                    Text("Messages")
-                        .font(.system(size: 16, weight: .semibold))
-                    Spacer()
-                    Button(action: {
-                        showingNewChatSheet = true
-                    }) {
-                        Image(systemName: "square.and.pencil")
-//                            .font(.system(size: 20))
-                            .foregroundColor(Color.blue)
-                            .frame(width: 40, height: 40)
-                    }
-                }
-                .padding(.horizontal, 20)
+                searchBar
 
-                // TODO: Couldn't find a better way to do this than stacking 2 hstacks (to apply margin to the outside of search bar)
-                HStack{
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.gray)
-
-                        TextField("Search", text: $usernameQuery)
-                            .autocapitalization(.none)
-                            .disableAutocorrection(true)
-                    }
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 20)
-                .padding(.top, 10)
-                
                 ScrollView {
                     LazyVStack(spacing: 16) {
                         if currentChats.isEmpty {
@@ -103,40 +66,74 @@ struct ChatsView: View {
                         }
                     }.padding(.horizontal, 20)
                 }
-                .navigationDestination(for: Route.self) {
-                    if case let .chat(targetChat) = $0 {
-                        ChatView(chat: targetChat)
-                    }
+            }
+
+            Button(action: {
+                showingNewChatSheet = true
+            }) {
+                HStack {
+                    Image(systemName: "square.and.pencil")
+                    Text("Start Chat")
                 }
+                .padding(10)
+                .background(Color.black)
+                .foregroundColor(.white)
+                .cornerRadius(8)
             }
-            .sheet(
-                isPresented: $showingNewChatSheet,
-                onDismiss: {
-                    // Refresh the chats list when the sheet is dismissed
-                    refreshTrigger.toggle()
-                }
-            ) {
-                NewChatView()
-            }
-            .onAppear {
-                loadChats()
-            }
-            .onChange(of: userService.selectedUsername) {
-                loadChats()
-            }
-            .onChange(of: refreshTrigger) {
-                loadChats()
-            }
-            .refreshable {
-                loadChats()
+            .padding() // This adds padding from the edge
+        }
+        .navigationDestination(for: Route.self) {
+            if case let .chat(targetChat) = $0 {
+                ChatView(chat: targetChat)
             }
         }
+        .sheet(
+            isPresented: $showingNewChatSheet,
+            onDismiss: {
+                // Refresh the chats list when the sheet is dismissed
+                refreshTrigger.toggle()
+            }
+        ) {
+            NewChatView()
+        }
+        .onAppear {
+            loadChats()
+        }
+        .onChange(of: userService.selectedUsername) {
+            loadChats()
+        }
+        .onChange(of: refreshTrigger) {
+            loadChats()
+        }
+        .refreshable {
+            loadChats()
+        }
     }
-    
+
+    private var searchBar: some View {
+        // TODO: Couldn't find a better way to do this than stacking 2 hstacks (to apply margin to the outside of search bar)
+        HStack {
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.gray)
+
+                TextField("Search", text: $usernameQuery)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+            }
+            .padding()
+            .background(Color(.systemGray6))
+            .cornerRadius(12)
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 20)
+        .padding(.top, 10)
+    }
+
     private func loadChats() {
         Task {
             let userChats = (try? await chatService.getAllChats()) ?? []
-            
+
             DispatchQueue.main.async {
                 self.currentChats = userChats
             }
@@ -152,7 +149,10 @@ struct ChatPreview: View {
     private let unreadCount: Int
 
     init(
-        username: String, imageURL: String? = nil, message: String, lastMessageTime: Date? = nil,
+        username: String,
+        imageURL: String? = nil,
+        message: String,
+        lastMessageTime: Date? = nil,
         unreadCount: Int = 0
     ) {
         self.username = username
@@ -352,7 +352,13 @@ struct NewChatView: View {
         try! await chatService.sendMessage(content: "Hello", in: chat2)
     }
 
-    return ChatsView()
-        .environmentObject(appContext.chatService)
-        .environmentObject(appContext.userService)
+    return NavigationStack {
+        Text("Root View")
+            .navigationDestination(isPresented: .constant(true)) {
+                ChatsView()
+                    .environmentObject(appContext.chatService)
+                    .environmentObject(appContext.userService)
+            }
+    }
+    .tint(.black)
 }
