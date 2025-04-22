@@ -13,10 +13,15 @@ struct LoadingView: View {
             RadialGradientBackground()
             VStack {
                 Spacer()
-                Image("prism_white")
+                Image("prism")
+                    .font(.system(size: 200))
+                    .padding(.bottom, 30)
                 Spacer()
-                Image("prism_text_white").padding(.bottom, 30)
+                Image("prism_text")
+                    .font(.system(size: 40))
+                    .padding(.bottom, 30)
             }
+            .foregroundStyle(.white)
         }
     }
 }
