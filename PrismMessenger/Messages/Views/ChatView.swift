@@ -16,24 +16,9 @@ struct ChatView: View {
     @FocusState private var isTextFieldFocused: Bool
     @EnvironmentObject private var chatService: ChatService
     @EnvironmentObject private var messageService: MessageService
-    @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
-
-    var btnBack : some View { Button(action: {
-        self.presentationMode.wrappedValue.dismiss()
-        }) {
-            HStack {
-                Image(systemName: "chevron.backward")
-                .aspectRatio(contentMode: .fit)
-                .foregroundColor(.black)
-                .frame(width: 40, height: 40)
-            }
-        }
-    }
 
     var body: some View {
         VStack(spacing: 0) {
-            headerView
-            // Messages list
             messagesList
 
             // Error message display
@@ -45,11 +30,17 @@ struct ChatView: View {
                     .padding(.top, 4)
             }
 
-            // Input area
             inputView
         }
-        .navigationBarBackButtonHidden(true)
-//        .navigationBarItems(leading: headerView)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                onlineView
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                profileImage
+            }
+        }
         .onAppear {
             // Mark chat as read when view appears
             chat.markAsRead()
@@ -60,25 +51,22 @@ struct ChatView: View {
                 try? await messageService.fetchAndProcessMessages()
             }
         }
-        // Periodically refresh messages when view is active
     }
 
-    private var headerView: some View {
-        HStack {
-            btnBack
-            Spacer()
-            VStack(alignment: .center, spacing: 2) {
-                Text(chat.displayName ?? chat.participantUsername)
-                    .font(.headline)
+    private var onlineView: some View {
+        VStack(alignment: .center, spacing: 2) {
+            Text(chat.displayName ?? chat.participantUsername)
+                .font(.headline)
 
-                // TODO: Link with real API
-                Text("Online")
-                    .font(.caption)
-                    .foregroundColor(.green)
-            }
+            // TODO: Link with real API
+            Text("Online")
+                .font(.caption)
+                .foregroundColor(.green)
+        }
+    }
 
-            Spacer()
-            // Profile image
+    private var profileImage: some View {
+        Group {
             if let imageURL = chat.imageURL, let url = URL(string: imageURL) {
                 AsyncImage(url: url) { image in
                     image
@@ -97,10 +85,6 @@ struct ChatView: View {
                     .frame(width: 40, height: 40)
             }
         }
-        .padding(.horizontal)
-        .padding(.bottom, 10)
-        .background(Color(.systemBackground))
-        .shadow(color: Color.black.opacity(0.1), radius: 1, y: 1)
     }
 
     private var messagesList: some View {
@@ -316,11 +300,13 @@ struct MessageBubble: View {
 
     let appContext = AppContext.forPreview()
 
-
-    // Return the preview
     return NavigationStack {
-        ChatView(chat: chat)
-            .environmentObject(appContext.chatService)
-            .environmentObject(appContext.messageService)
+        Text("Root View")
+            .navigationDestination(isPresented: .constant(true)) {
+                ChatView(chat: chat)
+                    .environmentObject(appContext.chatService)
+                    .environmentObject(appContext.messageService)
+            }
     }
+    .tint(.black)
 }

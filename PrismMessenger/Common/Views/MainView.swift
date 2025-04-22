@@ -36,6 +36,7 @@ struct MainView: View {
         .environmentObject(appContext.registrationService)
         .environmentObject(appContext.userService)
         .environmentObject(appContext.updatePushTokenService)
+        .tint(.black)
     }
     
     private var mainContentView: some View {
