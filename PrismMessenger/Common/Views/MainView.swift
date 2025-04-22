@@ -12,9 +12,6 @@ struct MainView: View {
     @EnvironmentObject private var appContext: AppContext
     @EnvironmentObject private var router: NavigationRouter
 
-    @State private var messagePollingTask: Task<Void, Never>?
-    @State private var lastMessageCheckTime = Date()
-    
     var body: some View {
         NavigationStack(path: $router.path) {
             Group {
@@ -79,6 +76,12 @@ struct MainView: View {
 }
 
 #Preview {
-    MainView()
-        .environmentObject(AppContext.forPreview())
+    let context = AppContext.forPreview()
+    let router = context.router
+
+    router.setLaunchState(.ready)
+
+    return MainView()
+        .environmentObject(context)
+        .environmentObject(router)
 }
