@@ -16,7 +16,7 @@ struct ChatView: View {
     @FocusState private var isTextFieldFocused: Bool
     @EnvironmentObject private var chatService: ChatService
     @EnvironmentObject private var messageService: MessageService
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // Chat header

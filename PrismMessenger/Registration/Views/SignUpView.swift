@@ -11,7 +11,7 @@ import CryptoKit
 import SwiftUI
 
 struct SignUpView: View {
-    @EnvironmentObject var navState: AppNavigationState
+    @EnvironmentObject var router: NavigationRouter
     @EnvironmentObject var registrationService: RegistrationService
     @Environment(\.dismiss) private var dismiss
 
@@ -128,7 +128,7 @@ struct SignUpView: View {
             do {
                 try await registrationService.registerNewUser(username: username)
 
-                navState.launchState = .ready
+                router.setLaunchState(.ready)
 
                 DispatchQueue.main.async {
                     isRegistering = false
@@ -150,6 +150,6 @@ struct SignUpView: View {
     let appContext = AppContext.forPreview()
 
     SignUpView()
-        .environmentObject(appContext.navState)
+        .environmentObject(appContext.router)
         .environmentObject(appContext.registrationService)
 }

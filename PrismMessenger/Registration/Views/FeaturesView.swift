@@ -30,8 +30,8 @@ struct Feature: Identifiable {
 
 
 struct FeaturesView: View {
-    @Binding var path: NavigationPath
-    
+    @EnvironmentObject var router: NavigationRouter
+
     @State private var currentPage = 0
     
     var body: some View {
@@ -55,7 +55,7 @@ struct FeaturesView: View {
             .padding(.bottom)
             
             Button(action: {
-                path.append("signup")
+                router.navigateTo(.registration)
             }) {
                 Text("Start Messaging")
                     .font(.headline)
@@ -66,7 +66,7 @@ struct FeaturesView: View {
                     .cornerRadius(10)
             }
             .padding(.horizontal)
-            .navigationDestination(for: String.self) { _ in
+            .navigationDestination(for: Route.self) { _ in
                 SignUpView()
             }
         }
@@ -99,8 +99,6 @@ struct FeatureCard: View {
 }
 
 #Preview {
-    @Previewable @State var previewPath = NavigationPath()
-    
-    FeaturesView(path: $previewPath)
+    FeaturesView()
 }
 
