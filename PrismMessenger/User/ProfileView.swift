@@ -10,7 +10,7 @@ import SwiftData
 import CryptoKit
 
 struct ProfileView: View {
-    @EnvironmentObject private var appLaunch: AppLaunch
+    @EnvironmentObject private var router: NavigationRouter
     @EnvironmentObject private var userService: UserService
     
     @State private var isEditingDisplayName = false
@@ -230,7 +230,7 @@ struct ProfileView: View {
             
             // Create new account button
             Button(action: {
-                appLaunch.setUnregistered()
+                router.setLaunchState(.unregistered)
                 showingAccountSelection = false
             }) {
                 HStack {
@@ -306,6 +306,6 @@ struct ProfileImageView: View {
     }
 
     return ProfileView()
-        .environmentObject(appContext.appLaunch)
+        .environmentObject(appContext.router)
         .environmentObject(appContext.userService)
 }

@@ -10,37 +10,27 @@ import SwiftData
 
 struct MainView: View {
     @EnvironmentObject private var appContext: AppContext
-    @EnvironmentObject private var appLaunch: AppLaunch
-    
-    @State private var path = NavigationPath()
-    @State private var messagePollingTask: Task<Void, Never>?
-    @State private var lastMessageCheckTime = Date()
-    
+    @EnvironmentObject private var router: NavigationRouter
+
     var body: some View {
-        NavigationStack(path: $path) {
+        NavigationStack(path: $router.path) {
             Group {
-                switch appLaunch.state {
+                switch router.launchState {
                 case .loading:
                     LoadingView()
                         .navigationTitle("")
                 case .unregistered:
-                    FeaturesView(path: $path)
+                    FeaturesView()
                         .navigationTitle("Welcome")
-                case .ready:
+                case .registered:
                     mainContentView
                 case .error:
                     errorView
                 }
             }
         }
-        .onChange(of: appLaunch.state) { oldState, newState in
-            if oldState != newState && newState == .ready {
-                // Reset navigation path when transitioning to ready state
-                path = NavigationPath()
-            }
-        }
         .modelContext(appContext.modelContext)
-        .environmentObject(appContext.appLaunch)
+        .environmentObject(appContext.router)
         .environmentObject(appContext.chatService)
         .environmentObject(appContext.messageService)
         .environmentObject(appContext.registrationService)
@@ -82,14 +72,16 @@ struct MainView: View {
             .buttonStyle(.borderedProminent)
         }
         .padding()
-        .onAppear {
-            // Reset navigation path when error view appears
-            path = NavigationPath()
-        }
     }
 }
 
 #Preview {
-    MainView()
-        .environmentObject(AppContext.forPreview())
+    let context = AppContext.forPreview()
+    let router = context.router
+
+    router.setLaunchState(.registered)
+
+    return MainView()
+        .environmentObject(context)
+        .environmentObject(router)
 }

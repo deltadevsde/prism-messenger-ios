@@ -12,7 +12,7 @@ import SwiftUI
 struct ChatsView: View {
     @EnvironmentObject private var chatService: ChatService
     @EnvironmentObject private var userService: UserService
-    
+
     @State private var showingNewChatSheet = false
     @State private var currentChats: [Chat] = []
     @State private var refreshTrigger = false  // Refresh trigger for manual refreshes
@@ -55,11 +55,7 @@ struct ChatsView: View {
                             .padding(.top, 50)
                         } else {
                             ForEach(currentChats) { chat in
-                                NavigationLink(destination: {
-                                    // Using a closure form that creates a new binding for each chat
-                                    let bindableChat = chat
-                                    ChatView(chat: bindableChat)
-                                }) {
+                                NavigationLink(value: Route.chat(chat)) {
                                     ChatPreview(
                                         username: chat.displayName ?? chat.participantUsername,
                                         imageURL: chat.imageURL,
@@ -73,6 +69,11 @@ struct ChatsView: View {
                         }
                     }.padding(.horizontal)
                     Divider()
+                }
+                .navigationDestination(for: Route.self) {
+                    if case let .chat(targetChat) = $0 {
+                        ChatView(chat: targetChat)
+                    }
                 }
             }
             .sheet(
@@ -248,8 +249,7 @@ struct NewChatView: View {
             )
             .navigationDestination(isPresented: $shouldNavigateToChat) {
                 if let chat = createdChat {
-                    let bindableChat = chat
-                    ChatView(chat: bindableChat)
+                    ChatView(chat: chat)
                 }
             }
         }
