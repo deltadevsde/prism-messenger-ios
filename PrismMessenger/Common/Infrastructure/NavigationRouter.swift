@@ -10,7 +10,7 @@ import SwiftUI
 enum LaunchState {
     case loading
     case unregistered
-    case ready
+    case registered
     case error
 }
 
@@ -33,7 +33,7 @@ class NavigationRouter: ObservableObject {
     }
 
     func setLaunchState(_ newLaunchState: LaunchState) {
-        if launchState != newLaunchState && [.ready, .error].contains(newLaunchState) {
+        if launchState != newLaunchState && [.registered, .error].contains(newLaunchState) {
             // Reset navigation path when transitioning to ready/error state
             path = []
         }

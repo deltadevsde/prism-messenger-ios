@@ -22,7 +22,7 @@ struct MainView: View {
                 case .unregistered:
                     FeaturesView()
                         .navigationTitle("Welcome")
-                case .ready:
+                case .registered:
                     mainContentView
                 case .error:
                     errorView
@@ -79,7 +79,7 @@ struct MainView: View {
     let context = AppContext.forPreview()
     let router = context.router
 
-    router.setLaunchState(.ready)
+    router.setLaunchState(.registered)
 
     return MainView()
         .environmentObject(context)

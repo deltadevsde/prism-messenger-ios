@@ -175,7 +175,7 @@ class AppContext: ObservableObject {
             try await userService.populateSelectedUser()
 
             if userService.selectedUsername != nil {
-                router.setLaunchState(.ready)
+                router.setLaunchState(.registered)
                 try await updatePushTokenService.updatePushToken()
             } else {
                 router.setLaunchState(.unregistered)

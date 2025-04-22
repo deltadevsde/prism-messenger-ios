@@ -128,7 +128,7 @@ struct SignUpView: View {
             do {
                 try await registrationService.registerNewUser(username: username)
 
-                router.setLaunchState(.ready)
+                router.setLaunchState(.registered)
 
                 DispatchQueue.main.async {
                     isRegistering = false
