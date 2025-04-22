@@ -28,7 +28,8 @@ class SwiftDataChatRepository: ChatRepository {
         let descriptor = FetchDescriptor<Chat>(
             predicate: #Predicate<Chat> { chat in
                 chat.ownerUsername == username
-            }
+            },
+            sortBy: [SortDescriptor(\.lastMessageTimestamp, order: .reverse)]
         )
         
         return try modelContext.fetch(descriptor)
@@ -38,10 +39,8 @@ class SwiftDataChatRepository: ChatRepository {
         let descriptor = FetchDescriptor<Chat>(
             predicate: #Predicate<Chat> { chat in
                 chat.id == id
-            },
-            sortBy: [SortDescriptor(\.lastMessageTimestamp, order: .reverse)]
+            }
         )
-        
         let chats = try modelContext.fetch(descriptor)
         return chats.first
     }
