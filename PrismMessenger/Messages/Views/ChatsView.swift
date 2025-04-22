@@ -80,7 +80,7 @@ struct ChatsView: View {
                 .foregroundColor(.white)
                 .cornerRadius(8)
             }
-            .padding() // This adds padding from the edge
+            .padding()  // This adds padding from the edge
         }
         .navigationDestination(for: Route.self) {
             if case let .chat(targetChat) = $0 {
@@ -111,23 +111,19 @@ struct ChatsView: View {
     }
 
     private var searchBar: some View {
-        // TODO: Couldn't find a better way to do this than stacking 2 hstacks (to apply margin to the outside of search bar)
         HStack {
-            HStack {
-                Image(systemName: "magnifyingglass")
-                    .foregroundColor(.gray)
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(.gray)
 
-                TextField("Search", text: $usernameQuery)
-                    .autocapitalization(.none)
-                    .disableAutocorrection(true)
-            }
-            .padding()
-            .background(Color(.systemGray6))
-            .cornerRadius(12)
+            TextField("Search", text: $usernameQuery)
+                .autocapitalization(.none)
+                .disableAutocorrection(true)
         }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
         .padding(.horizontal, 20)
-        .padding(.bottom, 20)
-        .padding(.top, 10)
+        .padding(.vertical, 10)
     }
 
     private func loadChats() {
