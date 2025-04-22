@@ -15,10 +15,16 @@ struct ChatsView: View {
 
     @State private var showingNewChatSheet = false
     @State private var currentChats: [Chat] = []
-    @State private var filteredChats: [Chat] = []
     @State private var refreshTrigger = false  // Refresh trigger for manual refreshes
     
     @State private var usernameQuery = ""
+
+    private var filteredChats: [Chat] {
+        guard !usernameQuery.isEmpty else { return currentChats }
+        return currentChats.filter {
+            $0.participantUsername.lowercased().contains(usernameQuery.lowercased())
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -53,15 +59,6 @@ struct ChatsView: View {
                         TextField("Search", text: $usernameQuery)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
-                            .onChange(of: usernameQuery) {
-                                DispatchQueue.main.async {
-                                    if usernameQuery != "" {
-                                        self.filteredChats = currentChats.filter { $0.participantUsername.lowercased().contains(usernameQuery.lowercased()) }
-                                    } else {
-                                        self.filteredChats = currentChats
-                                    }
-                                }
-                            }
                     }
                     .padding()
                     .background(Color(.systemGray6))
@@ -142,7 +139,6 @@ struct ChatsView: View {
             
             DispatchQueue.main.async {
                 self.currentChats = userChats
-                self.filteredChats = userChats
             }
         }
     }
