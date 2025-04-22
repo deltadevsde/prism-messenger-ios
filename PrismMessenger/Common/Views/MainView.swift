@@ -5,8 +5,8 @@
 //  Copyright © 2025 prism. All rights reserved.
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct MainView: View {
     @EnvironmentObject private var appContext: AppContext
@@ -38,33 +38,49 @@ struct MainView: View {
         .environmentObject(appContext.updatePushTokenService)
         .tint(.black)
     }
-    
+
+    private var profileIcon: some View {
+        // TODO: Navigate to profile? Or what should this do?
+        Image(systemName: "person.circle.fill")
+            .font(.system(size: 40))
+            .foregroundColor(.gray)
+    }
+
     private var mainContentView: some View {
         TabView {
             ChatsView()
-                .tabItem { 
-                    Label("Chats", systemImage: "message.fill") 
+                .tabItem {
+                    Label("Chats", systemImage: "message.fill")
                 }
-            
+
             ProfileView()
-                .tabItem { 
-                    Label("Profile", systemImage: "person.fill") 
+                .tabItem {
+                    Label("Profile", systemImage: "person.fill")
                 }
             // ContactsView() ?
             // CallsView() ?
         }
+        .navigationBarBackButtonHidden()
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                profileIcon
+            }
+            ToolbarItem(placement: .principal) {
+                Image("prism_text")
+            }
+        }
     }
-    
+
     private var errorView: some View {
         VStack(spacing: 20) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 60))
                 .foregroundColor(.red)
-            
+
             Text("Error loading content")
                 .font(.title)
                 .foregroundColor(.red)
-            
+
             Button("Try Again") {
                 Task {
                     await appContext.onAppStart()
