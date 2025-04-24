@@ -63,6 +63,7 @@ struct ChatsView: View {
                                         lastMessageTime: chat.lastMessageTimestamp,
                                         unreadCount: chat.unreadCount
                                     )
+                                    .contentShape(Rectangle())
                                 }
                             }
                         }
