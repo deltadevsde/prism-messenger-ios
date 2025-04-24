@@ -61,6 +61,11 @@ struct MainView: View {
             // CallsView() ?
         }
         .navigationBarBackButtonHidden()
+        .navigationDestination(for: Route.self) {
+            if case let .chat(targetChat) = $0 {
+                ChatView(chat: targetChat)
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 profileIcon

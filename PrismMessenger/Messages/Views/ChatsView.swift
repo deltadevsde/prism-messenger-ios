@@ -82,11 +82,6 @@ struct ChatsView: View {
             }
             .padding()  // This adds padding from the edge
         }
-        .navigationDestination(for: Route.self) {
-            if case let .chat(targetChat) = $0 {
-                ChatView(chat: targetChat)
-            }
-        }
         .sheet(
             isPresented: $showingNewChatSheet,
             onDismiss: {
