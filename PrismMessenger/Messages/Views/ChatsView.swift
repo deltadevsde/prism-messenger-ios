@@ -225,12 +225,11 @@ struct ChatPreview: View {
 struct NewChatView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var chatService: ChatService
+    @EnvironmentObject private var router: NavigationRouter
 
     @State private var username = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
-    @State private var createdChat: Chat?
-    @State private var shouldNavigateToChat = false
 
     var body: some View {
         NavigationStack {
@@ -274,11 +273,6 @@ struct NewChatView: View {
                     dismiss()
                 }
             )
-            .navigationDestination(isPresented: $shouldNavigateToChat) {
-                if let chat = createdChat {
-                    ChatView(chat: chat)
-                }
-            }
         }
     }
 
@@ -292,12 +286,10 @@ struct NewChatView: View {
 
                 print("Successfully created chat with \(username)")
 
-                // Store the created chat and navigate to it
                 DispatchQueue.main.async {
-                    createdChat = chat
-                    shouldNavigateToChat = true
                     isLoading = false
                     dismiss()
+                    router.navigateTo(.chat(chat))
                 }
             } catch ChatServiceError.missingKeyBundle {
                 DispatchQueue.main.async {
