@@ -23,13 +23,13 @@ enum MessageNotificationCategory: String {
 class MessageNotificationService {
     private let router: NavigationRouter
     private let scenePhaseRepository: ScenePhaseRepository
-    private let notificationCenter: NotificationCenter
+    private let notificationCenter: UserNotificationCenter
     private let chatRepository: ChatRepository
 
     init(
         router: NavigationRouter,
         scenePhaseRepository: ScenePhaseRepository,
-        notificationCenter: NotificationCenter,
+        notificationCenter: UserNotificationCenter,
         chatRepository: ChatRepository
     ) {
         self.router = router

@@ -1,5 +1,5 @@
 //
-//  NotificationCenter.swift
+//  UserNotificationCenter.swift
 //  PrismMessenger
 //
 //  Copyright © 2025 prism. All rights reserved.
@@ -11,14 +11,14 @@ import UserNotifications
 private let log = Log.notifications
 
 
-/// Represents a NotificationCenter that can be UNUserNotificationCenter, or a fake for testing and previews
-protocol NotificationCenter {
+/// Represents a UserNotificationCenter that can be UNUserNotificationCenter, or a fake for testing and previews
+protocol UserNotificationCenter {
     func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool
     func add(_ request: UNNotificationRequest) async throws
 }
 
-/// Real NotificationCenter implementation wrapping UNUserNotificationCenter
-class RealNotificationCenter: NotificationCenter {
+/// Real UserNotificationCenter implementation wrapping UNUserNotificationCenter
+class RealNotificationCenter: UserNotificationCenter {
     
     func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool {
         return try await UNUserNotificationCenter.current().requestAuthorization(options: options)
@@ -29,8 +29,8 @@ class RealNotificationCenter: NotificationCenter {
     }
 }
 
-/// Fake NotificationCenter implementation for testing and previews
-class FakeNotificationCenter: NotificationCenter {
+/// Fake UserNotificationCenter implementation for testing and previews
+class FakeNotificationCenter: UserNotificationCenter {
     func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool {
         return true
     }
