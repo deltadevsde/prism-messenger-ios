@@ -12,6 +12,7 @@ import SwiftUI
 struct ChatsView: View {
     @EnvironmentObject private var chatService: ChatService
     @EnvironmentObject private var userService: UserService
+    @EnvironmentObject private var router: NavigationRouter
 
     @State private var showingNewChatSheet = false
     @State private var currentChats: [Chat] = []
@@ -52,7 +53,9 @@ struct ChatsView: View {
                             .padding(.top, 50)
                         } else {
                             ForEach(filteredChats) { chat in
-                                NavigationLink(value: Route.chat(chat)) {
+                                Button(action: {
+                                    router.navigateTo(Route.chat(chat))
+                                }) {
                                     ChatPreview(
                                         username: chat.displayName ?? chat.participantUsername,
                                         imageURL: chat.imageURL,
@@ -60,8 +63,8 @@ struct ChatsView: View {
                                         lastMessageTime: chat.lastMessageTimestamp,
                                         unreadCount: chat.unreadCount
                                     )
+                                    .contentShape(Rectangle())
                                 }
-                                .buttonStyle(PlainButtonStyle())
                             }
                         }
                     }.padding(.horizontal, 20)
@@ -81,11 +84,6 @@ struct ChatsView: View {
                 .cornerRadius(8)
             }
             .padding()  // This adds padding from the edge
-        }
-        .navigationDestination(for: Route.self) {
-            if case let .chat(targetChat) = $0 {
-                ChatView(chat: targetChat)
-            }
         }
         .sheet(
             isPresented: $showingNewChatSheet,
