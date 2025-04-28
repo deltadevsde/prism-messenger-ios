@@ -521,6 +521,7 @@
 				);
 				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = xyz.prism.PrismMessenger.dev;
+				PRODUCT_MODULE_NAME = "$(TARGET_NAME)";
 				PRODUCT_NAME = "Prism Messenger Dev";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "PrismMessenger Development";
@@ -559,6 +560,7 @@
 				);
 				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = xyz.prism.PrismMessenger;
+				PRODUCT_MODULE_NAME = "$(TARGET_NAME)";
 				PRODUCT_NAME = "Prism Messenger";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "PrismMessenger Production";
@@ -572,18 +574,21 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = WP2QFN4V36;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = WP2QFN4V36;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = xyz.prism.PrismMessengerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = xyz.prism.PrismMessenger.test;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PrismMessenger.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PrismMessenger";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Prism Messenger Dev.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Prism Messenger Dev";
 			};
 			name = Development;
 		};
@@ -591,31 +596,36 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = WP2QFN4V36;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = WP2QFN4V36;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = xyz.prism.PrismMessengerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = xyz.prism.PrismMessenger.test;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PrismMessenger.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PrismMessenger";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Prism Messenger.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Prism Messenger";
 			};
 			name = Production;
 		};
 		DD0CC6872D4B88E800DAC02D /* Development */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = WP2QFN4V36;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = xyz.prism.PrismMessengerUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = xyz.prism.PrismMessenger.uitest;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -626,13 +636,15 @@
 		DD0CC6882D4B88E800DAC02D /* Production */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = WP2QFN4V36;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = xyz.prism.PrismMessengerUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = xyz.prism.PrismMessenger.uitest;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -644,17 +656,23 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = WP2QFN4V36;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = WP2QFN4V36;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = xyz.prism.PrismMessengerIntegrationTests;
+				PRODUCT_BUNDLE_IDENTIFIER = xyz.prism.PrismMessenger.itest;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PrismMessenger.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PrismMessenger";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Prism Messenger Dev.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Prism Messenger Dev";
 			};
 			name = Development;
 		};
@@ -662,17 +680,21 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = WP2QFN4V36;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = WP2QFN4V36;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = xyz.prism.PrismMessengerIntegrationTests;
+				PRODUCT_BUNDLE_IDENTIFIER = xyz.prism.PrismMessenger.itest;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PrismMessenger.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PrismMessenger";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Prism Messenger.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Prism Messenger";
 			};
 			name = Production;
 		};
