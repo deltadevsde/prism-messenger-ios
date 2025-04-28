@@ -7,19 +7,28 @@
 
 import SwiftUI
 
-class AppDelegate: NSObject, UIApplicationDelegate {
+class AppDelegate: NSObject {
 
     var pushNotificationService: PushNotificationService?
 
     var messageService: MessageService?
 
+    var messageNotificationService: MessageNotificationService?
+
     func setServices(
         pushNotificationService: PushNotificationService,
-        messageService: MessageService
+        messageService: MessageService,
+        messageNotificationService: MessageNotificationService
     ) {
         self.pushNotificationService = pushNotificationService
         self.messageService = messageService
+        self.messageNotificationService = messageNotificationService
+
+        UNUserNotificationCenter.current().delegate = self
     }
+}
+
+extension AppDelegate: UIApplicationDelegate {
 
     func application(
         _ application: UIApplication,
@@ -53,5 +62,43 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             }
         }
     }
+}
 
+extension AppDelegate: UNUserNotificationCenterDelegate {
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        let categordyId = response.notification.request.content.categoryIdentifier
+
+        guard
+            let category = MessageNotificationCategory(
+                rawValue: response.notification.request.content.categoryIdentifier
+            )
+        else {
+            Log.notifications.error("Notification response of unknown category: \(categordyId)")
+            return
+        }
+        
+        Task {
+            switch category {
+                case .message:
+                    await messageNotificationService?.handleMessageNotificationResponse(response)
+            }
+
+            completionHandler()
+        }
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler:
+            @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        // Show notifications when in foreground
+        completionHandler([.banner, .sound, .badge])
+    }
 }
