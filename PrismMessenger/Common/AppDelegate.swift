@@ -81,11 +81,11 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
             Log.notifications.error("Notification response of unknown category: \(categordyId)")
             return
         }
-        
-        Task {
+
+        Task.detached { @MainActor in
             switch category {
-                case .message:
-                    await messageNotificationService?.handleMessageNotificationResponse(response)
+            case .message:
+                await self.messageNotificationService?.handleMessageNotificationResponse(response)
             }
 
             completionHandler()
