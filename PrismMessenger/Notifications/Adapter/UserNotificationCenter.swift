@@ -10,10 +10,6 @@ import UserNotifications
 
 private let log = Log.notifications
 
-enum UserNotificationError: Error {
-    case missingAuthorization
-    case sendingFailed
-}
 
 enum UserNotificationCategory: String {
     case message = "message"

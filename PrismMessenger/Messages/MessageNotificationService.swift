@@ -29,7 +29,7 @@ class MessageNotificationService {
         self.chatRepository = chatRepository
     }
 
-    func potentiallySendNotification(for message: Message) async throws {
+    func potentiallySendNotification(for message: Message) async {
         // Skip notification if app is active and user is already in the relevant chat
         if scenePhaseRepository.currentPhase == .active,
             case .chat(let activeChat) = router.activeRoute,
@@ -52,7 +52,6 @@ class MessageNotificationService {
             try await notificationCenter.post(request)
         } catch {
             log.error("Unable to submit message notification: \(error)")
-            throw UserNotificationError.sendingFailed
         }
     }
 }

@@ -98,14 +98,16 @@ class MessageService: ObservableObject {
                 )
 
                 // Process the decrypted message and save it to the database
-                guard let message = try await chatService.receiveMessage(
-                    receivedMessage,
-                    in: chat,
-                ) else {
+                guard
+                    let message = try await chatService.receiveMessage(
+                        receivedMessage,
+                        in: chat,
+                    )
+                else {
                     continue
                 }
 
-                try await messageNotificationService.potentiallySendNotification(for: message)
+                await messageNotificationService.potentiallySendNotification(for: message)
 
                 processedMessages.append(message)
             } catch {
