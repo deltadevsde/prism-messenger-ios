@@ -39,12 +39,6 @@ class MessageNotificationService {
         }
 
         // Otherwise send notification
-        guard
-            try await notificationCenter.requestAuthorization()
-        else {
-            throw UserNotificationError.missingAuthorization
-        }
-
         let request = UserNotificationRequest(
             identifier: (message.chat?.id ?? UUID()).uuidString,
             title: message.chat?.displayName ?? "New message",
