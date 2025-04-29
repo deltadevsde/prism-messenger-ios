@@ -7,6 +7,8 @@
 
 import SwiftUI
 
+private let log = Log.common
+
 enum LaunchState {
     case loading
     case unregistered
@@ -35,13 +37,31 @@ class NavigationRouter: ObservableObject {
     func setLaunchState(_ newLaunchState: LaunchState) {
         if launchState != newLaunchState && [.registered, .error].contains(newLaunchState) {
             // Reset navigation path when transitioning to ready/error state
-            path = []
+            resetPath()
         }
 
         launchState = newLaunchState
     }
 
+    func resetPath() {
+        path = []
+    }
+
     func navigateTo(_ route: Route) {
+        guard activeRoute != route else {
+            log.warning("Route already active: \(String(describing: route))")
+            return
+        }
+
         path.append(route)
+    }
+
+    func openChat(_ chat: Chat) {
+        // If another chat is open, dismiss it first
+        if case let .chat(alreadyOpenChat) = activeRoute, chat != alreadyOpenChat {
+            path.removeLast()
+        }
+
+        navigateTo(.chat(chat))
     }
 }
