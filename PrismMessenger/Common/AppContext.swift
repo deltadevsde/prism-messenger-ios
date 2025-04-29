@@ -69,7 +69,7 @@ class AppContext: ObservableObject {
         )
 
         // Initialize notification services
-        let notificationCenter = RealNotificationCenter()
+        let notificationCenter = DefaultUserNotificationCenter()
         let pushNotificationService = PushNotificationService()
 
         // Initialize crypto services
@@ -143,7 +143,7 @@ class AppContext: ObservableObject {
         let simulatedBackend = FakeClient(userService: userService)
 
         // Initialize notification services
-        let notificationCenter = FakeNotificationCenter()
+        let notificationCenter = FakeUserNotificationCenter()
         let pushNotificationService = PushNotificationService()
 
         // Initialize crypto services

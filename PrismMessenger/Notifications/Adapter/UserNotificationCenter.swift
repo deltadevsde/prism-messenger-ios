@@ -10,32 +10,71 @@ import UserNotifications
 
 private let log = Log.notifications
 
+enum UserNotificationError: Error {
+    case missingAuthorization
+    case sendingFailed
+}
 
-/// Represents a UserNotificationCenter that can be UNUserNotificationCenter, or a fake for testing and previews
+enum UserNotificationCategory: String {
+    case message = "message"
+}
+
+enum UserNotificationSound {
+    case `default`
+}
+
+extension UserNotificationSound {
+    var unNotificationSound: UNNotificationSound {
+        switch self {
+        case .default:
+            return .default
+        }
+    }
+}
+
+struct UserNotificationRequest {
+    let identifier: String
+    let title: String
+    let category: UserNotificationCategory
+    let sound: UserNotificationSound
+    let content: String
+}
+
+extension UserNotificationRequest: CustomStringConvertible {
+    var description: String {
+        "[\(category)] \(title) (\(identifier))"
+    }
+}
+
+struct UserNotificationResponse {
+    let identifier: String
+    let category: UserNotificationCategory
+    let actionIdentifier: String?
+}
+
+extension UserNotificationResponse: CustomStringConvertible {
+    var description: String {
+        if let action = actionIdentifier {
+            return "[\(category)] \(identifier) (\(action))"
+        }
+        return "[\(category)] \(identifier)"
+    }
+}
+
+protocol UserNotificationResponseHandler {
+
+    func handleNotificationResponse(_ response: UserNotificationResponse) async
+}
+
+/// Can be used for sending and receiving user notifications
 protocol UserNotificationCenter {
-    func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool
-    func add(_ request: UNNotificationRequest) async throws
-}
 
-/// Real UserNotificationCenter implementation wrapping UNUserNotificationCenter
-class RealNotificationCenter: UserNotificationCenter {
-    
-    func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool {
-        return try await UNUserNotificationCenter.current().requestAuthorization(options: options)
-    }
-    
-    func add(_ request: UNNotificationRequest) async throws {
-        try await UNUserNotificationCenter.current().add(request)
-    }
-}
+    func requestAuthorization() async throws -> Bool
 
-/// Fake UserNotificationCenter implementation for testing and previews
-class FakeNotificationCenter: UserNotificationCenter {
-    func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool {
-        return true
-    }
-    
-    func add(_ request: UNNotificationRequest) async throws {
-        log.info("Requested notification: \(request)")
-    }
+    func post(_ request: UserNotificationRequest) async throws
+
+    func setResponseHandler(
+        _ handler: UserNotificationResponseHandler,
+        for category: UserNotificationCategory
+    )
 }

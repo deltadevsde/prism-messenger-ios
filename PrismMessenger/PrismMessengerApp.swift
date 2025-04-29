@@ -30,7 +30,6 @@ struct PrismMessengerApp: App {
                     appDelegate.setServices(
                         pushNotificationService: appContext.pushNotificationService,
                         messageService: appContext.messageService,
-                        messageNotificationService: appContext.messageNotificationService
                     )
                 }
                 .onChange(of: scenePhase) {
