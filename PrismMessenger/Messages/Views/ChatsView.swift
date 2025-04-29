@@ -344,6 +344,7 @@ struct NewChatView: View {
                 ChatsView()
                     .environmentObject(appContext.chatService)
                     .environmentObject(appContext.userService)
+                    .environmentObject(appContext.router)
             }
     }
     .tint(.black)

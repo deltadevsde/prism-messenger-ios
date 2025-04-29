@@ -5,8 +5,8 @@
 //  Copyright © 2025 prism. All rights reserved.
 //
 
-import Foundation
 import CryptoKit
+import Foundation
 import SwiftData
 
 private let log = Log.messages
@@ -21,12 +21,20 @@ class MessageService: ObservableObject {
     private let keyGateway: KeyGateway
     private let userService: UserService
     private let chatService: ChatService
+    private let messageNotificationService: MessageNotificationService
 
-    init(messageGateway: MessageGateway, keyGateway: KeyGateway, userService: UserService, chatService: ChatService) {
+    init(
+        messageGateway: MessageGateway,
+        keyGateway: KeyGateway,
+        userService: UserService,
+        chatService: ChatService,
+        messageNotificationService: MessageNotificationService
+    ) {
         self.messageGateway = messageGateway
         self.keyGateway = keyGateway
         self.userService = userService
         self.chatService = chatService
+        self.messageNotificationService = messageNotificationService
     }
 
     /// Fetches new messages from the server and processes them
@@ -45,11 +53,12 @@ class MessageService: ObservableObject {
             if messages.isEmpty {
                 return 0
             }
-            let processedIds = try await processReceivedMessages(
+            let processedMessages = try await processReceivedMessages(
                 receivedMessages: messages,
                 currentUser: currentUser.username
             )
 
+            let processedIds = processedMessages.compactMap { $0.serverId }
             if !processedIds.isEmpty {
                 log.debug("Marking \(processedIds.count) messages as delivered on the server ...")
                 try await messageGateway.markMessagesAsDelivered(
@@ -57,7 +66,7 @@ class MessageService: ObservableObject {
                 )
             }
 
-            return processedIds.count
+            return processedMessages.count
         } catch {
             log.warning("Error processing messages: \(error)")
             return 0
@@ -73,8 +82,8 @@ class MessageService: ObservableObject {
     func processReceivedMessages(
         receivedMessages: [ReceivedMessage],
         currentUser: String
-    ) async throws -> [UUID] {
-        var processedMessageIds: [UUID] = []
+    ) async throws -> [Message] {
+        var processedMessages: [Message] = []
 
         for receivedMessage in receivedMessages {
             log.debug(
@@ -82,28 +91,31 @@ class MessageService: ObservableObject {
             )
 
             do {
-                let drMessage = receivedMessage.message
-
                 // Get or create the chat for this sender
                 let chat = try await fetchOrCreateChat(for: receivedMessage)
-                log.info("Successfully established secure channel with \(receivedMessage.senderUsername)")
-
-                // Process the decrypted message and save it to the database
-                let message = try await chatService.receiveMessage(
-                    drMessage,
-                    in: chat,
-                    from: receivedMessage.senderUsername
+                log.info(
+                    "Successfully established secure channel with \(receivedMessage.senderUsername)"
                 )
 
-                if message != nil {
-                    processedMessageIds.append(receivedMessage.messageId)
+                // Process the decrypted message and save it to the database
+                guard
+                    let message = try await chatService.receiveMessage(
+                        receivedMessage,
+                        in: chat,
+                    )
+                else {
+                    continue
                 }
+
+                await messageNotificationService.potentiallySendNotification(for: message)
+
+                processedMessages.append(message)
             } catch {
                 log.error("Failed to process message \(receivedMessage.messageId): \(error)")
             }
         }
 
-        return processedMessageIds
+        return processedMessages
     }
 
     private func fetchOrCreateChat(for message: ReceivedMessage) async throws -> Chat {
@@ -121,13 +133,18 @@ class MessageService: ObservableObject {
         let drMessage = message.message
 
         do {
-            guard let keyBundle = try await keyGateway.fetchKeyBundle(for: message.senderUsername) else {
+            guard let keyBundle = try await keyGateway.fetchKeyBundle(for: message.senderUsername)
+            else {
                 throw MessageError.assigningChatFailed
             }
 
             log.debug("Got key bundle for \(message.senderUsername)")
-            log.debug("Identity key representation size: \(keyBundle.identityKey.rawRepresentation.count)")
-            log.debug("Identity key compressed size: \(keyBundle.identityKey.compressedRepresentation.count)")
+            log.debug(
+                "Identity key representation size: \(keyBundle.identityKey.rawRepresentation.count)"
+            )
+            log.debug(
+                "Identity key compressed size: \(keyBundle.identityKey.compressedRepresentation.count)"
+            )
             log.debug("Message header dump: \(String(describing: drMessage.header))")
 
             let senderEphemeralKey = drMessage.header.ephemeralKey

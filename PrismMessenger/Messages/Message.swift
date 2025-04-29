@@ -31,6 +31,16 @@ final class Message: Identifiable {
         self.isFromMe = isFromMe
         self.status = status
     }
+
+    init(content: String, isFromMe: Bool, serverId: UUID, serverTimestamp: Date, status: MessageStatus = .sent) {
+        self.id = UUID()
+        self.content = content
+        self.timestamp = Date()
+        self.isFromMe = isFromMe
+        self.serverId = serverId
+        self.serverTimestamp = serverTimestamp
+        self.status = status
+    }
 }
 
 enum MessageStatus: String, Codable {

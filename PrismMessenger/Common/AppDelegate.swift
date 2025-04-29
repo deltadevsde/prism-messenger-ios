@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-class AppDelegate: NSObject, UIApplicationDelegate {
+class AppDelegate: NSObject {
 
     var pushNotificationService: PushNotificationService?
 
@@ -15,11 +15,14 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
     func setServices(
         pushNotificationService: PushNotificationService,
-        messageService: MessageService
+        messageService: MessageService,
     ) {
         self.pushNotificationService = pushNotificationService
         self.messageService = messageService
     }
+}
+
+extension AppDelegate: UIApplicationDelegate {
 
     func application(
         _ application: UIApplication,
@@ -53,5 +56,4 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             }
         }
     }
-
 }

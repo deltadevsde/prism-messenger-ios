@@ -12,10 +12,13 @@ import SwiftData
 class AppContext: ObservableObject {
 
     let modelContext: ModelContext
+    let scenePhaseRepository: ScenePhaseRepository
+
     var router: NavigationRouter
 
     let chatService: ChatService
     let messageService: MessageService
+    let messageNotificationService: MessageNotificationService
     let pushNotificationService: PushNotificationService
     let updatePushTokenService: UpdatePushTokenService
     let userService: UserService
@@ -23,17 +26,22 @@ class AppContext: ObservableObject {
 
     required init(
         modelContext: ModelContext,
+        scenePhaseRepository: ScenePhaseRepository,
+        router: NavigationRouter,
         chatService: ChatService,
         messageService: MessageService,
+        messageNotificationService: MessageNotificationService,
         pushNotificationService: PushNotificationService,
         updatePushTokenService: UpdatePushTokenService,
         userService: UserService,
         registrationService: RegistrationService
     ) {
-        self.router = NavigationRouter()
         self.modelContext = modelContext
+        self.scenePhaseRepository = scenePhaseRepository
+        self.router = router
         self.chatService = chatService
         self.messageService = messageService
+        self.messageNotificationService = messageNotificationService
         self.pushNotificationService = pushNotificationService
         self.updatePushTokenService = updatePushTokenService
         self.userService = userService
@@ -42,6 +50,9 @@ class AppContext: ObservableObject {
 
     static func forProd() -> Self {
         let modelContext = AppContext.createDefaultModelContext()
+        let scenePhaseRepository = ScenePhaseRepository()
+
+        let router = NavigationRouter()
 
         let userRepository = SwiftDataUserRepository(modelContext: modelContext)
         let userService = UserService(userRepository: userRepository)
@@ -56,6 +67,10 @@ class AppContext: ObservableObject {
             baseURLStr: serverUrl,
             userService: userService
         )
+
+        // Initialize notification services
+        let notificationCenter = DefaultUserNotificationCenter()
+        let pushNotificationService = PushNotificationService()
 
         // Initialize crypto services
         let tee = SecurePersistentTee()
@@ -72,15 +87,21 @@ class AppContext: ObservableObject {
         )
 
         // Initialize messaging services
+        let messageNotificationService = MessageNotificationService(
+            router: router,
+            scenePhaseRepository: scenePhaseRepository,
+            notificationCenter: notificationCenter,
+            chatRepository: chatRepository
+        )
+        notificationCenter.setResponseHandler(messageNotificationService, for: .message)
+
         let messageService = MessageService(
             messageGateway: restClient,
             keyGateway: restClient,
             userService: userService,
-            chatService: chatService
+            chatService: chatService,
+            messageNotificationService: messageNotificationService
         )
-
-        // Initialize notification services
-        let pushNotificationService = PushNotificationService()
 
         // Initialize registration services
         let registrationService = RegistrationService(
@@ -100,8 +121,11 @@ class AppContext: ObservableObject {
 
         return Self(
             modelContext: modelContext,
+            scenePhaseRepository: scenePhaseRepository,
+            router: router,
             chatService: chatService,
             messageService: messageService,
+            messageNotificationService: messageNotificationService,
             pushNotificationService: pushNotificationService,
             updatePushTokenService: updatePushTokenService,
             userService: userService,
@@ -110,11 +134,18 @@ class AppContext: ObservableObject {
 
     static func forPreview() -> Self {
         let modelContext = AppContext.createInMemoryModelContext()
+        let scenePhaseRepository = ScenePhaseRepository()
+
+        let router = NavigationRouter()
 
         let userRepository = SwiftDataUserRepository(modelContext: modelContext)
         let userService = UserService(userRepository: userRepository)
 
         let simulatedBackend = FakeClient(userService: userService)
+
+        // Initialize notification services
+        let notificationCenter = FakeUserNotificationCenter()
+        let pushNotificationService = PushNotificationService()
 
         // Initialize crypto services
         let tee = InMemoryTee()
@@ -131,15 +162,21 @@ class AppContext: ObservableObject {
         )
 
         // Initialize messaging services
+        let messageNotificationService = MessageNotificationService(
+            router: router,
+            scenePhaseRepository: scenePhaseRepository,
+            notificationCenter: notificationCenter,
+            chatRepository: chatRepository
+        )
+        notificationCenter.setResponseHandler(messageNotificationService, for: .message)
+
         let messageService = MessageService(
             messageGateway: simulatedBackend,
             keyGateway: simulatedBackend,
             userService: userService,
-            chatService: chatService
+            chatService: chatService,
+            messageNotificationService: messageNotificationService
         )
-
-        // Initialize notification services
-        let pushNotificationService = PushNotificationService()
 
         // Initialize registration services
         let registrationService = RegistrationService(
@@ -159,8 +196,11 @@ class AppContext: ObservableObject {
 
         return Self(
             modelContext: modelContext,
+            scenePhaseRepository: scenePhaseRepository,
+            router: router,
             chatService: chatService,
             messageService: messageService,
+            messageNotificationService: messageNotificationService,
             pushNotificationService: pushNotificationService,
             updatePushTokenService: updatePushTokenService,
             userService: userService,

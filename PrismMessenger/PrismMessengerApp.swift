@@ -14,6 +14,8 @@ struct PrismMessengerApp: App {
 
     @StateObject private var appContext: AppContext = isTesting ? .forPreview() : .forProd()
 
+    @Environment(\.scenePhase) private var scenePhase
+
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
@@ -27,8 +29,11 @@ struct PrismMessengerApp: App {
                 .onAppear {
                     appDelegate.setServices(
                         pushNotificationService: appContext.pushNotificationService,
-                        messageService: appContext.messageService
+                        messageService: appContext.messageService,
                     )
+                }
+                .onChange(of: scenePhase) {
+                    appContext.scenePhaseRepository.currentPhase = scenePhase
                 }
         }
     }
