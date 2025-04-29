@@ -63,6 +63,7 @@ extension DefaultUserNotificationCenter: UNUserNotificationCenterDelegate {
             )
         else {
             log.error("Notification response of unknown category: \(categoryId)")
+            completionHandler()
             return
         }
 
