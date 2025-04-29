@@ -58,10 +58,11 @@ class MessageService: ObservableObject {
                 currentUser: currentUser.username
             )
 
-            if !processedMessages.isEmpty {
-                log.debug("Marking \(processedMessages.count) messages as delivered on the server ...")
+            let processedIds = processedMessages.compactMap { $0.serverId }
+            if !processedIds.isEmpty {
+                log.debug("Marking \(processedIds.count) messages as delivered on the server ...")
                 try await messageGateway.markMessagesAsDelivered(
-                    messageIds: processedMessages.compactMap { $0.serverId }
+                    messageIds: processedIds
                 )
             }
 
