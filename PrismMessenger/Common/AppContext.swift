@@ -93,6 +93,7 @@ class AppContext: ObservableObject {
             notificationCenter: notificationCenter,
             chatRepository: chatRepository
         )
+        notificationCenter.setResponseHandler(messageNotificationService, for: .message)
 
         let messageService = MessageService(
             messageGateway: restClient,
@@ -167,6 +168,8 @@ class AppContext: ObservableObject {
             notificationCenter: notificationCenter,
             chatRepository: chatRepository
         )
+        notificationCenter.setResponseHandler(messageNotificationService, for: .message)
+
         let messageService = MessageService(
             messageGateway: simulatedBackend,
             keyGateway: simulatedBackend,

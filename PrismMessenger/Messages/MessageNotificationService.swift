@@ -10,15 +10,6 @@ import UserNotifications
 
 private let log = Log.messages
 
-enum MessageNotificationError: Error {
-    case missingAuthorization
-    case sendingFailed
-}
-
-enum MessageNotificationCategory: String {
-    case message = "message"
-}
-
 @MainActor
 class MessageNotificationService {
     private let router: NavigationRouter
@@ -39,57 +30,44 @@ class MessageNotificationService {
     }
 
     func potentiallySendNotification(for message: Message) async throws {
-        guard scenePhaseRepository.currentPhase == .active else {
-            // When inactive, send notification in every case
-            do {
-                try await sendNotification(for: message)
-            } catch {
-                log.warning("Failed to send message notification: \(error)")
-            }
+        // Skip notification if app is active and user is already in the relevant chat
+        if scenePhaseRepository.currentPhase == .active,
+            case .chat(let activeChat) = router.activeRoute,
+            activeChat == message.chat
+        {
             return
         }
 
-        // When active, check whether we are already in the chat related to the message
-        if case .chat(let activeChat) = router.activeRoute, activeChat == message.chat {
-            return
-        }
-
-        // When active and not in the chat already
-        try await sendNotification(for: message)
-    }
-
-    private func sendNotification(for message: Message) async throws {
+        // Otherwise send notification
         guard
-            try await notificationCenter.requestAuthorization(options: [
-                .alert, .badge, .sound,
-            ])
+            try await notificationCenter.requestAuthorization()
         else {
-            throw MessageNotificationError.missingAuthorization
+            throw UserNotificationError.missingAuthorization
         }
 
-        let content = UNMutableNotificationContent()
-        content.title = message.chat?.displayName ?? "New message"
-        content.body = message.content
-        content.sound = .default
-        content.categoryIdentifier = MessageNotificationCategory.message.rawValue
-
-        let identifier = (message.chat?.id ?? UUID()).uuidString
-        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: nil)
+        let request = UserNotificationRequest(
+            identifier: (message.chat?.id ?? UUID()).uuidString,
+            title: message.chat?.displayName ?? "New message",
+            category: .message,
+            sound: .default,
+            content: message.content
+        )
 
         do {
-            log.debug("Adding message notification: \(request)")
-            try await notificationCenter.add(request)
+            log.debug("Adding chat notification for: \(request.title)")
+            try await notificationCenter.post(request)
         } catch {
             log.error("Unable to submit message notification: \(error)")
-            throw MessageNotificationError.sendingFailed
+            throw UserNotificationError.sendingFailed
         }
     }
+}
 
-    func handleMessageNotificationResponse(_ response: UNNotificationResponse) async {
-        let identifier = response.notification.request.identifier
+extension MessageNotificationService: UserNotificationResponseHandler {
 
-        guard let chatId = UUID(uuidString: identifier) else {
-            log.error("Failed to read chat ID \(identifier) from notification response")
+    func handleNotificationResponse(_ response: UserNotificationResponse) async {
+        guard let chatId = UUID(uuidString: response.identifier) else {
+            log.error("Failed to read chat ID \(response.identifier) from notification response")
             return
         }
 
@@ -98,6 +76,6 @@ class MessageNotificationService {
             return
         }
 
-        router.navigateTo(.chat(chat))
+        router.openChat(chat)
     }
 }
