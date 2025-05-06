@@ -54,7 +54,7 @@ class RegistrationService: ObservableObject {
         let apnsToken = try await pushNotificationService.requestPushNotificationToken()
 
         // Step 2: Sign challenge and finalize registration
-        try await finalizeRegistration(
+        let userId = try await finalizeRegistration(
             username: username,
             authPassword: authPassword,
             apnsToken: apnsToken,
@@ -63,6 +63,7 @@ class RegistrationService: ObservableObject {
 
         // Step 3: Initialize key bundle and create user
         try await uploadNewKeybundleAndCreateUser(
+            id: userId,
             username: username,
             authPassword: authPassword,
             apnsToken: apnsToken
@@ -87,7 +88,7 @@ class RegistrationService: ObservableObject {
         apnsToken: Data,
         challenge: RegistrationChallenge
     )
-        async throws
+        async throws -> UUID
     {
         guard let key = try? tee.fetchOrCreateIdentityKey() else {
             throw RegistrationError.unableToAcquireKey
@@ -104,20 +105,20 @@ class RegistrationService: ObservableObject {
         }
 
         do {
-            try await registrationGateway
-                .finalizeRegistration(
-                    username: username,
-                    key: key,
-                    signature: signature,
-                    authPassword: authPassword,
-                    apnsToken: apnsToken
-                )
+            return try await registrationGateway.finalizeRegistration(
+                username: username,
+                key: key,
+                signature: signature,
+                authPassword: authPassword,
+                apnsToken: apnsToken
+            )
         } catch RegistrationGatewayError.requestFailed(let errorCode) {
             throw RegistrationError.networkFailure(errorCode)
         }
     }
 
     private func uploadNewKeybundleAndCreateUser(
+        id: UUID,
         username: String,
         authPassword: String,
         apnsToken: Data
@@ -130,6 +131,7 @@ class RegistrationService: ObservableObject {
 
             // Create user and key bundle
             let user = User(
+                id: id,
                 signedPrekey: userKeys.signedPrekey,
                 username: username,
                 authPassword: authPassword,

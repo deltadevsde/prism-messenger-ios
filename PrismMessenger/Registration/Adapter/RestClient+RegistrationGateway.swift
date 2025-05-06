@@ -24,6 +24,10 @@ struct FinalizeRegistrationRequest: Encodable {
     var apnsToken: Data
 }
 
+struct FinalizeRegistrationResponse: Decodable {
+    var id: UUID
+}
+
 extension RestClient: RegistrationGateway {
 
     func checkUsernameAvailability(_ username: String) async -> Bool {
@@ -54,7 +58,7 @@ extension RestClient: RegistrationGateway {
         signature: P256.Signing.ECDSASignature,
         authPassword: String,
         apnsToken: Data
-    ) async throws {
+    ) async throws -> UUID {
         let req = FinalizeRegistrationRequest(
             username: username,
             key: key.toCryptoPayload(),
@@ -65,11 +69,12 @@ extension RestClient: RegistrationGateway {
         do {
             // is not really authenticated, but providing auth credentials here is
             // how the server attaches an auth token to newly registered accounts
-            try await post(
+            let response: FinalizeRegistrationResponse = try await post(
                 req,
                 to: "/registration/finalize",
                 authMethod: .basic(username: username, password: authPassword)
             )
+            return response.id
         } catch RestClientError.httpError(let httpStatusCode) {
             throw RegistrationGatewayError.requestFailed(httpStatusCode)
         }
