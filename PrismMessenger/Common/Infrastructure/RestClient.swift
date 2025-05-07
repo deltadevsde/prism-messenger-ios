@@ -78,7 +78,9 @@ class RestClient {
         let authMethod = try await authMethod(for: accessLevel)
         try request.applyAuth(authMethod)
 
-        log.debug("\(request.httpMethod!) \(path): \(String(describing: request.allHTTPHeaderFields))")
+        log.debug(
+            "\(request.httpMethod!) \(path): \(String(describing: request.allHTTPHeaderFields))"
+        )
 
         let (_, response) = try await session.data(for: request)
 
@@ -99,7 +101,9 @@ class RestClient {
         let authMethod = try await authMethod(for: accessLevel)
         try request.applyAuth(authMethod)
 
-        log.debug("\(request.httpMethod!) \(path): \(String(describing: request.allHTTPHeaderFields))")
+        log.debug(
+            "\(request.httpMethod!) \(path): \(String(describing: request.allHTTPHeaderFields))"
+        )
 
         let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -136,7 +140,9 @@ class RestClient {
     }
 
     func post<T: Encodable, U: Decodable>(
-        _ data: T, to path: String, accessLevel: RestAccessLevel = .pub
+        _ data: T,
+        to path: String,
+        accessLevel: RestAccessLevel = .pub
     )
         async throws -> U
     {
@@ -145,7 +151,9 @@ class RestClient {
     }
 
     func post<T: Encodable, U: Decodable>(
-        _ data: T, to path: String, authMethod: RestAuthMethod
+        _ data: T,
+        to path: String,
+        authMethod: RestAuthMethod
     )
         async throws -> U
     {
@@ -162,7 +170,9 @@ class RestClient {
     }
 
     private func postForData<T: Encodable>(
-        _ data: T, to path: String, authMethod: RestAuthMethod
+        _ data: T,
+        to path: String,
+        authMethod: RestAuthMethod
     ) async throws
         -> Data
     {
@@ -195,22 +205,23 @@ class RestClient {
     }
 
     func put<T: Encodable>(_ data: T, to path: String, accessLevel: RestAccessLevel = .pub)
-    async throws
+        async throws
     {
         let authMethod = try await authMethod(for: accessLevel)
         try await self.put(data, to: path, authMethod: authMethod)
     }
 
     private func put<T: Encodable>(_ data: T, to path: String, authMethod: RestAuthMethod)
-    async throws
+        async throws
     {
         let _ = try await self.putForData(data, to: path, authMethod: authMethod)
     }
 
     private func putForData<T: Encodable>(
-        _ data: T, to path: String, authMethod: RestAuthMethod
-    ) async throws -> Data
-    {
+        _ data: T,
+        to path: String,
+        authMethod: RestAuthMethod
+    ) async throws -> Data {
         let fullURL = baseURL.appendingPathComponent(path)
 
         var request = URLRequest(url: fullURL)
