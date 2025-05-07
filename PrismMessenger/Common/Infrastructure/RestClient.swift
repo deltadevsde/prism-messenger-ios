@@ -45,7 +45,7 @@ class RestClient {
             throw RestClientError.authenticationRequired
         }
 
-        return .basic(username: user.username, password: user.authPassword)
+        return .basic(username: user.id.uuidString, password: user.authPassword)
     }
 
     private func authMethod(for accessLevel: RestAccessLevel) async throws -> RestAuthMethod {
