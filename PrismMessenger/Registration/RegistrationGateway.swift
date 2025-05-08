@@ -23,7 +23,10 @@ protocol RegistrationGateway {
     /// Requests finalization of user registration on the server
     /// - Returns: UUID of the created user
     func finalizeRegistration(
-        username: String, key: P256.Signing.PublicKey, signature: P256.Signing.ECDSASignature,
-        authPassword: String, apnsToken: Data
-    ) async throws -> UUID;
+        username: String,
+        key: P256.Signing.PublicKey,
+        signature: P256.Signing.ECDSASignature,
+        authPassword: String,
+        apnsToken: Data
+    ) async throws -> UUID
 }
