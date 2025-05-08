@@ -25,6 +25,7 @@ enum ChatServiceError: Error {
 class ChatService: ObservableObject {
     private let chatRepository: ChatRepository
     private let userService: UserService
+    private let contactService: ContactService
     private let messageGateway: MessageGateway
     private let keyGateway: KeyGateway
     private let x3dh: X3DH
@@ -32,27 +33,38 @@ class ChatService: ObservableObject {
     init(
         chatRepository: ChatRepository,
         userService: UserService,
+        contactService: ContactService,
         messageGateway: MessageGateway,
         keyGateway: KeyGateway,
         x3dh: X3DH
     ) {
         self.chatRepository = chatRepository
         self.userService = userService
+        self.contactService = contactService
         self.messageGateway = messageGateway
         self.keyGateway = keyGateway
         self.x3dh = x3dh
     }
 
+    @MainActor
     func startChat(with otherUsername: String) async throws -> Chat {
         do {
+            // Check if there's contact info for this username
+            guard
+                let contact = try await contactService.fetchContact(
+                    byUsername: otherUsername)
+            else {
+                throw ChatServiceError.otherUserNotFound
+            }
+
             // If a chat with this user already exists, reuse it
-            if let existingChat = try await getChat(with: otherUsername) {
+            if let existingChat = try await getChat(with: contact.accountId) {
                 return existingChat
             }
 
             // Try to get the key bundle from the other user
             guard
-                let keyBundle = try await keyGateway.fetchKeyBundle(for: otherUsername)
+                let keyBundle = try await keyGateway.fetchKeyBundle(for: contact.id)
             else {
                 throw ChatServiceError.missingKeyBundle
             }
@@ -67,12 +79,14 @@ class ChatService: ObservableObject {
                 using: prekey.keyIdx
             )
 
-            log.debug("Successfully performed X3DH handshake with user: \(otherUsername)")
+            log.debug(
+                "Successfully performed X3DH handshake with: \(contact.id.uuidString)"
+            )
             log.debug("Used prekey ID: \(String(describing: usedPrekeyId))")
 
             // Create a new chat with the Double Ratchet session
             return try await createChat(
-                with: otherUsername,
+                with: contact,
                 sharedSecret: sharedSecret,
                 ephemeralPrivateKey: ephemeralPrivateKey,
                 prekey: prekey
@@ -89,20 +103,20 @@ class ChatService: ObservableObject {
 
     /// Creates a new chat from an X3DH handshake and stores it in the repository
     /// - Parameters:
-    ///   - username: The participant's username
+    ///   - otherId: The participant's ID
     ///   - sharedSecret: The shared secret derived from X3DH
     ///   - ephemeralPublicKey: The ephemeral public key used in X3DH
     ///   - prekey: The prekey that was used
     /// - Returns: The created Chat object
     @MainActor
     func createChat(
-        with otherUsername: String,
+        with contact: Contact,
         sharedSecret: SymmetricKey,
         ephemeralPrivateKey: P256.KeyAgreement.PrivateKey,
         prekey: Prekey
     ) async throws -> Chat {
         // 0. Get the current user
-        let currentUsername = try await getCurrentUsername()
+        let currentUserId = try await getCurrentUserId()
 
         // 1. Create a Double Ratchet session with the shared secret
         let session = try createDoubleRatchetSession(
@@ -119,9 +133,9 @@ class ChatService: ObservableObject {
 
         // 3. Create and save the chat
         let chat = Chat(
-            participantUsername: otherUsername,
-            ownerUsername: currentUsername,
-            displayName: otherUsername,  // Default to username for display until we get more info
+            participantId: contact.id,
+            ownerId: currentUserId,
+            displayName: contact.id.uuidString,  // Default to contact's ID as long as we don't have profiles
             doubleRatchetSession: sessionData
         )
 
@@ -131,15 +145,15 @@ class ChatService: ObservableObject {
     }
 
     /// Retrieves a chat with a specific participant for the current user, if it exists
-    /// - Parameter username: The participant's username
+    /// - Parameter participantId: The participant's id
     /// - Returns: The Chat object if found, nil otherwise
     @MainActor
-    func getChat(with username: String) async throws -> Chat? {
-        let currentUsername = try await getCurrentUsername()
+    func getChat(with participantId: UUID) async throws -> Chat? {
+        let currentUsername = try await getCurrentUserId()
 
         do {
             return try await chatRepository.getChat(
-                withParticipant: username,
+                withParticipant: participantId,
                 forOwner: currentUsername
             )
         } catch {
@@ -151,7 +165,7 @@ class ChatService: ObservableObject {
     /// - Returns: Array of all chats owned by the current user
     @MainActor
     func getAllChats() async throws -> [Chat] {
-        let currentUsername = try await getCurrentUsername()
+        let currentUsername = try await getCurrentUserId()
         return try await chatRepository.getAllChats(for: currentUsername)
     }
 
@@ -188,14 +202,14 @@ class ChatService: ObservableObject {
 
     /// Creates a new chat from an incoming message using X3DH passive mode
     /// - Parameters:
-    ///   - senderUsername: The username of the message sender
+    ///   - senderId: The ID of the message sender
     ///   - senderIdentityKey: The sender's identity key from their KeyBundle
     ///   - senderEphemeralKey: The sender's ephemeral key from the message header
     ///   - usedPrekeyId: The ID of our prekey that was used (if any)
     /// - Returns: The newly created Chat
     @MainActor
     func createChatFromIncomingMessage(
-        senderUsername: String,
+        senderId: UUID,
         senderIdentityKey: P256.KeyAgreement.PublicKey,
         senderEphemeralKey: P256.KeyAgreement.PublicKey,
         usedPrekeyId: UInt64?
@@ -238,11 +252,15 @@ class ChatService: ObservableObject {
         let jsonStr = String(data: sessionData, encoding: .utf8)!
         log.debug("sessionData from recv: \(jsonStr)")
 
-        // 6. Create and save the chat
+        // 6. Query the senders profile to populate the chat
+        // TODO: Implement when profile endpoints exist on server
+        let displayName = senderId.uuidString
+
+        // 7. Create and save the chat
         let chat = Chat(
-            participantUsername: senderUsername,
-            ownerUsername: user.username,
-            displayName: senderUsername,  // Default to username for display
+            participantId: senderId,
+            ownerId: user.id,
+            displayName: displayName,
             doubleRatchetSession: sessionData
         )
 
@@ -288,7 +306,7 @@ class ChatService: ObservableObject {
             // Send message to server using the MessageGateway
             let response = try await messageGateway.sendMessage(
                 encryptedMessage,
-                to: chat.participantUsername
+                to: chat.participantId
             )
 
             // Update message status to "sent" after server confirms receipt
@@ -320,7 +338,7 @@ class ChatService: ObservableObject {
         _ receivedMessage: ReceivedMessage,
         in chat: Chat,
     ) async throws -> Message? {
-        log.debug("Receiving message in chat with \(receivedMessage.senderUsername)")
+        log.debug("Receiving message in chat with \(receivedMessage.senderId)")
         do {
             // 1. Deserialize the Double Ratchet session
             log.debug(
@@ -390,10 +408,10 @@ class ChatService: ObservableObject {
         }
     }
 
-    private func getCurrentUsername() async throws -> String {
-        guard let currentUsername = await userService.selectedUsername else {
+    private func getCurrentUserId() async throws -> UUID {
+        guard let currentUser = try await userService.getCurrentUser() else {
             throw ChatServiceError.noCurrentUser
         }
-        return currentUsername
+        return currentUser.id
     }
 }
