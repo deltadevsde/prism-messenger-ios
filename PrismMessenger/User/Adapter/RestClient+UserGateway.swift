@@ -11,7 +11,12 @@ struct UpdateApnsTokenRequest: Encodable {
     var token: Data
 }
 
+struct UserInfoResponse: Decodable {
+    var id: UUID
+}
+
 extension RestClient: UserGateway {
+
     func updateApnsToken(_ apnsToken: Data) async throws {
         let request = UpdateApnsTokenRequest(token: apnsToken)
 

@@ -12,8 +12,10 @@ enum UserGatewayError: Error {
 }
 
 protocol UserGateway {
+
     /// Updates the user's APNS push token on the server
     /// - Parameter apnsToken: The APNS token to update
+    /// - Throws: UserGatewayError if the request fails
     func updateApnsToken(_ apnsToken: Data) async throws
 
     /// Fetches the user ID associated with a given username
