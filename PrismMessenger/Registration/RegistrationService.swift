@@ -153,7 +153,7 @@ class RegistrationService: ObservableObject {
                 prekeys: prekeys
             )
 
-            try await keyGateway.submitKeyBundle(for: username, keyBundle: keyBundle)
+            try await keyGateway.submitKeyBundle(keyBundle: keyBundle)
         } catch is TeeError {
             throw RegistrationError.failedToCreateKey
         } catch KeyGatewayError.requestFailed(let errorCode) {
