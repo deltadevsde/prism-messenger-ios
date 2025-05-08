@@ -16,6 +16,7 @@ enum MessageError: Error {
 }
 
 /// Concrete implementation of the MessageServiceProtocol
+@MainActor
 class MessageService: ObservableObject {
     private let messageGateway: MessageGateway
     private let keyGateway: KeyGateway
@@ -39,7 +40,6 @@ class MessageService: ObservableObject {
 
     /// Fetches new messages from the server and processes them
     /// - Returns: The number of new messages processed
-    @MainActor
     @discardableResult
     func fetchAndProcessMessages() async throws -> Int {
         guard let currentUser = try await userService.getCurrentUser() else {
@@ -87,14 +87,14 @@ class MessageService: ObservableObject {
 
         for receivedMessage in receivedMessages {
             log.debug(
-                "Processing message ID: \(receivedMessage.messageId) from \(receivedMessage.senderUsername)"
+                "Processing message ID: \(receivedMessage.messageId) from \(receivedMessage.senderId)"
             )
 
             do {
                 // Get or create the chat for this sender
                 let chat = try await fetchOrCreateChat(for: receivedMessage)
                 log.info(
-                    "Successfully established secure channel with \(receivedMessage.senderUsername)"
+                    "Successfully established secure channel with \(receivedMessage.senderId)"
                 )
 
                 // Process the decrypted message and save it to the database
@@ -120,7 +120,7 @@ class MessageService: ObservableObject {
 
     private func fetchOrCreateChat(for message: ReceivedMessage) async throws -> Chat {
         do {
-            if let existingChat = try await chatService.getChat(with: message.senderUsername) {
+            if let existingChat = try await chatService.getChat(with: message.senderId) {
                 return existingChat
             }
         } catch {
@@ -133,12 +133,12 @@ class MessageService: ObservableObject {
         let drMessage = message.message
 
         do {
-            guard let keyBundle = try await keyGateway.fetchKeyBundle(for: message.senderUsername)
+            guard let keyBundle = try await keyGateway.fetchKeyBundle(for: message.senderId)
             else {
                 throw MessageError.assigningChatFailed
             }
 
-            log.debug("Got key bundle for \(message.senderUsername)")
+            log.debug("Got key bundle for \(message.senderId)")
             log.debug(
                 "Identity key representation size: \(keyBundle.identityKey.rawRepresentation.count)"
             )
@@ -151,7 +151,7 @@ class MessageService: ObservableObject {
 
             // 5. Create the secure chat using X3DH passive mode
             return try await chatService.createChatFromIncomingMessage(
-                senderUsername: message.senderUsername,
+                senderId: message.senderId,
                 senderIdentityKey: keyBundle.identityKey.forKA(),
                 senderEphemeralKey: senderEphemeralKey,
                 usedPrekeyId: drMessage.header.oneTimePrekeyId
