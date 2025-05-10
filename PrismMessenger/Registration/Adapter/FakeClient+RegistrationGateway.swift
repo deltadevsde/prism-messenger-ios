@@ -25,8 +25,9 @@ extension FakeClient: RegistrationGateway {
 
     func finalizeRegistration(
         username: String, key: P256.Signing.PublicKey, signature: P256.Signing.ECDSASignature,
-        authPassword: String, apnsToken: Data)
-        async throws
+        authPassword: String, apnsToken: Data
+    )
+        async throws -> UUID
     {
         guard key.isValidSignature(signature, for: simulatedRegistrationChallenge) else {
             throw RegistrationError.signatureVerificationFailed
@@ -38,5 +39,6 @@ extension FakeClient: RegistrationGateway {
             apnsToken: apnsToken
         )
         store.addToList(registeredUser)
+        return registeredUser.id
     }
 }

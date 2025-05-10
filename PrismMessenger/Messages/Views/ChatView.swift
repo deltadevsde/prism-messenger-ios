@@ -55,7 +55,7 @@ struct ChatView: View {
 
     private var onlineView: some View {
         VStack(alignment: .center, spacing: 2) {
-            Text(chat.displayName ?? chat.participantUsername)
+            Text(chat.displayName ?? chat.participantId.uuidString)
                 .font(.headline)
 
             // TODO: Link with real API
@@ -274,8 +274,8 @@ struct MessageBubble: View {
 
 #Preview {
     let chat = Chat(
-        participantUsername: "johndoe",
-        ownerUsername: "alice",
+        participantId: UUID(),
+        ownerId: UUID(),
         displayName: "John Doe",
         doubleRatchetSession: Data()
     )

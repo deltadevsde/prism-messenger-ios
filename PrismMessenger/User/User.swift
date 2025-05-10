@@ -4,9 +4,10 @@
 //
 //  Copyright © 2025 prism. All rights reserved.
 //
-import SwiftData
-import Foundation
+
 import CryptoKit
+import Foundation
+import SwiftData
 
 struct UserPrekey: Codable {
     let idx: UInt64
@@ -14,8 +15,12 @@ struct UserPrekey: Codable {
 }
 
 @Model
-final class User: Identifiable {
+final class User {
+
+    @Attribute(.unique) var id: UUID
+
     @Attribute(.unique) var username: String
+
     var displayName: String?
 
     var authPassword: String
@@ -31,12 +36,14 @@ final class User: Identifiable {
     private var prekeyCounter: UInt64 = 0
 
     init(
+        id: UUID,
         signedPrekey: P256.KeyAgreement.PrivateKey,
         username: String,
         displayName: String? = nil,
         authPassword: String,
         apnsToken: Data? = nil
     ) {
+        self.id = id
         self.signedPrekeyData = signedPrekey.toCryptoPayload()
         self.prekeys = []
         self.prekeyCounter = 0

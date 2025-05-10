@@ -8,6 +8,7 @@
 import Foundation
 
 struct FakeUser {
+    var id: UUID = UUID()
     var username: String
     var authPassword: String
     var apnsToken: Data
@@ -28,5 +29,15 @@ extension FakeClient: UserGateway {
         }
 
         existingUser.apnsToken = apnsToken
+    }
+
+    func fetchAccountId(for username: String) async throws -> UUID? {
+        // Find the user with the given username in the fake store
+        if let user = store.getList(FakeUser.self).first(where: { $0.username == username }) {
+            return user.id
+        }
+
+        // Return nil when username doesn't match any existing user
+        return nil
     }
 }

@@ -4,7 +4,7 @@ private let log = Log.messages
 
 /// API request model for sending a message
 private struct SendMessageRequest: Encodable {
-    let recipientUsername: String
+    let recipientId: UUID
     let message: DoubleRatchetMessage
 }
 
@@ -17,8 +17,8 @@ private struct SendMessageResponse: Decodable, MessageReceipt {
 /// API model for a message received from the server
 private struct MessageResponse: Decodable, ReceivedMessage {
     let messageId: UUID
-    let senderUsername: String
-    let recipientUsername: String
+    let senderId: UUID
+    let recipientId: UUID
     let message: DoubleRatchetMessage
     let timestamp: UInt64
 }
@@ -30,11 +30,11 @@ private struct MarkDeliveredRequest: Encodable {
 
 extension RestClient: MessageGateway {
 
-    func sendMessage(_ message: DoubleRatchetMessage, to recipientUsername: String)
+    func sendMessage(_ message: DoubleRatchetMessage, to recipientId: UUID)
         async throws -> MessageReceipt
     {
         let request = SendMessageRequest(
-            recipientUsername: recipientUsername,
+            recipientId: recipientId,
             message: message
         )
 
