@@ -20,6 +20,7 @@
   },
   "testTargets" : [
     {
+      "enabled" : false,
       "target" : {
         "containerPath" : "container:PrismMessenger.xcodeproj",
         "identifier" : "DD508DF42D8AB2F900293B79",

@@ -8,6 +8,7 @@
 import Foundation
 
 struct FakeUser {
+    var id: UUID = UUID()
     var username: String
     var authPassword: String
     var apnsToken: Data

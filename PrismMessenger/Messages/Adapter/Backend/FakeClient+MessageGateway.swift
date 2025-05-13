@@ -14,21 +14,24 @@ private struct SendMessageResponse: MessageReceipt {
 
 private struct MessageResponse: ReceivedMessage {
     let messageId = UUID()
-    let senderUsername: String
-    let recipientUsername: String
+    let senderId: UUID
+    let recipientId: UUID
     let message: DoubleRatchetMessage
     let timestamp = UInt64(Date.now.timeIntervalSince1970 * 1000)
 }
 
 extension FakeClient: MessageGateway {
 
-    func sendMessage(_ message: DoubleRatchetMessage, to recipientUsername: String)
+    func sendMessage(_ message: DoubleRatchetMessage, to recipientId: UUID)
         async throws -> MessageReceipt
     {
-        let senderUsername = await userService.selectedUsername!
+        guard let currentUser = try await userService.getCurrentUser() else {
+            throw FakeClientError.authenticationRequired
+        }
+
         let storedMessage = MessageResponse(
-            senderUsername: senderUsername,
-            recipientUsername: recipientUsername,
+            senderId: currentUser.id,
+            recipientId: recipientId,
             message: message)
         store.addToList(storedMessage)
         return SendMessageResponse(messageId: storedMessage.messageId)
@@ -38,7 +41,7 @@ extension FakeClient: MessageGateway {
         let currentUser = try await userService.getCurrentUser()
 
         return store.getList(MessageResponse.self)
-            .filter { $0.recipientUsername == currentUser?.username }
+            .filter { $0.recipientId == currentUser?.id }
     }
 
     func markMessagesAsDelivered(messageIds: [UUID]) async throws {

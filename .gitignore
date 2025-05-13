@@ -30,6 +30,7 @@ playground.xcworkspace
 
 # IDEs
 .idea/
+.zed/
 
 # Configs
 Development.xcconfig

@@ -12,8 +12,8 @@ protocol MessageReceipt {
 
 protocol ReceivedMessage {
     var messageId: UUID { get }
-    var senderUsername: String { get }
-    var recipientUsername: String { get }
+    var senderId: UUID { get }
+    var recipientId: UUID { get }
     var message: DoubleRatchetMessage { get }
     var timestamp: UInt64 { get }
 }
@@ -22,9 +22,9 @@ protocol MessageGateway {
     /// Sends a message to another user
     /// - Parameters:
     ///   - message: The encrypted DoubleRatchetMessage to send
-    ///   - recipient: The recipient's username
+    ///   - recipientId: The recipient's ID
     /// - Returns: The server's response with message ID and timestamp
-    func sendMessage(_ message: DoubleRatchetMessage, to recipientUsername: String)
+    func sendMessage(_ message: DoubleRatchetMessage, to recipientId: UUID)
         async throws -> MessageReceipt
 
     /// Fetches all available messages for a user
