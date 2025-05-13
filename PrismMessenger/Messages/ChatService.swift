@@ -25,6 +25,7 @@ enum ChatServiceError: Error {
 class ChatService: ObservableObject {
     private let chatRepository: ChatRepository
     private let userService: UserService
+    private let profileService: ProfileService
     private let messageGateway: MessageGateway
     private let keyGateway: KeyGateway
     private let x3dh: X3DH
@@ -32,28 +33,38 @@ class ChatService: ObservableObject {
     init(
         chatRepository: ChatRepository,
         userService: UserService,
+        profileService: ProfileService,
         messageGateway: MessageGateway,
         keyGateway: KeyGateway,
         x3dh: X3DH
     ) {
         self.chatRepository = chatRepository
         self.userService = userService
+        self.profileService = profileService
         self.messageGateway = messageGateway
         self.keyGateway = keyGateway
         self.x3dh = x3dh
     }
 
     @MainActor
-    func startChat(with otherId: UUID) async throws -> Chat {
+    func startChat(with otherUsername: String) async throws -> Chat {
         do {
+            // Check if there's a profile for this username
+            guard
+                let profile = try await profileService.fetchProfile(
+                    byUsername: otherUsername)
+            else {
+                throw ChatServiceError.otherUserNotFound
+            }
+
             // If a chat with this user already exists, reuse it
-            if let existingChat = try await getChat(with: otherId) {
+            if let existingChat = try await getChat(with: profile.accountId) {
                 return existingChat
             }
 
             // Try to get the key bundle from the other user
             guard
-                let keyBundle = try await keyGateway.fetchKeyBundle(for: otherId)
+                let keyBundle = try await keyGateway.fetchKeyBundle(for: profile.accountId)
             else {
                 throw ChatServiceError.missingKeyBundle
             }
@@ -69,13 +80,13 @@ class ChatService: ObservableObject {
             )
 
             log.debug(
-                "Successfully performed X3DH handshake with: \(otherId.uuidString)"
+                "Successfully performed X3DH handshake with: \(profile.username)"
             )
             log.debug("Used prekey ID: \(String(describing: usedPrekeyId))")
 
             // Create a new chat with the Double Ratchet session
             return try await createChat(
-                with: otherId,
+                with: profile,
                 sharedSecret: sharedSecret,
                 ephemeralPrivateKey: ephemeralPrivateKey,
                 prekey: prekey
@@ -99,7 +110,7 @@ class ChatService: ObservableObject {
     /// - Returns: The created Chat object
     @MainActor
     func createChat(
-        with otherId: UUID,
+        with profile: Profile,
         sharedSecret: SymmetricKey,
         ephemeralPrivateKey: P256.KeyAgreement.PrivateKey,
         prekey: Prekey
@@ -122,9 +133,9 @@ class ChatService: ObservableObject {
 
         // 3. Create and save the chat
         let chat = Chat(
-            participantId: otherId,
+            participantId: profile.accountId,
             ownerId: currentUserId,
-            displayName: otherId.uuidString,  // Default to contact's ID as long as we don't have profiles
+            displayName: profile.username,
             doubleRatchetSession: sessionData
         )
 
@@ -242,14 +253,14 @@ class ChatService: ObservableObject {
         log.debug("sessionData from recv: \(jsonStr)")
 
         // 6. Query the senders profile to populate the chat
-        // TODO: Implement when profile endpoints exist on server
-        let displayName = senderId.uuidString
+        let profile = try? await profileService.fetchProfile(
+            byAccountId: senderId)
 
         // 7. Create and save the chat
         let chat = Chat(
             participantId: senderId,
             ownerId: user.id,
-            displayName: displayName,
+            displayName: profile?.username ?? senderId.uuidString,
             doubleRatchetSession: sessionData
         )
 

@@ -72,6 +72,12 @@ class AppContext: ObservableObject {
         let notificationCenter = DefaultUserNotificationCenter()
         let pushNotificationService = PushNotificationService()
 
+        // Initialize profile services
+        let profileRepository = SwiftDataProfileRepository(modelContext: modelContext)
+        let profileService = ProfileService(
+            profileRepository: profileRepository, profileGateway: restClient,
+        )
+
         // Initialize crypto services
         let tee = SecurePersistentTee()
         let x3dh = X3DH(tee: tee)
@@ -81,6 +87,7 @@ class AppContext: ObservableObject {
         let chatService = ChatService(
             chatRepository: chatRepository,
             userService: userService,
+            profileService: profileService,
             messageGateway: restClient,
             keyGateway: restClient,
             x3dh: x3dh
@@ -147,6 +154,12 @@ class AppContext: ObservableObject {
         let notificationCenter = FakeUserNotificationCenter()
         let pushNotificationService = PushNotificationService()
 
+        // Initialize profile services
+        let profileRepository = SwiftDataProfileRepository(modelContext: modelContext)
+        let profileService = ProfileService(
+            profileRepository: profileRepository, profileGateway: simulatedBackend,
+        )
+
         // Initialize crypto services
         let tee = InMemoryTee()
         let x3dh = X3DH(tee: tee)
@@ -156,6 +169,7 @@ class AppContext: ObservableObject {
         let chatService = ChatService(
             chatRepository: chatRepository,
             userService: userService,
+            profileService: profileService,
             messageGateway: simulatedBackend,
             keyGateway: simulatedBackend,
             x3dh: x3dh
