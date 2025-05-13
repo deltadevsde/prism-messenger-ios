@@ -19,6 +19,10 @@ class InMemoryStore {
         return (items[ObjectIdentifier(type)] as? [T]) ?? []
     }
 
+    func firstInList<T>(_ type: T.Type, where condition: (T) -> Bool) -> T? {
+        return getList(T.self).first { condition($0) }
+    }
+
     func addToList<T>(_ item: T) {
         var currentList = getList(T.self)
         currentList.append(item)
