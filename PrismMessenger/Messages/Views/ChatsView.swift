@@ -283,8 +283,7 @@ struct NewChatView: View {
 
         Task {
             do {
-                let chat = try await chatService.startChat(with: username)
-
+                let chat = try await chatService.startChat(with: UUID(uuidString: username)!)
                 print("Successfully created chat with \(username)")
 
                 DispatchQueue.main.async {
@@ -332,10 +331,10 @@ struct NewChatView: View {
         try! await registrationService.registerNewUser(username: "Charlie")
         try! await registrationService.registerNewUser(username: "Alice")
 
-        let chat1 = try! await chatService.startChat(with: "Bob")
+        let chat1 = try! await chatService.startChat(with: UUID())
         try! await chatService.sendMessage(content: "Test", in: chat1)
 
-        let chat2 = try! await chatService.startChat(with: "Charlie")
+        let chat2 = try! await chatService.startChat(with: UUID())
         try! await chatService.sendMessage(content: "Hello", in: chat2)
     }
 

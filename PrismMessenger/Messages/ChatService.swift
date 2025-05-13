@@ -25,7 +25,6 @@ enum ChatServiceError: Error {
 class ChatService: ObservableObject {
     private let chatRepository: ChatRepository
     private let userService: UserService
-    private let contactService: ContactService
     private let messageGateway: MessageGateway
     private let keyGateway: KeyGateway
     private let x3dh: X3DH
@@ -33,38 +32,28 @@ class ChatService: ObservableObject {
     init(
         chatRepository: ChatRepository,
         userService: UserService,
-        contactService: ContactService,
         messageGateway: MessageGateway,
         keyGateway: KeyGateway,
         x3dh: X3DH
     ) {
         self.chatRepository = chatRepository
         self.userService = userService
-        self.contactService = contactService
         self.messageGateway = messageGateway
         self.keyGateway = keyGateway
         self.x3dh = x3dh
     }
 
     @MainActor
-    func startChat(with otherUsername: String) async throws -> Chat {
+    func startChat(with otherId: UUID) async throws -> Chat {
         do {
-            // Check if there's contact info for this username
-            guard
-                let contact = try await contactService.fetchContact(
-                    byUsername: otherUsername)
-            else {
-                throw ChatServiceError.otherUserNotFound
-            }
-
             // If a chat with this user already exists, reuse it
-            if let existingChat = try await getChat(with: contact.accountId) {
+            if let existingChat = try await getChat(with: otherId) {
                 return existingChat
             }
 
             // Try to get the key bundle from the other user
             guard
-                let keyBundle = try await keyGateway.fetchKeyBundle(for: contact.id)
+                let keyBundle = try await keyGateway.fetchKeyBundle(for: otherId)
             else {
                 throw ChatServiceError.missingKeyBundle
             }
@@ -80,13 +69,13 @@ class ChatService: ObservableObject {
             )
 
             log.debug(
-                "Successfully performed X3DH handshake with: \(contact.id.uuidString)"
+                "Successfully performed X3DH handshake with: \(otherId.uuidString)"
             )
             log.debug("Used prekey ID: \(String(describing: usedPrekeyId))")
 
             // Create a new chat with the Double Ratchet session
             return try await createChat(
-                with: contact,
+                with: otherId,
                 sharedSecret: sharedSecret,
                 ephemeralPrivateKey: ephemeralPrivateKey,
                 prekey: prekey
@@ -110,7 +99,7 @@ class ChatService: ObservableObject {
     /// - Returns: The created Chat object
     @MainActor
     func createChat(
-        with contact: Contact,
+        with otherId: UUID,
         sharedSecret: SymmetricKey,
         ephemeralPrivateKey: P256.KeyAgreement.PrivateKey,
         prekey: Prekey
@@ -133,9 +122,9 @@ class ChatService: ObservableObject {
 
         // 3. Create and save the chat
         let chat = Chat(
-            participantId: contact.id,
+            participantId: otherId,
             ownerId: currentUserId,
-            displayName: contact.id.uuidString,  // Default to contact's ID as long as we don't have profiles
+            displayName: otherId.uuidString,  // Default to contact's ID as long as we don't have profiles
             doubleRatchetSession: sessionData
         )
 
