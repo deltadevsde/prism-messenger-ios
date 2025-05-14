@@ -39,6 +39,12 @@ extension FakeClient: RegistrationGateway {
             apnsToken: apnsToken
         )
         store.addToList(registeredUser)
+
+        let profile = Profile(
+            accountId: registeredUser.id,
+            username: registeredUser.username)
+        store.addToList(profile)
+
         return registeredUser.id
     }
 }
