@@ -1,0 +1,60 @@
+//
+//  AsyncPreview.swift
+//  PrismMessenger
+//
+//  Copyright © 2025 prism. All rights reserved.
+//
+
+import SwiftUI
+
+struct AsyncPreview<Content: View>: View {
+    @StateObject private var appContext = AppContextFactory.forTest()
+    @StateObject private var router = NavigationRouter()
+
+    @UIApplicationDelegateAdaptor private var appDelegate: AppDelegate
+
+    @State private var isLoaded = false
+
+    private var content: () -> Content
+    private var setupTask: ((AppContext) async throws -> Void)?
+
+    init(
+        @ViewBuilder content: @escaping () -> Content,
+        withSetup setupTask: ((AppContext) async throws -> Void)? = nil
+    ) {
+        self.content = content
+        self.setupTask = setupTask
+    }
+
+    var body: some View {
+        Group {
+            if isLoaded {
+                NavigationStack(path: $router.path) {
+                    content()
+                }
+                .modelContext(appContext.modelContext)
+                .environmentObject(router)
+                .environmentObject(appContext)
+                .environmentObject(appContext.chatService)
+                .environmentObject(appContext.messageService)
+                .environmentObject(appContext.registrationService)
+                .environmentObject(appContext.userService)
+                .environmentObject(appContext.updatePushTokenService)
+                .tint(.black)
+            } else {
+                Text("Waiting for async setup...")
+            }
+        }
+        .task {
+            do {
+                appContext.connectAppDelegate(appDelegate)
+                await startApp(appContext: appContext, router: router)
+                try await setupTask?(appContext)
+                isLoaded = true
+            } catch {
+                print("Preview setup failed: \(error)")
+            }
+        }
+    }
+
+}
