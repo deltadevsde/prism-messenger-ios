@@ -215,7 +215,7 @@ class ChatService: ObservableObject {
         usedPrekeyId: UInt64?
     ) async throws -> Chat {
         // 1. Get the current user's data
-        guard let user = try await userService.getCurrentUser() else {
+        guard let user = userService.currentUser else {
             throw ChatServiceError.noCurrentUser
         }
 
@@ -408,8 +408,9 @@ class ChatService: ObservableObject {
         }
     }
 
+    @MainActor
     private func getCurrentUserId() async throws -> UUID {
-        guard let currentUser = try await userService.getCurrentUser() else {
+        guard let currentUser = userService.currentUser else {
             throw ChatServiceError.noCurrentUser
         }
         return currentUser.id

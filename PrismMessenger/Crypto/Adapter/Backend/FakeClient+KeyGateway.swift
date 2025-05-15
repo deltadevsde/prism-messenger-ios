@@ -13,14 +13,16 @@ private struct StoredKeyBundle {
 }
 
 extension FakeClient: KeyGateway {
+
+    @MainActor
     func submitKeyBundle(keyBundle: KeyBundle) async throws {
-        guard let user = try await userService.getCurrentUser() else {
-            throw UserGatewayError.requestFailed(0)
+        guard let user = userService.currentUser else {
+            throw FakeClientError.authenticationRequired
         }
 
         guard (store.getList(FakeUser.self).contains { $0.id == user.id })
         else {
-            throw UserGatewayError.requestFailed(1)
+            throw UserGatewayError.requestFailed(404)
         }
 
         store.addToList(StoredKeyBundle(accountId: user.id, keyBundle: keyBundle))

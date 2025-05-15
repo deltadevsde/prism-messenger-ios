@@ -17,15 +17,15 @@ struct FakeUser {
 extension FakeClient: UserGateway {
     func updateApnsToken(_ apnsToken: Data) async throws {
 
-        guard let username = await userService.selectedUsername else {
-            throw UserGatewayError.requestFailed(0)
+        guard let user = await userService.currentUser else {
+            throw FakeClientError.authenticationRequired
         }
 
         guard
-            var existingUser = store.getList(FakeUser.self).first(where: { $0.username == username }
+            var existingUser = store.getList(FakeUser.self).first(where: { $0.id == user.id }
             )
         else {
-            throw UserGatewayError.requestFailed(1)
+            throw UserGatewayError.requestFailed(404)
         }
 
         existingUser.apnsToken = apnsToken

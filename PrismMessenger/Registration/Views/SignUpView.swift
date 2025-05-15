@@ -161,9 +161,7 @@ struct SignUpView: View {
 }
 
 #Preview {
-    let appContext = AppContext.forPreview()
-
-    SignUpView()
-        .environmentObject(appContext.router)
-        .environmentObject(appContext.registrationService)
+    AsyncPreview {
+        SignUpView()
+    }
 }

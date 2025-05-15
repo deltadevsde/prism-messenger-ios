@@ -298,15 +298,7 @@ struct MessageBubble: View {
     message4.chat = chat
     chat.addMessage(message4)
 
-    let appContext = AppContext.forPreview()
-
-    return NavigationStack {
-        Text("Root View")
-            .navigationDestination(isPresented: .constant(true)) {
-                ChatView(chat: chat)
-                    .environmentObject(appContext.chatService)
-                    .environmentObject(appContext.messageService)
-            }
+    return AsyncPreview {
+        ChatView(chat: chat)
     }
-    .tint(.black)
 }

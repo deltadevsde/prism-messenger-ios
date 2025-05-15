@@ -30,7 +30,6 @@ struct MainView: View {
             }
         }
         .modelContext(appContext.modelContext)
-        .environmentObject(appContext.router)
         .environmentObject(appContext.chatService)
         .environmentObject(appContext.messageService)
         .environmentObject(appContext.registrationService)
@@ -88,7 +87,7 @@ struct MainView: View {
 
             Button("Try Again") {
                 Task {
-                    await appContext.onAppStart()
+                    await startApp(appContext: appContext, router: router)
                 }
             }
             .buttonStyle(.borderedProminent)
@@ -98,8 +97,8 @@ struct MainView: View {
 }
 
 #Preview {
-    let context = AppContext.forPreview()
-    let router = context.router
+    @Previewable @StateObject var context: AppContext = AppContextFactory.forTest()
+    @Previewable @StateObject var router = NavigationRouter()
 
     router.setLaunchState(.registered)
 

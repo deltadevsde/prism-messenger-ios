@@ -42,7 +42,7 @@ class MessageService: ObservableObject {
     /// - Returns: The number of new messages processed
     @discardableResult
     func fetchAndProcessMessages() async throws -> Int {
-        guard let currentUser = try await userService.getCurrentUser() else {
+        guard let currentUser = userService.currentUser else {
             return 0
         }
 
