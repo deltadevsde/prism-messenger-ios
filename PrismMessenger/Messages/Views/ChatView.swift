@@ -275,7 +275,6 @@ struct MessageBubble: View {
 #Preview {
     let chat = Chat(
         participantId: UUID(),
-        ownerId: UUID(),
         displayName: "John Doe",
         doubleRatchetSession: Data()
     )

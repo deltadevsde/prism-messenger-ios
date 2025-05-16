@@ -22,7 +22,7 @@ class MockChatRepository: ChatRepository {
     var getChatWithIdReturnValue: Chat? = nil
     var getChatWithIdError: Error? = nil
 
-    func getAllChats(for id: UUID) async throws -> [Chat] {
+    func getAllChats() async throws -> [Chat] {
         return []
     }
 
@@ -154,7 +154,6 @@ final class MessageNotificationServiceTests {
         let message = Message(content: content, isFromMe: false)
         let chat = Chat(
             participantId: UUID(),
-            ownerId: UUID(),
             displayName: "Test User",
             doubleRatchetSession: Data()
         )

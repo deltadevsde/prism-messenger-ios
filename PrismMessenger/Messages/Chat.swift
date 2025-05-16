@@ -18,9 +18,6 @@ final class Chat: Identifiable {
     var lastMessageTimestamp: Date?
     var unreadCount: Int
 
-    // Owner of this chat (the user who created it - only required for multi-user in one app)
-    var ownerId: UUID
-
     // Crypto session state (serialized)
     var doubleRatchetSession: Data
 
@@ -29,14 +26,12 @@ final class Chat: Identifiable {
 
     init(
         participantId: UUID,
-        ownerId: UUID,
         displayName: String? = nil,
         imageURL: String? = nil,
         doubleRatchetSession: Data
     ) {
         self.id = UUID()
         self.participantId = participantId
-        self.ownerId = ownerId
         self.displayName = displayName
         self.imageURL = imageURL
         self.doubleRatchetSession = doubleRatchetSession

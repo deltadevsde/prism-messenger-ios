@@ -46,13 +46,12 @@ class SwiftDataChatRepository: ChatRepository {
         return chats.first
     }
 
-    func getChat(withParticipant participantId: UUID, forOwner ownerId: UUID)
+    func getChat(withParticipant participantId: UUID)
         async throws -> Chat?
     {
         let descriptor = FetchDescriptor<Chat>(
             predicate: #Predicate<Chat> { chat in
                 chat.participantId == participantId
-                    && chat.ownerId == ownerId
             }
         )
 
