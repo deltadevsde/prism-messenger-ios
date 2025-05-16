@@ -25,20 +25,20 @@ class RegistrationService: ObservableObject {
     private let registrationGateway: RegistrationGateway
     private let tee: TrustedExecutionEnvironment
     private let keyGateway: KeyGateway
-    private let pushNotificationService: PushNotificationService
+    private let pushNotificationCenter: PushNotificationCenter
     private let userService: UserService
 
     init(
         registrationGateway: RegistrationGateway,
         tee: TrustedExecutionEnvironment,
         keyGateway: KeyGateway,
-        pushNotificationService: PushNotificationService,
+        pushNotificationCenter: PushNotificationCenter,
         userService: UserService
     ) {
         self.registrationGateway = registrationGateway
         self.tee = tee
         self.keyGateway = keyGateway
-        self.pushNotificationService = pushNotificationService
+        self.pushNotificationCenter = pushNotificationCenter
         self.userService = userService
     }
 
@@ -51,7 +51,7 @@ class RegistrationService: ObservableObject {
         let challenge = try await requestRegistration(username: username)
 
         let authPassword = try generateServerAuthPassword()
-        let apnsToken = try await pushNotificationService.requestPushNotificationToken()
+        let apnsToken = try await pushNotificationCenter.requestPushNotificationToken()
 
         // Step 2: Sign challenge and finalize registration
         let userId = try await finalizeRegistration(
@@ -141,7 +141,6 @@ class RegistrationService: ObservableObject {
 
             // When the user has been created, save it and set is as active user
             try await userService.saveUser(user)
-            await userService.selectAccount(username: username)
 
             // Upload the created key bundle to the server
             let prekeys = user.getPublicPrekeys()

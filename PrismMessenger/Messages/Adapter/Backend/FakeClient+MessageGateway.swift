@@ -22,10 +22,11 @@ private struct MessageResponse: ReceivedMessage {
 
 extension FakeClient: MessageGateway {
 
+    @MainActor
     func sendMessage(_ message: DoubleRatchetMessage, to recipientId: UUID)
         async throws -> MessageReceipt
     {
-        guard let currentUser = try await userService.getCurrentUser() else {
+        guard let currentUser = userService.currentUser else {
             throw FakeClientError.authenticationRequired
         }
 
@@ -37,11 +38,14 @@ extension FakeClient: MessageGateway {
         return SendMessageResponse(messageId: storedMessage.messageId)
     }
 
+    @MainActor
     func fetchMessages() async throws -> [ReceivedMessage] {
-        let currentUser = try await userService.getCurrentUser()
+        guard let currentUser = userService.currentUser else {
+            throw FakeClientError.authenticationRequired
+        }
 
         return store.getList(MessageResponse.self)
-            .filter { $0.recipientId == currentUser?.id }
+            .filter { $0.recipientId == currentUser.id }
     }
 
     func markMessagesAsDelivered(messageIds: [UUID]) async throws {

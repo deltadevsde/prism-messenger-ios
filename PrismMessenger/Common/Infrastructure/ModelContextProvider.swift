@@ -1,5 +1,5 @@
 //
-//  AppContext.swift
+//  ModelContextProvider.swift
 //  PrismMessenger
 //
 //  Copyright © 2025 prism. All rights reserved.
@@ -8,7 +8,8 @@
 import Foundation
 import SwiftData
 
-extension AppContext {
+@MainActor
+final class ModelContextProvider {
 
     static func createDefaultModelContext() -> ModelContext {
         return ModelContext(createModelContainer(inMemory: false))
@@ -35,9 +36,10 @@ extension AppContext {
     }
 
     // Deletes the SwiftData store when schema changes require migration
-    func resetSwiftDataStoreIfNeeded() {
+    static func resetSwiftDataStoreIfNeeded() {
         // Check if schema has changed - only delete database when needed
-        let currentVersion = UserDefaults.standard.integer(forKey: UserDefaultsKeys.schemaVersionKey)
+        let currentVersion = UserDefaults.standard.integer(
+            forKey: UserDefaultsKeys.schemaVersionKey)
         // Current schema version
         let newVersion = 8
 
@@ -49,9 +51,12 @@ extension AppContext {
         }
     }
 
-    private func resetSwiftDataStoreIfExists() {
+    private static func resetSwiftDataStoreIfExists() {
         let fileManager = FileManager.default
-        guard let applicationSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+        guard
+            let applicationSupportURL = fileManager.urls(
+                for: .applicationSupportDirectory, in: .userDomainMask
+            ).first
         else {
             return
         }

@@ -12,7 +12,7 @@ struct PrismMessengerApp: App {
 
     private static var isTesting = UserDefaults.standard.bool(forKey: UserDefaultsKeys.isTestingKey)
 
-    @StateObject private var appContext: AppContext = isTesting ? .forPreview() : .forProd()
+    @StateObject private var appContext: AppContext = Self.isTesting ? AppContextFactory.forTest() : AppContextFactory.forProd()
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -24,13 +24,8 @@ struct PrismMessengerApp: App {
                 .environmentObject(appContext)
                 .environmentObject(appContext.router)
                 .task {
-                    await appContext.onAppStart()
-                }
-                .onAppear {
-                    appDelegate.setServices(
-                        pushNotificationService: appContext.pushNotificationService,
-                        messageService: appContext.messageService,
-                    )
+                    appContext.connectAppDelegate(appDelegate)
+                    await startApp(appContext: appContext)
                 }
                 .onChange(of: scenePhase) {
                     appContext.scenePhaseRepository.currentPhase = scenePhase

@@ -40,8 +40,9 @@ class RestClient {
         return decoder
     }()
 
+    @MainActor
     private func authForCurrentUser() async throws -> RestAuthMethod {
-        guard let user = try await userService.getCurrentUser() else {
+        guard let user = userService.currentUser else {
             throw RestClientError.authenticationRequired
         }
 

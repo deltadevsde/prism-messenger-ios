@@ -9,15 +9,15 @@ import SwiftUI
 
 class AppDelegate: NSObject {
 
-    var pushNotificationService: PushNotificationService?
+    var pushNotificationDelegate: PushNotificationDelegate?
 
     var messageService: MessageService?
 
     func setServices(
-        pushNotificationService: PushNotificationService,
+        pushNotificationDelegate: PushNotificationDelegate?,
         messageService: MessageService,
     ) {
-        self.pushNotificationService = pushNotificationService
+        self.pushNotificationDelegate = pushNotificationDelegate
         self.messageService = messageService
     }
 }
@@ -28,14 +28,14 @@ extension AppDelegate: UIApplicationDelegate {
         _ application: UIApplication,
         didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
     ) {
-        pushNotificationService?.didRegisterForRemoteNotifications(withDeviceToken: deviceToken)
+        pushNotificationDelegate?.didRegisterForRemoteNotifications(withDeviceToken: deviceToken)
     }
 
     func application(
         _ application: UIApplication,
         didFailToRegisterForRemoteNotificationsWithError error: Error
     ) {
-        pushNotificationService?.didFailToRegisterForRemoteNotifications(withError: error)
+        pushNotificationDelegate?.didFailToRegisterForRemoteNotifications(withError: error)
     }
 
     func application(

@@ -11,6 +11,7 @@ enum ProfileGatewayError: Error {
     case requestFailed(Int)
 }
 
+@MainActor
 protocol ProfileGateway {
 
     func fetchProfile(byAccountId accountId: UUID) async throws -> Profile?
