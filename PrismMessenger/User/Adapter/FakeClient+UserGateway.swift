@@ -14,10 +14,11 @@ struct FakeUser {
     var apnsToken: Data
 }
 
+@MainActor
 extension FakeClient: UserGateway {
     func updateApnsToken(_ apnsToken: Data) async throws {
 
-        guard let user = await userService.currentUser else {
+        guard let user = userService.currentUser else {
             throw FakeClientError.authenticationRequired
         }
 
