@@ -36,7 +36,7 @@ class MockChatRepository: ChatRepository {
         return getChatWithIdReturnValue
     }
 
-    func getChat(withParticipant participantId: UUID, forOwner ownerId: UUID)
+    func getChat(withParticipant participantId: UUID)
         async throws -> Chat?
     {
         return nil
