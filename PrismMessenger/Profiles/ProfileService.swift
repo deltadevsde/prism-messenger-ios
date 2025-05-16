@@ -8,6 +8,7 @@
 import Foundation
 import SwiftData
 
+@MainActor
 class ProfileService: ObservableObject {
     private let profileRepository: ProfileRepository
     private let profileGateway: ProfileGateway

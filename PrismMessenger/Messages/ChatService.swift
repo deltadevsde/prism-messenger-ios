@@ -22,6 +22,7 @@ enum ChatServiceError: Error {
     case decodingMessageFailed
 }
 
+@MainActor
 class ChatService: ObservableObject {
     private let chatRepository: ChatRepository
     private let userService: UserService

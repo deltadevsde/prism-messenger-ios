@@ -8,11 +8,11 @@
 import Foundation
 import SwiftData
 
+@MainActor
 protocol ChatRepository {
-    func getAllChats(for id: UUID) async throws -> [Chat]
+    func getAllChats() async throws -> [Chat]
     func getChat(withId id: UUID) async throws -> Chat?
-    func getChat(withParticipant participantId: UUID, forOwner ownerId: UUID) async throws
-        -> Chat?
+    func getChat(withParticipant participantId: UUID) async throws -> Chat?
     func saveChat(_ chat: Chat) async throws
     func deleteChat(_ chat: Chat) async throws
 }
