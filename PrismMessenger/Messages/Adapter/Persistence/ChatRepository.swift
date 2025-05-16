@@ -25,11 +25,8 @@ class SwiftDataChatRepository: ChatRepository {
         self.modelContext = modelContext
     }
 
-    func getAllChats(for id: UUID) async throws -> [Chat] {
+    func getAllChats() async throws -> [Chat] {
         let descriptor = FetchDescriptor<Chat>(
-            predicate: #Predicate<Chat> { chat in
-                chat.ownerId == id
-            },
             sortBy: [SortDescriptor(\.lastMessageTimestamp, order: .reverse)]
         )
 
