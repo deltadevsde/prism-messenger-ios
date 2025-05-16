@@ -47,7 +47,6 @@ class ChatService: ObservableObject {
         self.x3dh = x3dh
     }
 
-    @MainActor
     func startChat(with otherUsername: String) async throws -> Chat {
         do {
             // Check if there's a profile for this username
