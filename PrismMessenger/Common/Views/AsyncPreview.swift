@@ -9,7 +9,6 @@ import SwiftUI
 
 struct AsyncPreview<Content: View>: View {
     @StateObject private var appContext = AppContextFactory.forTest()
-    @StateObject private var router = NavigationRouter()
 
     @UIApplicationDelegateAdaptor private var appDelegate: AppDelegate
 
@@ -29,12 +28,12 @@ struct AsyncPreview<Content: View>: View {
     var body: some View {
         Group {
             if isLoaded {
-                NavigationStack(path: $router.path) {
+                NavigationStack(path: $appContext.router.path) {
                     content()
                 }
                 .modelContext(appContext.modelContext)
-                .environmentObject(router)
                 .environmentObject(appContext)
+                .environmentObject(appContext.router)
                 .environmentObject(appContext.chatService)
                 .environmentObject(appContext.messageService)
                 .environmentObject(appContext.registrationService)
@@ -48,7 +47,7 @@ struct AsyncPreview<Content: View>: View {
         .task {
             do {
                 appContext.connectAppDelegate(appDelegate)
-                await startApp(appContext: appContext, router: router)
+                await startApp(appContext: appContext)
                 try await setupTask?(appContext)
                 isLoaded = true
             } catch {

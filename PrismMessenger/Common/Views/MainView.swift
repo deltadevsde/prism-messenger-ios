@@ -87,7 +87,7 @@ struct MainView: View {
 
             Button("Try Again") {
                 Task {
-                    await startApp(appContext: appContext, router: router)
+                    await startApp(appContext: appContext)
                 }
             }
             .buttonStyle(.borderedProminent)

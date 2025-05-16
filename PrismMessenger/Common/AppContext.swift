@@ -12,6 +12,7 @@ import SwiftData
 class AppContext: ObservableObject {
     let modelContext: ModelContext
     let scenePhaseRepository: ScenePhaseRepository
+    var router: NavigationRouter
     let chatService: ChatService
     let messageService: MessageService
     let messageNotificationService: MessageNotificationService
@@ -36,6 +37,7 @@ class AppContext: ObservableObject {
     ) {
         self.modelContext = modelContext
         self.scenePhaseRepository = scenePhaseRepository
+        self.router = router
         self.chatService = chatService
         self.messageService = messageService
         self.messageNotificationService = messageNotificationService

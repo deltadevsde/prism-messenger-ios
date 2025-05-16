@@ -6,7 +6,9 @@
 //
 
 @MainActor
-func startApp(appContext: AppContext, router: NavigationRouter) async {
+func startApp(appContext: AppContext) async {
+    let router = appContext.router
+    
     router.setLaunchState(.loading)
     do {
         ModelContextProvider.resetSwiftDataStoreIfNeeded()
