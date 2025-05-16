@@ -124,11 +124,7 @@ struct ChatsView: View {
 
     private func loadChats() {
         Task {
-            let userChats = (try? await chatService.getAllChats()) ?? []
-
-            DispatchQueue.main.async {
-                self.currentChats = userChats
-            }
+            self.currentChats = (try? await chatService.getAllChats()) ?? []
         }
     }
 }
