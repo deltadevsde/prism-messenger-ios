@@ -8,7 +8,7 @@
 import Foundation
 
 /// Describes how push notifications can be delegated to adapters
-protocol PushNotificationDelegate {
+protocol PushNotificationDelegate: AnyObject {
     /// Called when the device successfully registers for remote notifications
     /// - Parameter withDeviceToken: The device token received from Apple Push Notification service
     func didRegisterForRemoteNotifications(withDeviceToken: Data)

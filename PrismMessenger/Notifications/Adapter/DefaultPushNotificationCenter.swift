@@ -10,7 +10,7 @@ import UserNotifications
 
 private let log = Log.notifications
 
-class DefaultPushNotificationCenter: PushNotificationCenter, PushNotificationDelegate {
+actor DefaultPushNotificationCenter: PushNotificationCenter, PushNotificationDelegate {
 
     // Timeout in seconds for push notification token registration
     private let tokenRegistrationTimeoutSeconds: UInt64 = 30
@@ -20,10 +20,6 @@ class DefaultPushNotificationCenter: PushNotificationCenter, PushNotificationDel
 
     // The continuation is thread-safe for resuming purposes
     private var tokenContinuation: CheckedContinuation<Data, Error>?
-
-    deinit {
-        cancelTimeoutTask()
-    }
 
     // Get token using async/await
     func requestPushNotificationToken() async throws -> Data {
@@ -108,8 +104,19 @@ class DefaultPushNotificationCenter: PushNotificationCenter, PushNotificationDel
         }
     }
 
-    // Called by the AppDelegate when token is received
-    func didRegisterForRemoteNotifications(withDeviceToken deviceToken: Data) {
+    // MARK: - PushNotificationDelegate
+
+    // These methods are called by AppDelegate or SceneDelegate from the main thread
+    // Mark as nonisolated to allow calling from outside the actor without await
+
+    nonisolated func didRegisterForRemoteNotifications(withDeviceToken deviceToken: Data) {
+        // Create a Task to switch to the actor's isolated context
+        Task {
+            await handleDeviceToken(deviceToken)
+        }
+    }
+
+    private func handleDeviceToken(_ deviceToken: Data) {
         cancelTimeoutTask()
 
         if let continuation = tokenContinuation {
@@ -120,8 +127,13 @@ class DefaultPushNotificationCenter: PushNotificationCenter, PushNotificationDel
         }
     }
 
-    // Called by the AppDelegate when registration fails
-    func didFailToRegisterForRemoteNotifications(withError error: Error) {
+    nonisolated func didFailToRegisterForRemoteNotifications(withError error: Error) {
+        Task {
+            await handleRegistrationError(error)
+        }
+    }
+
+    private func handleRegistrationError(_ error: Error) {
         cancelTimeoutTask()
 
         if let continuation = tokenContinuation {
