@@ -16,8 +16,8 @@ struct FakeClient {
 
     let userService: UserService
 
-    init(userService: UserService) {
-        self.store = InMemoryStore()
+    init(store: InMemoryStore, userService: UserService) {
+        self.store = store
         self.userService = userService
     }
 }

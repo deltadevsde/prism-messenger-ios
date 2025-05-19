@@ -22,6 +22,7 @@ enum ChatServiceError: Error {
     case decodingMessageFailed
 }
 
+@MainActor
 class ChatService: ObservableObject {
     private let chatRepository: ChatRepository
     private let userService: UserService
@@ -46,7 +47,6 @@ class ChatService: ObservableObject {
         self.x3dh = x3dh
     }
 
-    @MainActor
     func startChat(with otherUsername: String) async throws -> Chat {
         do {
             // Check if there's a profile for this username
@@ -108,15 +108,12 @@ class ChatService: ObservableObject {
     ///   - ephemeralPublicKey: The ephemeral public key used in X3DH
     ///   - prekey: The prekey that was used
     /// - Returns: The created Chat object
-    @MainActor
     func createChat(
         with profile: Profile,
         sharedSecret: SymmetricKey,
         ephemeralPrivateKey: P256.KeyAgreement.PrivateKey,
         prekey: Prekey
     ) async throws -> Chat {
-        // 0. Get the current user
-        let currentUserId = try await getCurrentUserId()
 
         // 1. Create a Double Ratchet session with the shared secret
         let session = try createDoubleRatchetSession(
@@ -134,7 +131,6 @@ class ChatService: ObservableObject {
         // 3. Create and save the chat
         let chat = Chat(
             participantId: profile.accountId,
-            ownerId: currentUserId,
             displayName: profile.username,
             doubleRatchetSession: sessionData
         )
@@ -147,26 +143,18 @@ class ChatService: ObservableObject {
     /// Retrieves a chat with a specific participant for the current user, if it exists
     /// - Parameter participantId: The participant's id
     /// - Returns: The Chat object if found, nil otherwise
-    @MainActor
     func getChat(with participantId: UUID) async throws -> Chat? {
-        let currentUsername = try await getCurrentUserId()
-
         do {
             return try await chatRepository.getChat(
                 withParticipant: participantId,
-                forOwner: currentUsername
             )
         } catch {
             throw ChatServiceError.databaseFailure
         }
     }
 
-    /// Gets a list of all chats for the current user, sorted by last message timestamp
-    /// - Returns: Array of all chats owned by the current user
-    @MainActor
     func getAllChats() async throws -> [Chat] {
-        let currentUsername = try await getCurrentUserId()
-        return try await chatRepository.getAllChats(for: currentUsername)
+        return try await chatRepository.getAllChats()
     }
 
     /// Creates a DoubleRatchetSession from the shared secret from X3DH
@@ -207,7 +195,6 @@ class ChatService: ObservableObject {
     ///   - senderEphemeralKey: The sender's ephemeral key from the message header
     ///   - usedPrekeyId: The ID of our prekey that was used (if any)
     /// - Returns: The newly created Chat
-    @MainActor
     func createChatFromIncomingMessage(
         senderId: UUID,
         senderIdentityKey: P256.KeyAgreement.PublicKey,
@@ -215,7 +202,7 @@ class ChatService: ObservableObject {
         usedPrekeyId: UInt64?
     ) async throws -> Chat {
         // 1. Get the current user's data
-        guard let user = try await userService.getCurrentUser() else {
+        guard let user = userService.currentUser else {
             throw ChatServiceError.noCurrentUser
         }
 
@@ -259,7 +246,6 @@ class ChatService: ObservableObject {
         // 7. Create and save the chat
         let chat = Chat(
             participantId: senderId,
-            ownerId: user.id,
             displayName: profile?.username ?? senderId.uuidString,
             doubleRatchetSession: sessionData
         )
@@ -274,7 +260,6 @@ class ChatService: ObservableObject {
     ///   - content: The message content
     ///   - chat: The chat to send the message in
     /// - Returns: The created Message object
-    @MainActor
     func sendMessage(
         content: String,
         in chat: Chat
@@ -333,7 +318,6 @@ class ChatService: ObservableObject {
     ///   - chat: The chat this message belongs to
     ///   - sender: The sender's username
     /// - Returns: The created Message object if successful
-    @MainActor
     func receiveMessage(
         _ receivedMessage: ReceivedMessage,
         in chat: Chat,
@@ -406,12 +390,5 @@ class ChatService: ObservableObject {
             log.debug("Error in receiveMessage: \(error)")
             throw error
         }
-    }
-
-    private func getCurrentUserId() async throws -> UUID {
-        guard let currentUser = try await userService.getCurrentUser() else {
-            throw ChatServiceError.noCurrentUser
-        }
-        return currentUser.id
     }
 }

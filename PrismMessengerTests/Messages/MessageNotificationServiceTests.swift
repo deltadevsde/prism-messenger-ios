@@ -12,7 +12,6 @@ import UserNotifications
 
 private let log = Log.messages
 
-
 enum TestError: Error {
     case someError
 }
@@ -23,7 +22,7 @@ class MockChatRepository: ChatRepository {
     var getChatWithIdReturnValue: Chat? = nil
     var getChatWithIdError: Error? = nil
 
-    func getAllChats(for username: String) async throws -> [Chat] {
+    func getAllChats() async throws -> [Chat] {
         return []
     }
 
@@ -37,7 +36,7 @@ class MockChatRepository: ChatRepository {
         return getChatWithIdReturnValue
     }
 
-    func getChat(withParticipant participantUsername: String, forOwner ownerUsername: String)
+    func getChat(withParticipant participantId: UUID)
         async throws -> Chat?
     {
         return nil
@@ -86,7 +85,7 @@ final class MessageNotificationServiceTests {
         router.path = [.chat(message.chat!)]
 
         // Ensure no notification is sent and we remain on the old route
-        try await service.potentiallySendNotification(for: message)
+        await service.potentiallySendNotification(for: message)
 
         #expect(chatRepository.getChatWithIdCallCount == 0, "Should not fetch the chat")
         #expect(router.path == [.chat(message.chat!)], "Should not navigate")
@@ -98,7 +97,7 @@ final class MessageNotificationServiceTests {
         router.path = [.chat(anotherMessage.chat!)]
 
         // Ensure a notification is sent and the route changes to the chat of the notification
-        try await service.potentiallySendNotification(for: message)
+        await service.potentiallySendNotification(for: message)
 
         #expect(chatRepository.getChatWithIdCallCount == 1, "Should fetch the chat")
         #expect(router.path == [.chat(message.chat!)], "Should navigate")
@@ -115,7 +114,7 @@ final class MessageNotificationServiceTests {
         router.path = [.chat(message.chat!)]
 
         // Ensure a notification is sent and the route remains at the current chat
-        try await service.potentiallySendNotification(for: message)
+        await service.potentiallySendNotification(for: message)
 
         #expect(chatRepository.getChatWithIdCallCount == 1, "Should fetch the chat")
         #expect(router.path == [.chat(message.chat!)], "Should not navigate")
@@ -127,7 +126,7 @@ final class MessageNotificationServiceTests {
         router.path = [.chat(anotherMessage.chat!)]
 
         // Ensure a notification is sent and the route changes to the chat of the notification
-        try await service.potentiallySendNotification(for: message)
+        await service.potentiallySendNotification(for: message)
 
         #expect(chatRepository.getChatWithIdCallCount == 2, "Should fetch the chat")
         #expect(router.path == [.chat(message.chat!)], "Should navigate")
@@ -143,7 +142,7 @@ final class MessageNotificationServiceTests {
         chatRepository.getChatWithIdError = TestError.someError
 
         // Ensure no error is thrown but we remain on the old route
-        try await self.service.potentiallySendNotification(for: message)
+        await self.service.potentiallySendNotification(for: message)
 
         #expect(chatRepository.getChatWithIdCallCount == 1, "Should fetch the chat")
         #expect(router.path == [], "Should not navigate")
@@ -154,8 +153,7 @@ final class MessageNotificationServiceTests {
     private func createTestMessage(content: String = "Test message") -> Message {
         let message = Message(content: content, isFromMe: false)
         let chat = Chat(
-            participantUsername: "testuser",
-            ownerUsername: "currentuser",
+            participantId: UUID(),
             displayName: "Test User",
             doubleRatchetSession: Data()
         )

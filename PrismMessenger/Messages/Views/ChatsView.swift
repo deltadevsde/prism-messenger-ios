@@ -98,9 +98,6 @@ struct ChatsView: View {
         .onAppear {
             loadChats()
         }
-        .onChange(of: userService.selectedUsername) {
-            loadChats()
-        }
         .onChange(of: refreshTrigger) {
             loadChats()
         }
@@ -127,11 +124,7 @@ struct ChatsView: View {
 
     private func loadChats() {
         Task {
-            let userChats = (try? await chatService.getAllChats()) ?? []
-
-            DispatchQueue.main.async {
-                self.currentChats = userChats
-            }
+            self.currentChats = (try? await chatService.getAllChats()) ?? []
         }
     }
 }
@@ -322,11 +315,12 @@ struct NewChatView: View {
 }
 
 #Preview {
-    let appContext = AppContext.forPreview()
-    let chatService = appContext.chatService
-    let registrationService = appContext.registrationService
+    AsyncPreview {
+        ChatsView()
+    } withSetup: { context in
+        let chatService = context.chatService
+        let registrationService = context.registrationService
 
-    Task {
         try! await registrationService.registerNewUser(username: "Bob")
         try! await registrationService.registerNewUser(username: "Charlie")
         try! await registrationService.registerNewUser(username: "Alice")
@@ -337,15 +331,4 @@ struct NewChatView: View {
         let chat2 = try! await chatService.startChat(with: "Charlie")
         try! await chatService.sendMessage(content: "Hello", in: chat2)
     }
-
-    return NavigationStack {
-        Text("Root View")
-            .navigationDestination(isPresented: .constant(true)) {
-                ChatsView()
-                    .environmentObject(appContext.chatService)
-                    .environmentObject(appContext.userService)
-                    .environmentObject(appContext.router)
-            }
-    }
-    .tint(.black)
 }

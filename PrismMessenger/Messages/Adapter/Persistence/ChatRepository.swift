@@ -8,11 +8,11 @@
 import Foundation
 import SwiftData
 
+@MainActor
 protocol ChatRepository {
-    func getAllChats(for id: UUID) async throws -> [Chat]
+    func getAllChats() async throws -> [Chat]
     func getChat(withId id: UUID) async throws -> Chat?
-    func getChat(withParticipant participantId: UUID, forOwner ownerId: UUID) async throws
-        -> Chat?
+    func getChat(withParticipant participantId: UUID) async throws -> Chat?
     func saveChat(_ chat: Chat) async throws
     func deleteChat(_ chat: Chat) async throws
 }
@@ -25,11 +25,8 @@ class SwiftDataChatRepository: ChatRepository {
         self.modelContext = modelContext
     }
 
-    func getAllChats(for id: UUID) async throws -> [Chat] {
+    func getAllChats() async throws -> [Chat] {
         let descriptor = FetchDescriptor<Chat>(
-            predicate: #Predicate<Chat> { chat in
-                chat.ownerId == id
-            },
             sortBy: [SortDescriptor(\.lastMessageTimestamp, order: .reverse)]
         )
 
@@ -46,13 +43,12 @@ class SwiftDataChatRepository: ChatRepository {
         return chats.first
     }
 
-    func getChat(withParticipant participantId: UUID, forOwner ownerId: UUID)
+    func getChat(withParticipant participantId: UUID)
         async throws -> Chat?
     {
         let descriptor = FetchDescriptor<Chat>(
             predicate: #Predicate<Chat> { chat in
                 chat.participantId == participantId
-                    && chat.ownerId == ownerId
             }
         )
 

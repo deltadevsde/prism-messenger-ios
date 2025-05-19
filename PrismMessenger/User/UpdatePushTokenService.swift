@@ -18,30 +18,30 @@ enum UpdatePushTokenError: Error {
 class UpdatePushTokenService: ObservableObject {
     private let userService: UserService
     private let userGateway: UserGateway
-    private let pushNotificationService: PushNotificationService
+    private let pushNotificationCenter: PushNotificationCenter
 
     init(
         userService: UserService,
         userGateway: UserGateway,
-        pushNotificationService: PushNotificationService
+        pushNotificationService: PushNotificationCenter
     ) {
         self.userService = userService
         self.userGateway = userGateway
-        self.pushNotificationService = pushNotificationService
+        self.pushNotificationCenter = pushNotificationService
     }
 
     /// Updates the APNS token for the current user both locally and on the server
     @MainActor
     func updatePushToken() async throws {
         // Get the current user
-        guard let currentUser = try await userService.getCurrentUser() else {
+        guard let currentUser = userService.currentUser else {
             log.debug("Skipping push token update without user")
             return
         }
 
         do {
             // Request a new APNS token
-            let apnsToken = try await pushNotificationService.requestPushNotificationToken()
+            let apnsToken = try await pushNotificationCenter.requestPushNotificationToken()
 
             // Check if the token has changed
             if let existingToken = currentUser.apnsToken, existingToken == apnsToken {
