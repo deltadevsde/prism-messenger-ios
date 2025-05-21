@@ -55,7 +55,6 @@ class MessageService: ObservableObject {
             }
             let processedMessages = try await processReceivedMessages(
                 receivedMessages: messages,
-                currentUser: currentUser.username
             )
 
             let processedIds = processedMessages.compactMap { $0.serverId }
@@ -75,13 +74,9 @@ class MessageService: ObservableObject {
 
     /// Processes received messages, decrypts them, and updates the chat database
     /// - Parameters:
-    ///   - messages: Array of messages from the API
-    ///   - currentUser: The current user's username
-    ///   - chatService: The ChatService to handle message storage
-    /// - Returns: Array of processed message IDs that were successfully handled
-    func processReceivedMessages(
-        receivedMessages: [ReceivedMessage],
-        currentUser: String
+    ///   - messages: Array of received messages from the API
+    /// - Returns: Array of processed messages that were successfully handled
+    func processReceivedMessages(receivedMessages: [ReceivedMessage],
     ) async throws -> [Message] {
         var processedMessages: [Message] = []
 

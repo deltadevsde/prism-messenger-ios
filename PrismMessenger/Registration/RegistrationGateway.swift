@@ -10,6 +10,7 @@ import Foundation
 
 enum RegistrationGatewayError: Error {
     case requestFailed(Int)
+    case invalidResponse
 }
 
 protocol RegistrationGateway {
