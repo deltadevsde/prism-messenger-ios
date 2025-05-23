@@ -35,19 +35,19 @@ class UpdatePushTokenService: ObservableObject {
     func updatePushToken() async throws {
         // Get the current user
         guard let currentUser = userService.currentUser else {
-            log.debug("Skipping push token update without user")
+            log.warning("Push token update impossible, because there's no user")
             return
         }
 
         do {
             // Request a new APNS token
             let apnsToken = try await pushNotificationCenter.requestPushNotificationToken()
+            let apnsTokenHex = apnsToken.map { String(format: "%02hhx", $0) }.joined()
 
             // Check if the token has changed
             if let existingToken = currentUser.apnsToken, existingToken == apnsToken {
-                let existingTokenHex = existingToken.map { String(format: "%02hhx", $0) }.joined()
                 log.debug(
-                    "Push token for user \(currentUser.username) is still \(existingTokenHex), skipping update"
+                    "Push token update not necessary (is still \(apnsTokenHex))"
                 )
                 return
             }
@@ -59,7 +59,7 @@ class UpdatePushTokenService: ObservableObject {
             currentUser.apnsToken = apnsToken
             try await userService.saveUser(currentUser)
 
-            log.info("Successfully updated push token for user \(currentUser.username)")
+            log.info("Successfully updated push token (is now \(apnsTokenHex))")
         } catch let error as NSError {
             log.error("Failed to update push token: \(error)")
             throw UpdatePushTokenError.tokenAcquisitionFailed

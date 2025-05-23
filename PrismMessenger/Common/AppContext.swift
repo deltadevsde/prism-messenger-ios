@@ -16,6 +16,7 @@ class AppContext: ObservableObject {
     let chatService: ChatService
     let messageService: MessageService
     let messageNotificationService: MessageNotificationService
+    let profileService: ProfileService
     let pushNotificationCenter: PushNotificationCenter
     let pushNotificationDelegate: PushNotificationDelegate?
     let updatePushTokenService: UpdatePushTokenService
@@ -29,6 +30,7 @@ class AppContext: ObservableObject {
         chatService: ChatService,
         messageService: MessageService,
         messageNotificationService: MessageNotificationService,
+        profileService: ProfileService,
         pushNotificationCenter: PushNotificationCenter,
         pushNotificationDelegate: PushNotificationDelegate?,
         updatePushTokenService: UpdatePushTokenService,
@@ -41,6 +43,7 @@ class AppContext: ObservableObject {
         self.chatService = chatService
         self.messageService = messageService
         self.messageNotificationService = messageNotificationService
+        self.profileService = profileService
         self.pushNotificationCenter = pushNotificationCenter
         self.pushNotificationDelegate = pushNotificationDelegate
         self.updatePushTokenService = updatePushTokenService

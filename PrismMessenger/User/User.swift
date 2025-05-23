@@ -19,9 +19,6 @@ final class User {
 
     @Attribute(.unique) var id: UUID
 
-    @Attribute(.unique) var username: String
-
-    var displayName: String?
 
     var authPassword: String
 
@@ -38,8 +35,6 @@ final class User {
     init(
         id: UUID,
         signedPrekey: P256.KeyAgreement.PrivateKey,
-        username: String,
-        displayName: String? = nil,
         authPassword: String,
         apnsToken: Data? = nil
     ) {
@@ -47,8 +42,6 @@ final class User {
         self.signedPrekeyData = signedPrekey.toCryptoPayload()
         self.prekeys = []
         self.prekeyCounter = 0
-        self.username = username
-        self.displayName = displayName
         self.authPassword = authPassword
         self.apnsToken = apnsToken
     }

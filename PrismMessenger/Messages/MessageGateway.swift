@@ -3,6 +3,7 @@ import Foundation
 
 enum MessageGatewayError: Error {
     case requestFailed(Int)
+    case invalidResponse
 }
 
 protocol MessageReceipt {

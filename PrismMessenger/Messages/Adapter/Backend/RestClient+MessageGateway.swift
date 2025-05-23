@@ -39,11 +39,13 @@ extension RestClient: MessageGateway {
         )
 
         do {
-            let response: SendMessageResponse = try await post(
+            guard let response: SendMessageResponse = try await post(
                 request,
                 to: "/messages/send",
                 accessLevel: .authenticated
-            )
+            ) else {
+                throw MessageGatewayError.invalidResponse
+            }
             return response
         } catch RestClientError.httpError(let statusCode) {
             throw MessageGatewayError.requestFailed(statusCode)

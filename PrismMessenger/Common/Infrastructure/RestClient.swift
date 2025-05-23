@@ -145,7 +145,7 @@ class RestClient {
         to path: String,
         accessLevel: RestAccessLevel = .pub
     )
-        async throws -> U
+        async throws -> U?
     {
         let authMethod = try await authMethod(for: accessLevel)
         return try await self.post(data, to: path, authMethod: authMethod)
@@ -156,9 +156,13 @@ class RestClient {
         to path: String,
         authMethod: RestAuthMethod
     )
-        async throws -> U
+        async throws -> U?
     {
-        let responseData = try await self.postForData(data, to: path, authMethod: authMethod)
+        guard let responseData = try await self.postForData(data, to: path, authMethod: authMethod)
+        else {
+            return nil
+        }
+
         do {
             return try decoder.decode(U.self, from: responseData)
         } catch DecodingError.dataCorrupted(let context),
@@ -175,7 +179,7 @@ class RestClient {
         to path: String,
         authMethod: RestAuthMethod
     ) async throws
-        -> Data
+        -> Data?
     {
         let fullURL = baseURL.appendingPathComponent(path)
 
@@ -202,6 +206,11 @@ class RestClient {
         guard (200...299).contains(httpResponse.statusCode) else {
             throw RestClientError.httpError(httpResponse.statusCode)
         }
+
+        if httpResponse.statusCode == 204 {
+            return nil
+        }
+
         return responseData
     }
 
@@ -222,7 +231,7 @@ class RestClient {
         _ data: T,
         to path: String,
         authMethod: RestAuthMethod
-    ) async throws -> Data {
+    ) async throws -> Data? {
         let fullURL = baseURL.appendingPathComponent(path)
 
         var request = URLRequest(url: fullURL)
@@ -248,6 +257,125 @@ class RestClient {
         guard (200...299).contains(httpResponse.statusCode) else {
             throw RestClientError.httpError(httpResponse.statusCode)
         }
+
+        if httpResponse.statusCode == 204 {
+            return nil
+        }
+
         return responseData
+    }
+
+    func patch<T: Encodable>(_ data: T, to path: String, accessLevel: RestAccessLevel = .pub)
+        async throws
+    {
+        let authMethod = try await authMethod(for: accessLevel)
+        try await patch(data, to: path, authMethod: authMethod)
+    }
+
+    private func patch<T: Encodable>(_ data: T, to path: String, authMethod: RestAuthMethod)
+        async throws
+    {
+        let _ = try await patchForData(data, to: path, authMethod: authMethod)
+    }
+
+    func patch<T: Encodable, U: Decodable>(
+        _ data: T,
+        to path: String,
+        accessLevel: RestAccessLevel = .pub
+    )
+        async throws -> U?
+    {
+        let authMethod = try await authMethod(for: accessLevel)
+        return try await patch(data, to: path, authMethod: authMethod)
+    }
+
+    private func patch<T: Encodable, U: Decodable>(
+        _ data: T,
+        to path: String,
+        authMethod: RestAuthMethod
+    )
+        async throws -> U?
+    {
+        guard let responseData = try await patchForData(data, to: path, authMethod: authMethod)
+        else {
+            return nil
+        }
+
+        do {
+            return try decoder.decode(U.self, from: responseData)
+        } catch DecodingError.dataCorrupted(let context),
+            DecodingError.valueNotFound(_, let context),
+            DecodingError.typeMismatch(_, let context),
+            DecodingError.keyNotFound(_, let context)
+        {
+            throw RestClientError.serdeFailed(context.debugDescription)
+        }
+    }
+
+    private func patchForData<T: Encodable>(
+        _ data: T,
+        to path: String,
+        authMethod: RestAuthMethod
+    ) async throws -> Data? {
+        let fullURL = baseURL.appendingPathComponent(path)
+
+        var request = URLRequest(url: fullURL)
+        request.httpMethod = "PATCH"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        try request.applyAuth(authMethod)
+
+        do {
+            request.httpBody = try encoder.encode(data)
+            log.debug(
+                "\(request.httpMethod!) \(path): \(String(describing: request.allHTTPHeaderFields)) \(String(data: request.httpBody!, encoding: .utf8) ?? "No body")"
+            )
+        } catch EncodingError.invalidValue(_, let context) {
+            throw RestClientError.serdeFailed(context.debugDescription)
+        }
+
+        let (responseData, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw RestClientError.unknown
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw RestClientError.httpError(httpResponse.statusCode)
+        }
+
+        if httpResponse.statusCode == 204 {
+            return nil
+        }
+
+        return responseData
+    }
+
+    /// Uploads binary data to a specified URL with the given content type using PUT method
+    /// - Parameters:
+    ///   - data: The binary data to upload
+    ///   - url: The URL where the data should be uploaded
+    ///   - contentType: The Content-Type header value for the data
+    /// - Throws: RestClientError if the upload fails
+    func putBinaryData(_ data: Data, to url: String, contentType: String) async throws {
+        guard let url = URL(string: url) else {
+            throw RestClientError.invalidURL
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+
+        log.debug(
+            "\(request.httpMethod!) \(request.url?.relativePath ?? "/"): \(String(describing: request.allHTTPHeaderFields)) (\(data.count) bytes)"
+        )
+
+        let (_, response) = try await session.upload(for: request, from: data)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw RestClientError.unknown
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw RestClientError.httpError(httpResponse.statusCode)
+        }
     }
 }
