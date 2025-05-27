@@ -39,13 +39,6 @@ struct MainView: View {
         .tint(.black)
     }
 
-    private var profileIcon: some View {
-        // TODO: Navigate to profile? Or what should this do?
-        Image(systemName: "person.circle.fill")
-            .font(.system(size: 40))
-            .foregroundColor(.gray)
-    }
-
     private var mainContentView: some View {
         TabView {
             ChatsView()
@@ -68,7 +61,9 @@ struct MainView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                profileIcon
+                SmallProfilePictureView(imageURL: appContext.profileService.ownProfile?.picture) {
+                    // TODO: Open something like settings in the future
+                }
             }
             ToolbarItem(placement: .principal) {
                 Image("prism_text")
