@@ -10,7 +10,7 @@ import SwiftUI
 
 private let imageSize: CGFloat = 150
 
-struct ProfileView: View {
+struct EditProfileView: View {
     @EnvironmentObject private var router: NavigationRouter
     @Environment(ProfileService.self) private var profileService
 
@@ -190,7 +190,7 @@ struct ProfilePictureView: View {
 
 #Preview {
     AsyncPreview {
-        ProfileView()
+        EditProfileView()
     } withSetup: { appContext in
         try await appContext.registrationService.registerNewUser(username: "Alice")
     }

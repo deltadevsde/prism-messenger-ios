@@ -46,7 +46,7 @@ struct MainView: View {
                     Label("Chats", systemImage: "message.fill")
                 }
 
-            ProfileView()
+            EditProfileView()
                 .tabItem {
                     Label("Profile", systemImage: "person.fill")
                 }
