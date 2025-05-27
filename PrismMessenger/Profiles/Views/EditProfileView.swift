@@ -64,14 +64,29 @@ struct EditProfileView: View {
                     }.onChange(of: selectedPhotoItem) { _, newItem in
                         Task {
                             do {
+                                guard let newItem = newItem else { return }
+
                                 guard
-                                    let imageData = try? await newItem?.loadTransferable(
-                                        type: Data.self)
+                                    let imageData = try? await newItem.loadTransferable(
+                                        type: Data.self
+                                    ),
+                                    let originalImage = UIImage(data: imageData)
                                 else {
                                     return
                                 }
 
-                                try await profileService.updateProfilePicture(with: imageData)
+                                let newSize = CGSize(width: 100, height: 100)
+                                let resizedImage = originalImage.resized(to: newSize)
+
+                                guard
+                                    let resizedData = resizedImage?.jpegData(
+                                        compressionQuality: 0.8
+                                    )
+                                else {
+                                    return
+                                }
+
+                                try await profileService.updateProfilePicture(with: resizedData)
                             } catch {
                                 print(error)
                             }
@@ -136,26 +151,26 @@ struct ProfilePictureView: View {
 
     var body: some View {
         if let profilePicture = profile.picture,
-           let imageUrl = URL(string: profilePicture)
+            let imageUrl = URL(string: profilePicture)
         {
             AsyncImage(url: imageUrl) { phase in
                 switch phase {
-                    case .empty:
-                        ProgressView()
-                            .frame(width: imageSize, height: imageSize)
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: imageSize, height: imageSize)
-                            .clipShape(Circle())
-                    case .failure(let error):
-                        textBasedProfilePicture
-                            .padding(.top)
-                        Text("Failure: \(String(describing: error))")
-                            .foregroundColor(.red)
-                    @unknown default:
-                        EmptyView()
+                case .empty:
+                    ProgressView()
+                        .frame(width: imageSize, height: imageSize)
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: imageSize, height: imageSize)
+                        .clipShape(Circle())
+                case .failure(let error):
+                    textBasedProfilePicture
+                        .padding(.top)
+                    Text("Failure: \(String(describing: error))")
+                        .foregroundColor(.red)
+                @unknown default:
+                    EmptyView()
                 }
             }
         } else {
