@@ -57,6 +57,8 @@ struct MainView: View {
         .navigationDestination(for: Route.self) {
             if case let .chat(targetChat) = $0 {
                 ChatView(chat: targetChat)
+            } else if case let .profile(userId) = $0 {
+                ProfileView(userId: userId)
             }
         }
         .toolbar {
