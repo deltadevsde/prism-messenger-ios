@@ -19,28 +19,25 @@ struct SmallProfilePictureView: View {
     }
 
     var body: some View {
-        Button {
-            action()
-        } label: {
-            Group {
-                if let imageURL = imageURL, let url = URL(string: imageURL) {
-                    AsyncImage(url: url) { image in
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    } placeholder: {
-                        Image(systemName: "person.circle.fill")
-                            .foregroundColor(.gray)
-                    }
-                    .frame(width: size, height: size)
-                    .clipShape(Circle())
-                } else {
+        Button(action: action) {
+            AsyncImage(url: imageURL.flatMap(URL.init)) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                case .empty, .failure:
                     Image(systemName: "person.circle.fill")
-                        .font(.system(size: size))
-                        .foregroundColor(.gray)
-                        .frame(width: size, height: size)
+                        .resizable()
+                        .foregroundStyle(.gray)
+                @unknown default:
+                    Image(systemName: "person.circle.fill")
+                        .resizable()
+                        .foregroundStyle(.gray)
                 }
             }
+            .frame(width: size, height: size)
+            .clipShape(Circle())
         }
         .buttonStyle(.plain)
     }
