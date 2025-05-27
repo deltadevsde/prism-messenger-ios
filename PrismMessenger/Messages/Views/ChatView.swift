@@ -9,13 +9,16 @@ import SwiftUI
 import SwiftData
 
 struct ChatView: View {
+    @EnvironmentObject private var router: NavigationRouter
+    @EnvironmentObject private var chatService: ChatService
+    @EnvironmentObject private var messageService: MessageService
+    @Environment(ProfileService.self) private var profileService
+
     @Bindable var chat: Chat
     @State private var messageText: String = ""
     @State private var isLoading: Bool = false
     @State private var error: String? = nil
     @FocusState private var isTextFieldFocused: Bool
-    @EnvironmentObject private var chatService: ChatService
-    @EnvironmentObject private var messageService: MessageService
 
     var body: some View {
         VStack(spacing: 0) {
@@ -38,7 +41,7 @@ struct ChatView: View {
                 onlineView
             }
             ToolbarItem(placement: .topBarTrailing) {
-                profileImage
+                ChatImageView(chat: chat)
             }
         }
         .onAppear {
@@ -65,27 +68,7 @@ struct ChatView: View {
         }
     }
 
-    private var profileImage: some View {
-        Group {
-            if let imageURL = chat.imageURL, let url = URL(string: imageURL) {
-                AsyncImage(url: url) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Image(systemName: "person.circle.fill")
-                        .foregroundColor(.gray)
-                }
-                .frame(width: 40, height: 40)
-                .clipShape(Circle())
-            } else {
-                Image(systemName: "person.circle.fill")
-                    .font(.system(size: 40))
-                    .foregroundColor(.gray)
-                    .frame(width: 40, height: 40)
-            }
-        }
-    }
+
 
     private var messagesList: some View {
         ScrollViewReader { scrollProxy in
