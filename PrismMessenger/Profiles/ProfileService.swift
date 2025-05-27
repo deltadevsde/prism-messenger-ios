@@ -50,9 +50,14 @@ class ProfileService {
         ownProfile = fetchedProfile
     }
 
-    func fetchProfile(byAccountId accountId: UUID) async throws -> Profile? {
+    func fetchProfile(
+        byAccountId accountId: UUID,
+        usingLocalCache shouldUseLocalCache: Bool = true
+    ) async throws -> Profile? {
         // First check if there is a local entry for the profile
-        if let localProfile = try await profileRepository.getProfile(byAccountId: accountId) {
+        if shouldUseLocalCache,
+            let localProfile = try await profileRepository.getProfile(byAccountId: accountId)
+        {
             return localProfile
         }
 
@@ -67,9 +72,14 @@ class ProfileService {
         return remoteProfile
     }
 
-    func fetchProfile(byUsername username: String) async throws -> Profile? {
+    func fetchProfile(
+        byUsername username: String,
+        usingLocalCache shouldUseLocalCache: Bool = true
+    ) async throws -> Profile? {
         // First check if there is a local entry for the profile
-        if let localProfile = try await profileRepository.getProfile(byUsername: username) {
+        if shouldUseLocalCache,
+            let localProfile = try await profileRepository.getProfile(byUsername: username)
+        {
             return localProfile
         }
 
@@ -119,11 +129,11 @@ class ProfileService {
         }
     }
 
-    /// Convenience method to update profile picture with a UIImage
+    /// Convenience method to update profile picture with image data
     /// Handles the entire flow of getting upload URL, uploading, and updating model
     func updateProfilePicture(with imageData: Data) async throws {
         guard let profile = ownProfile else {
-            log.warning("Profile picture cannot be updated, because")
+            log.warning("Own profile cannot be updated, because it does not exist")
             return
         }
 
