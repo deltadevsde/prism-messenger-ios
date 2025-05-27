@@ -28,11 +28,7 @@ struct EditProfileView: View {
         }
         .onAppear {
             Task {
-                do {
-                    try await profileService.loadOwnProfile()
-                } catch {
-                    print(error)
-                }
+                try? await profileService.loadOwnProfile()
             }
         }
     }
@@ -63,33 +59,27 @@ struct EditProfileView: View {
                         Text("Select Photo")
                     }.onChange(of: selectedPhotoItem) { _, newItem in
                         Task {
-                            do {
-                                guard let newItem = newItem else { return }
+                            guard let newItem = newItem else { return }
 
-                                guard
-                                    let imageData = try? await newItem.loadTransferable(
-                                        type: Data.self
-                                    ),
-                                    let originalImage = UIImage(data: imageData)
-                                else {
-                                    return
-                                }
-
-                                let newSize = CGSize(width: 100, height: 100)
-                                let resizedImage = originalImage.resized(to: newSize)
-
-                                guard
-                                    let resizedData = resizedImage?.jpegData(
-                                        compressionQuality: 0.8
-                                    )
-                                else {
-                                    return
-                                }
-
-                                try await profileService.updateProfilePicture(with: resizedData)
-                            } catch {
-                                print(error)
+                            guard
+                                let imageData = try? await newItem.loadTransferable(
+                                    type: Data.self
+                                ),
+                                let originalImage = UIImage(data: imageData)
+                            else {
+                                return
                             }
+
+                            let newSize = CGSize(width: 100, height: 100)
+                            let resizedImage = originalImage.resized(to: newSize)
+
+                            guard
+                                let resizedData = resizedImage?.jpegData(compressionQuality: 0.8)
+                            else {
+                                return
+                            }
+
+                            try? await profileService.updateProfilePicture(with: resizedData)
                         }
                     }
                 }
@@ -119,7 +109,7 @@ struct EditProfileView: View {
                                             try await profileService.updateDisplayName(displayName)
                                             isEditing = false
                                         } catch {
-                                            print(error)
+                                            // Nothing to be done, isEditing stays true
                                         }
                                     }
                                 }
