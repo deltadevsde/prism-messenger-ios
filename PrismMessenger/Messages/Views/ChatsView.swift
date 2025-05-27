@@ -54,18 +54,7 @@ struct ChatsView: View {
                             .padding(.top, 50)
                         } else {
                             ForEach(filteredChats) { chat in
-                                Button(action: {
-                                    router.navigateTo(Route.chat(chat))
-                                }) {
-                                    ChatPreview(
-                                        username: chat.displayName ?? chat.participantId.uuidString,
-                                        imageURL: chat.imageURL,
-                                        message: chat.lastMessage ?? "No messages yet",
-                                        lastMessageTime: chat.lastMessageTimestamp,
-                                        unreadCount: chat.unreadCount
-                                    )
-                                    .contentShape(Rectangle())
-                                }
+                                ChatPreview(chat: chat)
                             }
                         }
                     }.padding(.horizontal, 20)
@@ -130,71 +119,51 @@ struct ChatsView: View {
 }
 
 struct ChatPreview: View {
-    private let username: String
-    private let imageURL: String?
-    private let message: String
-    private let lastMessageTime: Date?
-    private let unreadCount: Int
+    @EnvironmentObject private var router: NavigationRouter
 
-    init(
-        username: String,
-        imageURL: String? = nil,
-        message: String,
-        lastMessageTime: Date? = nil,
-        unreadCount: Int = 0
-    ) {
-        self.username = username
-        self.imageURL = imageURL
-        self.message = message
-        self.lastMessageTime = lastMessageTime
-        self.unreadCount = unreadCount
+    private let chat: Chat
+
+    init(chat: Chat) {
+        self.chat = chat
     }
 
     var body: some View {
-        HStack(spacing: 12) {
-            if let imageURL = imageURL, let url = URL(string: imageURL) {
-                AsyncImage(url: url) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Image(systemName: "person.circle.fill")
-                        .foregroundColor(.gray)
-                }
-                .frame(width: 40, height: 40)
-                .clipShape(Circle())
-            } else {
-                Image(systemName: "person.circle.fill")
-                    .font(.system(size: 40))
-                    .foregroundColor(.gray)
-                    .frame(width: 40, height: 40)
-            }
+        Button {
+            router.openChat(chat)
+        } label: {
+            ZStack {
+                Color.clear
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(username)
-                    .font(.system(size: 16, weight: .semibold))
-                Text(message)
-                    .font(.system(size: 14))
-                    .foregroundColor(.gray)
-                    .lineLimit(1)
-            }
+                HStack(spacing: 12) {
+                    ChatImageView(chat: chat)
 
-            Spacer()
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(chat.displayName ?? chat.participantId.uuidString)
+                            .font(.system(size: 16, weight: .semibold))
+                        Text(chat.lastMessage ?? "No messages yet")
+                            .font(.system(size: 14))
+                            .foregroundColor(.gray)
+                            .lineLimit(1)
+                    }
 
-            VStack(alignment: .trailing, spacing: 4) {
-                if let time = lastMessageTime {
-                    Text(timeString(from: time))
-                        .font(.system(size: 12))
-                        .foregroundColor(.gray)
-                }
+                    Spacer()
 
-                if unreadCount > 0 {
-                    Text("\(unreadCount)")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.white)
-                        .frame(minWidth: 20, minHeight: 20)
-                        .background(Color.blue)
-                        .clipShape(Circle())
+                    VStack(alignment: .trailing, spacing: 4) {
+                        if let time = chat.lastMessageTimestamp {
+                            Text(timeString(from: time))
+                                .font(.system(size: 12))
+                                .foregroundColor(.gray)
+                        }
+
+                        if chat.unreadCount > 0 {
+                            Text("\(chat.unreadCount)")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(.white)
+                                .frame(minWidth: 20, minHeight: 20)
+                                .background(Color.blue)
+                                .clipShape(Circle())
+                        }
+                    }
                 }
             }
         }
@@ -276,13 +245,13 @@ struct NewChatView: View {
 
         Task {
             do {
-                let chat = try await chatService.startChat(with:username)
+                let chat = try await chatService.startChat(with: username)
                 print("Successfully created chat with \(username)")
 
                 DispatchQueue.main.async {
                     isLoading = false
                     dismiss()
-                    router.navigateTo(.chat(chat))
+                    router.openChat(chat)
                 }
             } catch ChatServiceError.missingKeyBundle {
                 DispatchQueue.main.async {
