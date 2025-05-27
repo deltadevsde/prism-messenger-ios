@@ -17,4 +17,7 @@ protocol ProfileGateway {
     func fetchProfile(byAccountId accountId: UUID) async throws -> Profile?
 
     func fetchProfile(byUsername username: String) async throws -> Profile?
+
+    func updateProfile(_ request: UpdateProfileRequest) async throws
+        -> ProfilePictureUploadResponse?
 }

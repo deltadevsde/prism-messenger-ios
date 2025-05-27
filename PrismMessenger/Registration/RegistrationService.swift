@@ -64,7 +64,6 @@ class RegistrationService: ObservableObject {
         // Step 3: Initialize key bundle and create user
         try await uploadNewKeybundleAndCreateUser(
             id: userId,
-            username: username,
             authPassword: authPassword,
             apnsToken: apnsToken
         )
@@ -119,7 +118,6 @@ class RegistrationService: ObservableObject {
 
     private func uploadNewKeybundleAndCreateUser(
         id: UUID,
-        username: String,
         authPassword: String,
         apnsToken: Data
     )
@@ -133,7 +131,6 @@ class RegistrationService: ObservableObject {
             let user = User(
                 id: id,
                 signedPrekey: userKeys.signedPrekey,
-                username: username,
                 authPassword: authPassword,
                 apnsToken: apnsToken
             )

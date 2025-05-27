@@ -46,8 +46,10 @@ extension RestClient: RegistrationGateway {
         )
 
         do {
-            let response: RegistrationChallengeResponse = try await post(
-                req, to: "/registration/request")
+            guard let response: RegistrationChallengeResponse = try await post(
+                req, to: "/registration/request") else {
+                throw RegistrationGatewayError.invalidResponse
+            }
             return response.challenge
         } catch RestClientError.httpError(let httpStatusCode) {
             throw RegistrationGatewayError.requestFailed(httpStatusCode)
@@ -70,11 +72,13 @@ extension RestClient: RegistrationGateway {
         )
 
         do {
-            let response: FinalizeRegistrationResponse = try await post(
+            guard let response: FinalizeRegistrationResponse = try await post(
                 req,
                 to: "/registration/finalize",
                 accessLevel: .pub
-            )
+            ) else {
+                throw RegistrationGatewayError.invalidResponse
+            }
             return response.id
         } catch RestClientError.httpError(let httpStatusCode) {
             throw RegistrationGatewayError.requestFailed(httpStatusCode)

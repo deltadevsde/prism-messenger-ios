@@ -32,17 +32,11 @@ struct MainView: View {
         .modelContext(appContext.modelContext)
         .environmentObject(appContext.chatService)
         .environmentObject(appContext.messageService)
+        .environment(appContext.profileService)
         .environmentObject(appContext.registrationService)
         .environmentObject(appContext.userService)
         .environmentObject(appContext.updatePushTokenService)
         .tint(.black)
-    }
-
-    private var profileIcon: some View {
-        // TODO: Navigate to profile? Or what should this do?
-        Image(systemName: "person.circle.fill")
-            .font(.system(size: 40))
-            .foregroundColor(.gray)
     }
 
     private var mainContentView: some View {
@@ -52,7 +46,7 @@ struct MainView: View {
                     Label("Chats", systemImage: "message.fill")
                 }
 
-            ProfileView()
+            EditProfileView()
                 .tabItem {
                     Label("Profile", systemImage: "person.fill")
                 }
@@ -67,7 +61,9 @@ struct MainView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                profileIcon
+                SmallProfilePictureView(imageURL: appContext.profileService.ownProfile?.picture) {
+                    // TODO: Open something like settings in the future
+                }
             }
             ToolbarItem(placement: .principal) {
                 Image("prism_text")

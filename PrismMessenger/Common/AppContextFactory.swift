@@ -40,6 +40,8 @@ class AppContextFactory {
         let profileService = ProfileService(
             profileRepository: profileRepository,
             profileGateway: restClient,
+            profilePictureGateway: restClient,
+            userService: userService,
         )
 
         // Initialize crypto services
@@ -97,6 +99,7 @@ class AppContextFactory {
             chatService: chatService,
             messageService: messageService,
             messageNotificationService: messageNotificationService,
+            profileService: profileService,
             pushNotificationCenter: pushNotificationCenter,
             pushNotificationDelegate: pushNotificationCenter,
             updatePushTokenService: updatePushTokenService,
@@ -129,6 +132,8 @@ class AppContextFactory {
         let profileService = ProfileService(
             profileRepository: profileRepository,
             profileGateway: simulatedBackend,
+            profilePictureGateway: simulatedBackend,
+            userService: userService,
         )
 
         // Initialize crypto services
@@ -186,6 +191,7 @@ class AppContextFactory {
             chatService: chatService,
             messageService: messageService,
             messageNotificationService: messageNotificationService,
+            profileService: profileService,
             pushNotificationCenter: pushNotificationCenter,
             pushNotificationDelegate: nil,
             updatePushTokenService: updatePushTokenService,
