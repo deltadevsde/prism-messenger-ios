@@ -18,9 +18,8 @@ enum LaunchState {
 
 enum Route: Hashable {
     case chat(Chat)
-    case profile
+    case profile(UUID)
     case registration
-    case settings
 }
 
 @MainActor
@@ -63,5 +62,15 @@ class NavigationRouter: ObservableObject {
         }
 
         navigateTo(.chat(chat))
+    }
+
+    func openProfile(_ profileId: UUID) {
+        // If another profile is open, dismiss it first
+        if case let .profile(alreadyOpenProfileId) = activeRoute, profileId != alreadyOpenProfileId
+        {
+            path.removeLast()
+        }
+
+        navigateTo(.profile(profileId))
     }
 }

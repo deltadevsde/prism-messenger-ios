@@ -30,6 +30,14 @@ struct AsyncPreview<Content: View>: View {
             if isLoaded {
                 NavigationStack(path: $appContext.router.path) {
                     content()
+                        .navigationBarBackButtonHidden()
+                        .navigationDestination(for: Route.self) {
+                            if case let .chat(targetChat) = $0 {
+                                ChatView(chat: targetChat)
+                            } else if case let .profile(userId) = $0 {
+                                ProfileView(userId: userId)
+                            }
+                        }
                 }
                 .modelContext(appContext.modelContext)
                 .environment(appContext.profileService)
