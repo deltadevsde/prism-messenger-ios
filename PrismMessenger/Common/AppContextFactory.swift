@@ -37,11 +37,15 @@ class AppContextFactory {
 
         // Initialize profile services
         let profileRepository = SwiftDataProfileRepository(modelContext: modelContext)
-        let profileService = ProfileService(
+        let ownProfileService = OwnProfileService(
             profileRepository: profileRepository,
             profileGateway: restClient,
             profilePictureGateway: restClient,
-            userService: userService,
+            userService: userService
+        )
+        let otherProfileService = OtherProfileService(
+            profileRepository: profileRepository,
+            profileGateway: restClient
         )
 
         // Initialize crypto services
@@ -53,7 +57,7 @@ class AppContextFactory {
         let chatService = ChatService(
             chatRepository: chatRepository,
             userService: userService,
-            profileService: profileService,
+            otherProfileService: otherProfileService,
             messageGateway: restClient,
             keyGateway: restClient,
             x3dh: x3dh
@@ -99,7 +103,8 @@ class AppContextFactory {
             chatService: chatService,
             messageService: messageService,
             messageNotificationService: messageNotificationService,
-            profileService: profileService,
+            ownProfileService: ownProfileService,
+            otherProfileService: otherProfileService,
             pushNotificationCenter: pushNotificationCenter,
             pushNotificationDelegate: pushNotificationCenter,
             updatePushTokenService: updatePushTokenService,
@@ -127,11 +132,15 @@ class AppContextFactory {
 
         // Initialize profile services
         let profileRepository = SwiftDataProfileRepository(modelContext: modelContext)
-        let profileService = ProfileService(
+        let ownProfileService = OwnProfileService(
             profileRepository: profileRepository,
             profileGateway: simulatedBackend,
             profilePictureGateway: simulatedBackend,
-            userService: userService,
+            userService: userService
+        )
+        let otherProfileService = OtherProfileService(
+            profileRepository: profileRepository,
+            profileGateway: simulatedBackend
         )
 
         // Initialize crypto services
@@ -143,7 +152,7 @@ class AppContextFactory {
         let chatService = ChatService(
             chatRepository: chatRepository,
             userService: userService,
-            profileService: profileService,
+            otherProfileService: otherProfileService,
             messageGateway: simulatedBackend,
             keyGateway: simulatedBackend,
             x3dh: x3dh
@@ -189,7 +198,8 @@ class AppContextFactory {
             chatService: chatService,
             messageService: messageService,
             messageNotificationService: messageNotificationService,
-            profileService: profileService,
+            ownProfileService: ownProfileService,
+            otherProfileService: otherProfileService,
             pushNotificationCenter: pushNotificationCenter,
             pushNotificationDelegate: nil,
             updatePushTokenService: updatePushTokenService,

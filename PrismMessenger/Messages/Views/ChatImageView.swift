@@ -10,7 +10,7 @@ import SwiftUI
 
 struct ChatImageView: View {
     @EnvironmentObject private var router: NavigationRouter
-    @Environment(ProfileService.self) private var profileService
+    @Environment(OtherProfileService.self) private var otherProfileService
 
     @Bindable var chat: Chat
 
@@ -34,7 +34,7 @@ struct ChatImageView: View {
 
         // otherwise, show the one from the participant
         do {
-            let profile = try await profileService.fetchProfile(
+            let profile = try await otherProfileService.fetchProfile(
                 byAccountId: chat.participantId,
                 usingLocalCache: false
             )

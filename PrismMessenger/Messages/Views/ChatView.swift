@@ -12,7 +12,6 @@ struct ChatView: View {
     @EnvironmentObject private var router: NavigationRouter
     @EnvironmentObject private var chatService: ChatService
     @EnvironmentObject private var messageService: MessageService
-    @Environment(ProfileService.self) private var profileService
 
     @Bindable var chat: Chat
     @State private var messageText: String = ""

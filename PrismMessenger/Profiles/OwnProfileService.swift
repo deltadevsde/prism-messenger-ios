@@ -1,5 +1,5 @@
 //
-//  ProfileService.swift
+//  OwnProfileService.swift
 //  PrismMessenger
 //
 //  Copyright © 2025 prism. All rights reserved.
@@ -19,7 +19,7 @@ enum ProfileServiceError: Error {
 }
 
 @Observable @MainActor
-class ProfileService {
+class OwnProfileService {
     private let profileRepository: ProfileRepository
     private let profileGateway: ProfileGateway
     private let profilePictureGateway: ProfilePictureGateway
@@ -39,58 +39,29 @@ class ProfileService {
         self.userService = userService
     }
 
-    // MARK: - Profile Loading
+    // MARK: - Own Profile Loading
 
     func loadOwnProfile() async throws {
         guard let currentUser = userService.currentUser else {
             throw ProfileServiceError.notAuthenticated
         }
 
-        let fetchedProfile = try await fetchProfile(byAccountId: currentUser.id)
-        ownProfile = fetchedProfile
-    }
-
-    func fetchProfile(
-        byAccountId accountId: UUID,
-        usingLocalCache shouldUseLocalCache: Bool = true
-    ) async throws -> Profile? {
         // First check if there is a local entry for the profile
-        if shouldUseLocalCache,
-            let localProfile = try await profileRepository.getProfile(byAccountId: accountId)
-        {
-            return localProfile
+        if let localProfile = try await profileRepository.getProfile(byAccountId: currentUser.id) {
+            ownProfile = localProfile
+            return
         }
 
         // If no local entry exists, fetch from remote
-        guard let remoteProfile = try await profileGateway.fetchProfile(byAccountId: accountId)
+        guard let remoteProfile = try await profileGateway.fetchProfile(byAccountId: currentUser.id)
         else {
-            return nil
+            ownProfile = nil
+            return
         }
 
         // Save the fetched profile locally
         try await profileRepository.saveProfile(remoteProfile)
-        return remoteProfile
-    }
-
-    func fetchProfile(
-        byUsername username: String,
-        usingLocalCache shouldUseLocalCache: Bool = true
-    ) async throws -> Profile? {
-        // First check if there is a local entry for the profile
-        if shouldUseLocalCache,
-            let localProfile = try await profileRepository.getProfile(byUsername: username)
-        {
-            return localProfile
-        }
-
-        // If no local entry exists, fetch from remote
-        guard let remoteProfile = try await profileGateway.fetchProfile(byUsername: username) else {
-            return nil
-        }
-
-        // Save the fetched profile locally
-        try await profileRepository.saveProfile(remoteProfile)
-        return remoteProfile
+        ownProfile = remoteProfile
     }
 
     // MARK: - Profile Updates

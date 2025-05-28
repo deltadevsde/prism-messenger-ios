@@ -32,7 +32,8 @@ struct MainView: View {
         .modelContext(appContext.modelContext)
         .environmentObject(appContext.chatService)
         .environmentObject(appContext.messageService)
-        .environment(appContext.profileService)
+        .environment(appContext.ownProfileService)
+        .environment(appContext.otherProfileService)
         .environmentObject(appContext.registrationService)
         .environmentObject(appContext.userService)
         .environmentObject(appContext.updatePushTokenService)
@@ -63,7 +64,7 @@ struct MainView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                SmallProfilePictureView(imageURL: appContext.profileService.ownProfile?.picture) {
+                SmallProfilePictureView(imageURL: appContext.ownProfileService.ownProfile?.picture) {
                     // TODO: Open something like settings in the future
                 }
             }

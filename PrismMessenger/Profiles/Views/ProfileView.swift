@@ -11,8 +11,7 @@ private let imageSize: CGFloat = 150
 
 struct ProfileView: View {
     let userId: UUID
-    @EnvironmentObject private var router: NavigationRouter
-    @Environment(ProfileService.self) private var profileService
+    @Environment(OtherProfileService.self) private var otherProfileService
 
     @State private var profile: Profile?
     @State private var isLoading = true
@@ -93,7 +92,7 @@ struct ProfileView: View {
         error = nil
 
         do {
-            profile = try await profileService.fetchProfile(byAccountId: userId)
+            profile = try await otherProfileService.fetchProfile(byAccountId: userId)
             isLoading = false
         } catch {
             self.error = error.localizedDescription
