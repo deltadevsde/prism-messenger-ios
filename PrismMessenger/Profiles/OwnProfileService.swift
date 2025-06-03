@@ -23,6 +23,7 @@ class OwnProfileService {
     private let profileRepository: ProfileRepository
     private let profileGateway: ProfileGateway
     private let profilePictureGateway: ProfilePictureGateway
+    private let profilePictureCacheService: ProfilePictureCacheService
     private let userService: UserService
 
     var ownProfile: Profile?
@@ -31,11 +32,13 @@ class OwnProfileService {
         profileRepository: ProfileRepository,
         profileGateway: ProfileGateway,
         profilePictureGateway: ProfilePictureGateway,
+        profilePictureCacheService: ProfilePictureCacheService,
         userService: UserService
     ) {
         self.profileRepository = profileRepository
         self.profileGateway = profileGateway
         self.profilePictureGateway = profilePictureGateway
+        self.profilePictureCacheService = profilePictureCacheService
         self.userService = userService
     }
 
@@ -118,9 +121,12 @@ class OwnProfileService {
             throw ProfileServiceError.profileUpdateFailed
         }
 
+        let picture = ProfilePicture(path: uploadResponse.pictureUrl, data: imageData)
+
         do {
             // Upload the image using the picture gateway
-            try await profilePictureGateway.uploadPicture(imageData, to: uploadResponse.uploadUrl)
+            try await profilePictureGateway.uploadPicture(picture, to: uploadResponse.uploadUrl)
+            try? await profilePictureCacheService.saveProfilePicture(picture)
         } catch {
             throw ProfileServiceError.pictureUploadFailed
         }
