@@ -12,12 +12,12 @@ import UserNotifications
 
 private let log = Log.messages
 
-enum TestError: Error {
+private enum TestError: Error {
     case someError
 }
 
 /// Mock implementation of ChatRepository for testing
-class MockChatRepository: ChatRepository {
+private class MockChatRepository: ChatRepository {
     var getChatWithIdCallCount = 0
     var getChatWithIdReturnValue: Chat? = nil
     var getChatWithIdError: Error? = nil
