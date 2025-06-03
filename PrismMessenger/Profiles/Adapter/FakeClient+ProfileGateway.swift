@@ -8,12 +8,17 @@
 import Foundation
 
 extension FakeClient: ProfileGateway {
+
+    private var profileStore: InMemoryStore<Profile> {
+        storeProvider.provideTypedStore()
+    }
+
     func fetchProfile(byAccountId accountId: UUID) async throws -> Profile? {
-        store.firstInList(Profile.self) { $0.id == accountId }
+        profileStore.get(byId: accountId)
     }
 
     func fetchProfile(byUsername username: String) async throws -> Profile? {
-        store.firstInList(Profile.self) { $0.username == username }
+        profileStore.first { $0.username == username }
     }
 
     func updateProfile(_ request: UpdateProfileRequest) async throws
@@ -23,7 +28,7 @@ extension FakeClient: ProfileGateway {
             throw FakeClientError.authenticationRequired
         }
 
-        guard let profile = store.firstInList(Profile.self, where: { $0.accountId == user.id })
+        guard let profile = profileStore.get(byId: user.id)
         else {
             throw ProfileGatewayError.requestFailed(404)
         }

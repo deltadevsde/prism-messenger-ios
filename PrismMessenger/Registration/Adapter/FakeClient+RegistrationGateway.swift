@@ -12,8 +12,16 @@ private let simulatedRegistrationChallenge = RegistrationChallenge(repeating: 0,
 
 extension FakeClient: RegistrationGateway {
 
+    private var userStore: InMemoryStore<FakeUser> {
+        storeProvider.provideTypedStore()
+    }
+
+    private var profileStore: InMemoryStore<Profile> {
+        storeProvider.provideTypedStore()
+    }
+
     func checkUsernameAvailability(_ username: String) async -> Bool {
-        !store.getList(FakeUser.self).contains { $0.username == username }
+        userStore.first { $0.username == username } == nil
     }
 
     func requestRegistration(username: String, key: P256.Signing.PublicKey) async throws
@@ -38,12 +46,12 @@ extension FakeClient: RegistrationGateway {
             authPassword: authPassword,
             apnsToken: apnsToken
         )
-        store.addToList(registeredUser)
+        userStore.save(registeredUser)
 
         let profile = Profile(
             accountId: registeredUser.id,
             username: registeredUser.username)
-        store.addToList(profile)
+        profileStore.save(profile)
 
         return registeredUser.id
     }

@@ -1,47 +1,56 @@
-class InMemoryStore {
-    private var items: [ObjectIdentifier: Any] = [:]
+//
+//  InMemoryStore.swift
+//  PrismMessenger
+//
+//  Copyright © 2025 prism. All rights reserved.
+//
 
-    // Single item storage
-    func set<T>(_ value: T, for type: T.Type) {
-        items[ObjectIdentifier(type)] = value
+import OrderedCollections
+
+class InMemoryStore<T: Identifiable> {
+    private var items: OrderedDictionary<T.ID, T> = [:]
+
+    func get(byId id: T.ID) -> T? {
+        return items[id]
     }
 
-    func get<T>(_ type: T.Type) -> T? {
-        return items[ObjectIdentifier(type)] as? T
+    func first(where predicate: (T) -> Bool) -> T? {
+        return items.values.first(where: predicate)
     }
 
-    // List storage
-    func setList<T>(_ list: [T]) {
-        items[ObjectIdentifier(T.self)] = list
+    func filter(where predicate: (T) -> Bool) -> [T] {
+        return items.values.filter(predicate)
     }
 
-    func getList<T>(_ type: T.Type) -> [T] {
-        return (items[ObjectIdentifier(type)] as? [T]) ?? []
+    func getAll() -> [T] {
+        return items.values.elements
     }
 
-    func firstInList<T>(_ type: T.Type, where condition: (T) -> Bool) -> T? {
-        return getList(T.self).first { condition($0) }
+    func save(_ item: T) {
+        items[item.id] = item
     }
 
-    func addToList<T>(_ item: T) {
-        var currentList = getList(T.self)
-        currentList.append(item)
-        setList(currentList)
+    func remove(byId id: T.ID) {
+        items.removeValue(forKey: id)
     }
 
-    func removeFromList<T: Equatable>(_ item: T) {
-        var currentList = getList(T.self)
-        currentList.removeAll { $0 == item }
-        setList(currentList)
+    func remove(where predicate: (T) -> Bool) {
+        items = items.filter { !predicate($0.value) }
     }
+}
 
-    func removeFromList<T>(_ type: T.Type, where condition: (T) -> Bool) {
-        var currentList = getList(type)
-        currentList.removeAll { condition($0) }
-        setList(currentList)
-    }
+class InMemoryStoreProvider {
 
-    func clearList<T>(_ type: T.Type) {
-        items.removeValue(forKey: ObjectIdentifier(type))
+    private var storesByType: [ObjectIdentifier: Any] = [:]
+
+    func provideTypedStore<T: Identifiable>() -> InMemoryStore<T> {
+        let typeId = ObjectIdentifier(T.self)
+        if let store = storesByType[typeId] {
+            return store as! InMemoryStore<T>
+        }
+
+        let store = InMemoryStore<T>()
+        storesByType[typeId] = store
+        return store
     }
 }

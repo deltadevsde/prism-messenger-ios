@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct FakeUser {
+struct FakeUser: Identifiable {
     var id: UUID = UUID()
     var username: String
     var authPassword: String
@@ -16,19 +16,22 @@ struct FakeUser {
 
 @MainActor
 extension FakeClient: UserGateway {
+
+    private var userStore: InMemoryStore<FakeUser> {
+        storeProvider.provideTypedStore()
+    }
+
     func updateApnsToken(_ apnsToken: Data) async throws {
 
         guard let user = userService.currentUser else {
             throw FakeClientError.authenticationRequired
         }
 
-        guard
-            var existingUser = store.getList(FakeUser.self).first(where: { $0.id == user.id }
-            )
-        else {
+        guard var existingUser = userStore.get(byId: user.id) else {
             throw UserGatewayError.requestFailed(404)
         }
 
         existingUser.apnsToken = apnsToken
+        userStore.save(existingUser)
     }
 }
