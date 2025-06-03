@@ -108,9 +108,7 @@ class AppContextFactory {
         )
     }
 
-    static func forTest(
-        withSimulatedBackendStore simulatedBackendStore: InMemoryStore = InMemoryStore()
-    )
+    static func forTest(storeProvider: InMemoryStoreProvider = InMemoryStoreProvider())
         -> AppContext
     {
         let modelContext = ModelContextProvider.createInMemoryModelContext()
@@ -121,7 +119,7 @@ class AppContextFactory {
         let userRepository = SwiftDataUserRepository(modelContext: modelContext)
         let userService = UserService(userRepository: userRepository)
 
-        let simulatedBackend = FakeClient(store: simulatedBackendStore, userService: userService)
+        let simulatedBackend = FakeClient(storeProvider: storeProvider, userService: userService)
 
         // Initialize notification services
         let notificationCenter = FakeUserNotificationCenter()
@@ -201,9 +199,9 @@ class AppContextFactory {
     }
 
     static func twoForTest() -> (AppContext, AppContext) {
-        let store = InMemoryStore()
+        let storeProvider = InMemoryStoreProvider()
         return (
-            forTest(withSimulatedBackendStore: store), forTest(withSimulatedBackendStore: store)
+            forTest(storeProvider: storeProvider), forTest(storeProvider: storeProvider)
         )
     }
 }

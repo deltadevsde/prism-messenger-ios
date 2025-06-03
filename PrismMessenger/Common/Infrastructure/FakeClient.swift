@@ -10,14 +10,14 @@ enum FakeClientError: Error {
 }
 
 /// Client that does not talk with a backend, but simulates responses. For previews and testing.
-struct FakeClient {
+class FakeClient {
 
-    let store: InMemoryStore
+    let storeProvider: InMemoryStoreProvider
 
     let userService: UserService
 
-    init(store: InMemoryStore, userService: UserService) {
-        self.store = store
+    init(storeProvider: InMemoryStoreProvider, userService: UserService) {
+        self.storeProvider = storeProvider
         self.userService = userService
     }
 }
