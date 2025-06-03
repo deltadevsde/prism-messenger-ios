@@ -33,7 +33,8 @@ struct MainView: View {
         .environmentObject(appContext.chatService)
         .environmentObject(appContext.messageService)
         .environment(appContext.ownProfileService)
-        .environment(appContext.otherProfileService)
+        .environment(appContext.profileCacheService)
+        .environment(appContext.profilePictureCacheService)
         .environmentObject(appContext.registrationService)
         .environmentObject(appContext.userService)
         .environmentObject(appContext.updatePushTokenService)
@@ -64,7 +65,20 @@ struct MainView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                SmallProfilePictureView(imageURL: appContext.ownProfileService.ownProfile?.picture) {
+                let uiImage: UIImage? = {
+                    guard
+                        let ownProfilePicturePath = appContext.ownProfileService.ownProfile?
+                            .picture,
+                        let ownProfilePicture = appContext.profilePictureCacheService
+                            .profilePictures[ownProfilePicturePath],
+                        let image = UIImage(data: ownProfilePicture.data)
+                    else {
+                        return nil
+                    }
+                    return image
+                }()
+
+                SmallProfilePictureView(uiImage: uiImage) {
                     // TODO: Open something like settings in the future
                 }
             }

@@ -10,40 +10,29 @@ import SwiftUI
 
 struct ChatImageView: View {
     @EnvironmentObject private var router: NavigationRouter
-    @Environment(OtherProfileService.self) private var otherProfileService
+    @Environment(ProfileCacheService.self) private var profileCacheService
+    @Environment(ProfilePictureCacheService.self) private var profilePictureCacheService
 
     @Bindable var chat: Chat
 
-    @State private var displayedImageUrl: String? = nil
-
-    var body: some View {
-        SmallProfilePictureView(imageURL: displayedImageUrl) {
-            router.openProfile(chat.participantId)
-        }
-        .task {
-            await updateDisplayedImage()
-        }
+    private var displayedImageUrl: String? {
+        return chat.imageURL ?? profileCacheService.profiles[chat.participantId]?.picture
     }
 
-    private func updateDisplayedImage() async {
-        // If chat has its own independent image, use that
-        if let chatImageUrl = chat.imageURL {
-            displayedImageUrl = chatImageUrl
-            return
+    private var displayedImage: UIImage? {
+        if let profile = profileCacheService.profiles[chat.participantId],
+           let picturePath = profile.picture,
+           let profilePicture = profilePictureCacheService.profilePictures[picturePath] {
+            return UIImage(data: profilePicture.data)
         }
 
-        // otherwise, show the one from the participant
-        do {
-            let profile = try await otherProfileService.fetchProfile(
-                byAccountId: chat.participantId,
-                usingLocalCache: false
-            )
-            displayedImageUrl = profile?.picture
-            return
-        } catch {
-            Log.messages.warning(
-                "Failed to load imageUrl for chat \(chat.id): \(error.localizedDescription)"
-            )
+        // TODO: Use chat.imageURL when it can be changed
+        return nil
+    }
+
+    var body: some View {
+        SmallProfilePictureView(uiImage: displayedImage) {
+            router.openProfile(chat.participantId)
         }
     }
 }
