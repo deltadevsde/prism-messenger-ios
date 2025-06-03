@@ -8,20 +8,17 @@
 import Foundation
 import SwiftUI
 
-private struct StoredProfilePicture: Identifiable {
-    var id: String { url }
-
-    let url: String
-    let data: Data
-}
-
 extension FakeClient: ProfilePictureGateway {
 
-    private var profilePictureStore: InMemoryStore<StoredProfilePicture> {
+    private var profilePictureStore: InMemoryStore<ProfilePicture> {
         storeProvider.provideTypedStore()
     }
 
-    func uploadPicture(_ imageData: Data, to url: String) async throws {
-        profilePictureStore.save(StoredProfilePicture(url: url, data: imageData))
+    func fetchPicture(from url: String) async throws -> ProfilePicture? {
+        profilePictureStore.get(byId: url)
+    }
+
+    func uploadPicture(_ picture: ProfilePicture, to url: String) async throws {
+        profilePictureStore.save(picture)
     }
 }
