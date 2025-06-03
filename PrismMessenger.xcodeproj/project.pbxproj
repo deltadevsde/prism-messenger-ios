@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		DD0CC76E2D54B96900DAC02D /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = DD0CC76D2D54B96400DAC02D /* .gitignore */; };
 		DD0CC7712D54E36400DAC02D /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = DD0CC7702D54E36400DAC02D /* KeychainAccess */; };
+		DD8934292DEEDDDB00086642 /* OrderedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = DD8934282DEEDDDB00086642 /* OrderedCollections */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -87,6 +88,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DD8934292DEEDDDB00086642 /* OrderedCollections in Frameworks */,
 				DD0CC7712D54E36400DAC02D /* KeychainAccess in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -162,6 +164,7 @@
 			name = PrismMessenger;
 			packageProductDependencies = (
 				DD0CC7702D54E36400DAC02D /* KeychainAccess */,
+				DD8934282DEEDDDB00086642 /* OrderedCollections */,
 			);
 			productName = PrismMessenger;
 			productReference = DD0CC65C2D4B88E600DAC02D /* PrismMessengerDev.app */;
@@ -275,6 +278,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				DD0CC76F2D54E36400DAC02D /* XCRemoteSwiftPackageReference "KeychainAccess" */,
+				DD8934272DEEDDDB00086642 /* XCRemoteSwiftPackageReference "swift-collections" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DD0CC65D2D4B88E600DAC02D /* Products */;
@@ -761,6 +765,14 @@
 				minimumVersion = 4.1.0;
 			};
 		};
+		DD8934272DEEDDDB00086642 /* XCRemoteSwiftPackageReference "swift-collections" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-collections.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -768,6 +780,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DD0CC76F2D54E36400DAC02D /* XCRemoteSwiftPackageReference "KeychainAccess" */;
 			productName = KeychainAccess;
+		};
+		DD8934282DEEDDDB00086642 /* OrderedCollections */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DD8934272DEEDDDB00086642 /* XCRemoteSwiftPackageReference "swift-collections" */;
+			productName = OrderedCollections;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

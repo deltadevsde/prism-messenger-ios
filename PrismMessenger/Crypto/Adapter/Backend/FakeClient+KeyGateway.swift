@@ -1,5 +1,5 @@
 //
-//  FakeClient+MessageGateway.swift
+//  FakeClient+KeyGateway.swift
 //  PrismMessenger
 //
 //  Copyright © 2025 prism. All rights reserved.
@@ -7,12 +7,20 @@
 
 import Foundation
 
-private struct StoredKeyBundle {
-    let accountId: UUID
+private struct StoredKeyBundle: Identifiable {
+    let id: UUID
     let keyBundle: KeyBundle
 }
 
 extension FakeClient: KeyGateway {
+
+    private var userStore: InMemoryStore<FakeUser> {
+        storeProvider.provideTypedStore()
+    }
+
+    private var keyBundleStore: InMemoryStore<StoredKeyBundle> {
+        storeProvider.provideTypedStore()
+    }
 
     @MainActor
     func submitKeyBundle(keyBundle: KeyBundle) async throws {
@@ -20,15 +28,14 @@ extension FakeClient: KeyGateway {
             throw FakeClientError.authenticationRequired
         }
 
-        guard (store.getList(FakeUser.self).contains { $0.id == user.id })
-        else {
+        guard userStore.get(byId: user.id) != nil else {
             throw UserGatewayError.requestFailed(404)
         }
 
-        store.addToList(StoredKeyBundle(accountId: user.id, keyBundle: keyBundle))
+        keyBundleStore.save(StoredKeyBundle(id: user.id, keyBundle: keyBundle))
     }
 
     func fetchKeyBundle(for accountId: UUID) async throws -> KeyBundle? {
-        (store.getList(StoredKeyBundle.self).first { $0.accountId == accountId })?.keyBundle
+        keyBundleStore.get(byId: accountId)?.keyBundle
     }
 }

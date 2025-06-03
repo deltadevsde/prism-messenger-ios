@@ -12,7 +12,9 @@ private struct SendMessageResponse: MessageReceipt {
     let timestamp = UInt64(Date.now.timeIntervalSince1970 * 1000)
 }
 
-private struct MessageResponse: ReceivedMessage {
+private struct MessageResponse: ReceivedMessage, Identifiable {
+    var id: UUID { messageId }
+
     let messageId = UUID()
     let senderId: UUID
     let recipientId: UUID
@@ -21,6 +23,10 @@ private struct MessageResponse: ReceivedMessage {
 }
 
 extension FakeClient: MessageGateway {
+
+    private var messageStore: InMemoryStore<MessageResponse> {
+        storeProvider.provideTypedStore()
+    }
 
     @MainActor
     func sendMessage(_ message: DoubleRatchetMessage, to recipientId: UUID)
@@ -33,8 +39,9 @@ extension FakeClient: MessageGateway {
         let storedMessage = MessageResponse(
             senderId: currentUser.id,
             recipientId: recipientId,
-            message: message)
-        store.addToList(storedMessage)
+            message: message
+        )
+        messageStore.save(storedMessage)
         return SendMessageResponse(messageId: storedMessage.messageId)
     }
 
@@ -44,12 +51,11 @@ extension FakeClient: MessageGateway {
             throw FakeClientError.authenticationRequired
         }
 
-        return store.getList(MessageResponse.self)
-            .filter { $0.recipientId == currentUser.id }
+        return messageStore.filter { $0.recipientId == currentUser.id }
     }
 
     func markMessagesAsDelivered(messageIds: [UUID]) async throws {
-        store.removeFromList(MessageResponse.self) {
+        messageStore.remove {
             messageIds.contains($0.messageId)
         }
     }
