@@ -11,30 +11,23 @@ private let imageSize: CGFloat = 150
 
 struct ProfileView: View {
     let userId: UUID
-    @Environment(OtherProfileService.self) private var otherProfileService
+    @Environment(ProfileCacheService.self) private var profileCacheService
 
-    @State private var profile: Profile?
-    @State private var isLoading = true
     @State private var error: String?
 
     var body: some View {
         ZStack {
-            if isLoading {
-                ProgressView()
-            } else if let profile = profile {
+            if let profile = profileCacheService.profiles[userId] {
                 profileView(for: profile)
-            } else if let error = error {
-                errorView(error: error)
             } else {
-                Text("Profile not found")
-                    .foregroundColor(.gray)
+                ProgressView()
             }
         }
         .navigationTitle("Profile")
         .navigationBarTitleDisplayMode(.large)
         .onAppear {
             Task {
-                await loadProfile()
+                try await profileCacheService.refreshProfile(byAccountId: userId)
             }
         }
     }
@@ -60,43 +53,6 @@ struct ProfileView: View {
                 Spacer()
             }
             .padding(.bottom)
-        }
-    }
-
-    private func errorView(error: String) -> some View {
-        VStack(spacing: 16) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 50))
-                .foregroundColor(.red)
-
-            Text("Failed to load profile")
-                .font(.headline)
-
-            Text(error)
-                .font(.caption)
-                .foregroundColor(.gray)
-                .multilineTextAlignment(.center)
-
-            Button("Try Again") {
-                Task {
-                    await loadProfile()
-                }
-            }
-            .buttonStyle(.borderedProminent)
-        }
-        .padding()
-    }
-
-    private func loadProfile() async {
-        isLoading = true
-        error = nil
-
-        do {
-            profile = try await otherProfileService.fetchProfile(byAccountId: userId)
-            isLoading = false
-        } catch {
-            self.error = error.localizedDescription
-            isLoading = false
         }
     }
 }
