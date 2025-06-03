@@ -37,15 +37,26 @@ class AppContextFactory {
 
         // Initialize profile services
         let profileRepository = SwiftDataProfileRepository(modelContext: modelContext)
+        let profilePictureRepository = SwiftDataProfilePictureRepository(modelContext: modelContext)
+        let profilePictureCacheService = ProfilePictureCacheService(
+            profilePictureRepository: profilePictureRepository,
+            profilePictureGateway: restClient
+        )
+        let profileCacheService = ProfileCacheService(
+            profileRepository: profileRepository,
+            profileGateway: restClient,
+            profilePictureCacheService: profilePictureCacheService
+        )
         let ownProfileService = OwnProfileService(
             profileRepository: profileRepository,
             profileGateway: restClient,
             profilePictureGateway: restClient,
+            profilePictureCacheService: profilePictureCacheService,
             userService: userService
         )
-        let otherProfileService = OtherProfileService(
+        let profilePictureCleanupService = ProfilePictureCleanupService(
             profileRepository: profileRepository,
-            profileGateway: restClient
+            profilePictureRepository: profilePictureRepository
         )
 
         // Initialize crypto services
@@ -57,7 +68,7 @@ class AppContextFactory {
         let chatService = ChatService(
             chatRepository: chatRepository,
             userService: userService,
-            otherProfileService: otherProfileService,
+            profileCacheService: profileCacheService,
             messageGateway: restClient,
             keyGateway: restClient,
             x3dh: x3dh
@@ -104,7 +115,9 @@ class AppContextFactory {
             messageService: messageService,
             messageNotificationService: messageNotificationService,
             ownProfileService: ownProfileService,
-            otherProfileService: otherProfileService,
+            profileCacheService: profileCacheService,
+            profilePictureCacheService: profilePictureCacheService,
+            profilePictureCleanupService: profilePictureCleanupService,
             pushNotificationCenter: pushNotificationCenter,
             pushNotificationDelegate: pushNotificationCenter,
             updatePushTokenService: updatePushTokenService,
@@ -132,15 +145,26 @@ class AppContextFactory {
 
         // Initialize profile services
         let profileRepository = SwiftDataProfileRepository(modelContext: modelContext)
+        let profilePictureRepository = SwiftDataProfilePictureRepository(modelContext: modelContext)
+        let profilePictureCacheService = ProfilePictureCacheService(
+            profilePictureRepository: profilePictureRepository,
+            profilePictureGateway: simulatedBackend
+        )
+        let profileCacheService = ProfileCacheService(
+            profileRepository: profileRepository,
+            profileGateway: simulatedBackend,
+            profilePictureCacheService: profilePictureCacheService
+        )
         let ownProfileService = OwnProfileService(
             profileRepository: profileRepository,
             profileGateway: simulatedBackend,
             profilePictureGateway: simulatedBackend,
+            profilePictureCacheService: profilePictureCacheService,
             userService: userService
         )
-        let otherProfileService = OtherProfileService(
+        let profilePictureCleanupService = ProfilePictureCleanupService(
             profileRepository: profileRepository,
-            profileGateway: simulatedBackend
+            profilePictureRepository: profilePictureRepository
         )
 
         // Initialize crypto services
@@ -152,7 +176,7 @@ class AppContextFactory {
         let chatService = ChatService(
             chatRepository: chatRepository,
             userService: userService,
-            otherProfileService: otherProfileService,
+            profileCacheService: profileCacheService,
             messageGateway: simulatedBackend,
             keyGateway: simulatedBackend,
             x3dh: x3dh
@@ -199,7 +223,9 @@ class AppContextFactory {
             messageService: messageService,
             messageNotificationService: messageNotificationService,
             ownProfileService: ownProfileService,
-            otherProfileService: otherProfileService,
+            profileCacheService: profileCacheService,
+            profilePictureCacheService: profilePictureCacheService,
+            profilePictureCleanupService: profilePictureCleanupService,
             pushNotificationCenter: pushNotificationCenter,
             pushNotificationDelegate: nil,
             updatePushTokenService: updatePushTokenService,

@@ -17,7 +17,9 @@ class AppContext: ObservableObject {
     let messageService: MessageService
     let messageNotificationService: MessageNotificationService
     let ownProfileService: OwnProfileService
-    let otherProfileService: OtherProfileService
+    let profileCacheService: ProfileCacheService
+    let profilePictureCacheService: ProfilePictureCacheService
+    let profilePictureCleanupService: ProfilePictureCleanupService
     let pushNotificationCenter: PushNotificationCenter
     let pushNotificationDelegate: PushNotificationDelegate?
     let updatePushTokenService: UpdatePushTokenService
@@ -32,7 +34,9 @@ class AppContext: ObservableObject {
         messageService: MessageService,
         messageNotificationService: MessageNotificationService,
         ownProfileService: OwnProfileService,
-        otherProfileService: OtherProfileService,
+        profileCacheService: ProfileCacheService,
+        profilePictureCacheService: ProfilePictureCacheService,
+        profilePictureCleanupService: ProfilePictureCleanupService,
         pushNotificationCenter: PushNotificationCenter,
         pushNotificationDelegate: PushNotificationDelegate?,
         updatePushTokenService: UpdatePushTokenService,
@@ -46,7 +50,9 @@ class AppContext: ObservableObject {
         self.messageService = messageService
         self.messageNotificationService = messageNotificationService
         self.ownProfileService = ownProfileService
-        self.otherProfileService = otherProfileService
+        self.profileCacheService = profileCacheService
+        self.profilePictureCacheService = profilePictureCacheService
+        self.profilePictureCleanupService = profilePictureCleanupService
         self.pushNotificationCenter = pushNotificationCenter
         self.pushNotificationDelegate = pushNotificationDelegate
         self.updatePushTokenService = updatePushTokenService
