@@ -1,0 +1,8 @@
+//
+//  Development.xcconfig
+//  PrismMessenger
+//
+//  Copyright © 2025 prism. All rights reserved.
+//
+
+SERVER_URL = http:/$()/192.168.158.69:44444

@@ -21,7 +21,7 @@ class AppContextFactory {
         let userService = UserService(userRepository: userRepository)
 
         #if targetEnvironment(simulator)
-            let serverUrl = "http://127.0.0.1:48080"
+            let serverUrl = "http://127.0.0.1:44444"
         #else
             let serverUrl = BuildSettings.serverURL
         #endif
@@ -91,6 +91,8 @@ class AppContextFactory {
             userGateway: restClient,
             pushNotificationService: pushNotificationCenter
         )
+        
+        let lightClientService = LightClientService()
 
         return AppContext(
             modelContext: modelContext,
@@ -104,7 +106,8 @@ class AppContextFactory {
             pushNotificationDelegate: pushNotificationCenter,
             updatePushTokenService: updatePushTokenService,
             userService: userService,
-            registrationService: registrationService
+            registrationService: registrationService,
+            lightClientService: lightClientService
         )
     }
 
@@ -183,6 +186,8 @@ class AppContextFactory {
             userGateway: simulatedBackend,
             pushNotificationService: pushNotificationCenter
         )
+        
+        let lightClientService = LightClientService()
 
         return AppContext(
             modelContext: modelContext,
@@ -196,7 +201,8 @@ class AppContextFactory {
             pushNotificationDelegate: nil,
             updatePushTokenService: updatePushTokenService,
             userService: userService,
-            registrationService: registrationService
+            registrationService: registrationService,
+            lightClientService: lightClientService
         )
     }
 

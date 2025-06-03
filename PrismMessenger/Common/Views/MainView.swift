@@ -11,6 +11,7 @@ import SwiftUI
 struct MainView: View {
     @EnvironmentObject private var appContext: AppContext
     @EnvironmentObject private var router: NavigationRouter
+    @State private var showingLightClientDebug = false
 
     var body: some View {
         NavigationStack(path: $router.path) {
@@ -36,6 +37,7 @@ struct MainView: View {
         .environmentObject(appContext.registrationService)
         .environmentObject(appContext.userService)
         .environmentObject(appContext.updatePushTokenService)
+        .environmentObject(appContext.lightClientService)
         .tint(.black)
     }
 
@@ -68,8 +70,23 @@ struct MainView: View {
                 }
             }
             ToolbarItem(placement: .principal) {
-                Image("prism_text")
+                HStack(spacing: 4) {
+                    Image("prism_text")
+                    
+                    if appContext.lightClientService.isVerified {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.system(size: 16))
+                            .foregroundColor(.green)
+                    }
+                }
+                .onTapGesture {
+                    showingLightClientDebug = true
+                }
             }
+        }
+        .sheet(isPresented: $showingLightClientDebug) {
+            LightClientDebugView()
+                .environmentObject(appContext.lightClientService)
         }
     }
 

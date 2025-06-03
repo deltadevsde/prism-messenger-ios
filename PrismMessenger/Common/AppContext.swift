@@ -22,6 +22,7 @@ class AppContext: ObservableObject {
     let updatePushTokenService: UpdatePushTokenService
     let userService: UserService
     let registrationService: RegistrationService
+    let lightClientService: LightClientService
 
     init(
         modelContext: ModelContext,
@@ -35,7 +36,8 @@ class AppContext: ObservableObject {
         pushNotificationDelegate: PushNotificationDelegate?,
         updatePushTokenService: UpdatePushTokenService,
         userService: UserService,
-        registrationService: RegistrationService
+        registrationService: RegistrationService,
+        lightClientService: LightClientService
     ) {
         self.modelContext = modelContext
         self.scenePhaseRepository = scenePhaseRepository
@@ -49,6 +51,7 @@ class AppContext: ObservableObject {
         self.updatePushTokenService = updatePushTokenService
         self.userService = userService
         self.registrationService = registrationService
+        self.lightClientService = lightClientService
     }
 
     func connectAppDelegate(_ appDelegate: AppDelegate) {

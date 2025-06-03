@@ -24,6 +24,11 @@ func startApp(appContext: AppContext) async {
 
             // Tasks to be done when user is already able to use the app
             try await appContext.updatePushTokenService.updatePushToken()
+            
+             // i think with this Task, we won't block the UI
+            Task.detached(priority: .background) {
+               await appContext.lightClientService.initialize()
+            }
         } else {
             router.setLaunchState(.unregistered)
         }

@@ -23,6 +23,7 @@ struct PrismMessengerApp: App {
             MainView()
                 .environmentObject(appContext)
                 .environmentObject(appContext.router)
+                .environmentObject(appContext.lightClientService)
                 .task {
                     appContext.connectAppDelegate(appDelegate)
                     await startApp(appContext: appContext)

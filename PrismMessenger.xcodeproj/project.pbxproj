@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		08369DC82DEED35000FC317D /* Network.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 08DE46322DEDC9110005D7EC /* Network.framework */; };
+		08369DCB2DEED35100FC317D /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 08DE46302DEDC9070005D7EC /* SystemConfiguration.framework */; };
+		08DE462A2DEDC3290005D7EC /* PrismLightClient in Frameworks */ = {isa = PBXBuildFile; productRef = 08DE46292DEDC3290005D7EC /* PrismLightClient */; };
 		DD0CC76E2D54B96900DAC02D /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = DD0CC76D2D54B96400DAC02D /* .gitignore */; };
 		DD0CC7712D54E36400DAC02D /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = DD0CC7702D54E36400DAC02D /* KeychainAccess */; };
 /* End PBXBuildFile section */
@@ -36,6 +39,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		08DE46132DED82510005D7EC /* Development.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Development.xcconfig; sourceTree = "<group>"; };
+		08DE46302DEDC9070005D7EC /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
+		08DE46322DEDC9110005D7EC /* Network.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Network.framework; path = System/Library/Frameworks/Network.framework; sourceTree = SDKROOT; };
 		DD0CC65C2D4B88E600DAC02D /* PrismMessengerDev.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PrismMessengerDev.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DD0CC66C2D4B88E800DAC02D /* PrismMessengerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PrismMessengerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DD0CC6762D4B88E800DAC02D /* PrismMessengerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PrismMessengerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -87,7 +93,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				08DE462A2DEDC3290005D7EC /* PrismLightClient in Frameworks */,
 				DD0CC7712D54E36400DAC02D /* KeychainAccess in Frameworks */,
+				08369DCB2DEED35100FC317D /* SystemConfiguration.framework in Frameworks */,
+				08369DC82DEED35000FC317D /* Network.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -115,9 +124,19 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		08DE462F2DEDC9070005D7EC /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				08DE46322DEDC9110005D7EC /* Network.framework */,
+				08DE46302DEDC9070005D7EC /* SystemConfiguration.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		DD0CC6532D4B88E600DAC02D = {
 			isa = PBXGroup;
 			children = (
+				08DE46132DED82510005D7EC /* Development.xcconfig */,
 				DD7E4A2A2DA5214D00A31DDD /* Development.xcconfig */,
 				DD7E54DD2DB0F54F00A31DDD /* Production.xcconfig */,
 				DD0CC76D2D54B96400DAC02D /* .gitignore */,
@@ -126,6 +145,7 @@
 				DD508DF62D8AB2F900293B79 /* PrismMessengerIntegrationTests */,
 				DD0CC66F2D4B88E800DAC02D /* PrismMessengerTests */,
 				DD0CC6792D4B88E800DAC02D /* PrismMessengerUITests */,
+				08DE462F2DEDC9070005D7EC /* Frameworks */,
 				DD0CC65D2D4B88E600DAC02D /* Products */,
 			);
 			sourceTree = "<group>";
@@ -162,6 +182,7 @@
 			name = PrismMessenger;
 			packageProductDependencies = (
 				DD0CC7702D54E36400DAC02D /* KeychainAccess */,
+				08DE46292DEDC3290005D7EC /* PrismLightClient */,
 			);
 			productName = PrismMessenger;
 			productReference = DD0CC65C2D4B88E600DAC02D /* PrismMessengerDev.app */;
@@ -275,6 +296,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				DD0CC76F2D54E36400DAC02D /* XCRemoteSwiftPackageReference "KeychainAccess" */,
+				08369DC72DEED33800FC317D /* XCLocalSwiftPackageReference "../prism/crates/node_types/uniffi-lightclient/swift-package" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DD0CC65D2D4B88E600DAC02D /* Products */;
@@ -752,6 +774,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		08369DC72DEED33800FC317D /* XCLocalSwiftPackageReference "../prism/crates/node_types/uniffi-lightclient/swift-package" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../prism/crates/node_types/uniffi-lightclient/swift-package";
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		DD0CC76F2D54E36400DAC02D /* XCRemoteSwiftPackageReference "KeychainAccess" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -764,6 +793,10 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		08DE46292DEDC3290005D7EC /* PrismLightClient */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PrismLightClient;
+		};
 		DD0CC7702D54E36400DAC02D /* KeychainAccess */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DD0CC76F2D54E36400DAC02D /* XCRemoteSwiftPackageReference "KeychainAccess" */;
