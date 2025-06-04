@@ -20,51 +20,40 @@ enum ProfileServiceError: Error {
 
 @Observable @MainActor
 class OwnProfileService {
-    private let profileRepository: ProfileRepository
     private let profileGateway: ProfileGateway
     private let profilePictureGateway: ProfilePictureGateway
+    private let profileCacheService: ProfileCacheService
     private let profilePictureCacheService: ProfilePictureCacheService
     private let userService: UserService
 
-    var ownProfile: Profile?
+    var ownProfile: Profile? {
+        guard let ownAccountId = userService.currentUser?.id else {
+            return nil
+        }
+        return profileCacheService.profiles[ownAccountId]
+    }
 
     init(
-        profileRepository: ProfileRepository,
         profileGateway: ProfileGateway,
         profilePictureGateway: ProfilePictureGateway,
+        profileCacheService: ProfileCacheService,
         profilePictureCacheService: ProfilePictureCacheService,
         userService: UserService
     ) {
-        self.profileRepository = profileRepository
         self.profileGateway = profileGateway
         self.profilePictureGateway = profilePictureGateway
+        self.profileCacheService = profileCacheService
         self.profilePictureCacheService = profilePictureCacheService
         self.userService = userService
     }
 
     // MARK: - Own Profile Loading
 
-    func loadOwnProfile() async throws {
+    func refreshOwnProfile() async throws {
         guard let currentUser = userService.currentUser else {
             throw ProfileServiceError.notAuthenticated
         }
-
-        // First check if there is a local entry for the profile
-        if let localProfile = try await profileRepository.getProfile(byAccountId: currentUser.id) {
-            ownProfile = localProfile
-            return
-        }
-
-        // If no local entry exists, fetch from remote
-        guard let remoteProfile = try await profileGateway.fetchProfile(byAccountId: currentUser.id)
-        else {
-            ownProfile = nil
-            return
-        }
-
-        // Save the fetched profile locally
-        try await profileRepository.saveProfile(remoteProfile)
-        ownProfile = remoteProfile
+        try await profileCacheService.refreshProfile(byAccountId: currentUser.id)
     }
 
     // MARK: - Profile Updates
@@ -79,10 +68,10 @@ class OwnProfileService {
         // Update remote profile
         _ = try await profileGateway.updateProfile(request)
 
-        // Update local profile
+        // Update profile cache
         if let profile = ownProfile {
             profile.displayName = newDisplayName
-            try await profileRepository.saveProfile(profile)
+            try await profileCacheService.saveProfile(profile)
         }
     }
 
@@ -96,10 +85,10 @@ class OwnProfileService {
         // Update remote profile
         _ = try await profileGateway.updateProfile(request)
 
-        // Update local profile
+        // Update profile cache
         if let profile = ownProfile {
             profile.picture = nil
-            try await profileRepository.saveProfile(profile)
+            try await profileCacheService.saveProfile(profile)
         }
     }
 
@@ -132,6 +121,6 @@ class OwnProfileService {
         }
 
         profile.picture = uploadResponse.pictureUrl
-        try await profileRepository.saveProfile(profile)
+        try await profileCacheService.saveProfile(profile)
     }
 }

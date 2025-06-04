@@ -28,7 +28,7 @@ struct EditProfileView: View {
         }
         .onAppear {
             Task {
-                try? await ownProfileService.loadOwnProfile()
+                try? await ownProfileService.refreshOwnProfile()
             }
         }
     }

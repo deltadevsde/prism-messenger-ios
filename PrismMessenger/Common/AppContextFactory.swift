@@ -48,9 +48,9 @@ class AppContextFactory {
             profilePictureCacheService: profilePictureCacheService
         )
         let ownProfileService = OwnProfileService(
-            profileRepository: profileRepository,
             profileGateway: restClient,
             profilePictureGateway: restClient,
+            profileCacheService: profileCacheService,
             profilePictureCacheService: profilePictureCacheService,
             userService: userService
         )
@@ -156,9 +156,9 @@ class AppContextFactory {
             profilePictureCacheService: profilePictureCacheService
         )
         let ownProfileService = OwnProfileService(
-            profileRepository: profileRepository,
             profileGateway: simulatedBackend,
             profilePictureGateway: simulatedBackend,
+            profileCacheService: profileCacheService,
             profilePictureCacheService: profilePictureCacheService,
             userService: userService
         )

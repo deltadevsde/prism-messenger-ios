@@ -55,6 +55,11 @@ class ProfileCacheService {
         return try await refreshProfile(byUsername: username)
     }
 
+    func saveProfile(_ profile: Profile) async throws {
+        try await profileRepository.saveProfile(profile)
+        profiles[profile.accountId] = profile
+    }
+
     @discardableResult
     func refreshProfile(byAccountId accountId: UUID) async throws -> Profile? {
         guard let profile = try await profileGateway.fetchProfile(byAccountId: accountId) else {
@@ -66,10 +71,7 @@ class ProfileCacheService {
         }
 
         log.debug("Profile fetched from server: \(accountId)")
-        // Save to all cache tiers
-        try await profileRepository.saveProfile(profile)
-        profiles[accountId] = profile
-
+        try await saveProfile(profile)
         return profile
     }
 
@@ -83,9 +85,7 @@ class ProfileCacheService {
         }
 
         log.debug("Profile fetched from server: \(profile.accountId)")
-        // Save to all cache tiers
-        try await profileRepository.saveProfile(profile)
-        profiles[profile.accountId] = profile
+        try await saveProfile(profile)
         return profile
     }
 

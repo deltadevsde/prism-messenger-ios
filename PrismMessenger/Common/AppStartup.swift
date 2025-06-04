@@ -19,7 +19,6 @@ func startApp(appContext: AppContext) async {
         if userExists {
             // Tasks to be done before launch screen disappears
             try await appContext.profilePictureCleanupService.cleanupOrphanedProfilePictures()
-            try await appContext.ownProfileService.loadOwnProfile()
             await appContext.profileCacheService.populateCacheFromDisk()
             await appContext.profilePictureCacheService.populateCacheFromDisk()
 
