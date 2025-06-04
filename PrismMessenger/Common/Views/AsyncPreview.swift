@@ -40,7 +40,9 @@ struct AsyncPreview<Content: View>: View {
                         }
                 }
                 .modelContext(appContext.modelContext)
-                .environment(appContext.profileService)
+                .environment(appContext.ownProfileService)
+                .environment(appContext.profileCacheService)
+                .environment(appContext.profilePictureCacheService)
                 .environmentObject(appContext)
                 .environmentObject(appContext.router)
                 .environmentObject(appContext.chatService)

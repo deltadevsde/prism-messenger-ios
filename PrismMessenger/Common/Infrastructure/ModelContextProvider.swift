@@ -21,7 +21,7 @@ final class ModelContextProvider {
 
     static private func createModelContainer(inMemory: Bool) -> ModelContainer {
         do {
-            let schema = Schema([User.self, Chat.self, Message.self])
+            let schema = Schema([User.self, Chat.self, Message.self, Profile.self, ProfilePicture.self])
             let modelConfiguration = ModelConfiguration(
                 isStoredInMemoryOnly: inMemory
             )
@@ -41,7 +41,7 @@ final class ModelContextProvider {
         let currentVersion = UserDefaults.standard.integer(
             forKey: UserDefaultsKeys.schemaVersionKey)
         // Current schema version
-        let newVersion = 8
+        let newVersion = 9
 
         if currentVersion < newVersion {
             // Only delete database when schema has changed since last launch

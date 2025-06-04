@@ -12,7 +12,7 @@ private let imageSize: CGFloat = 150
 
 struct EditProfileView: View {
     @EnvironmentObject private var router: NavigationRouter
-    @Environment(ProfileService.self) private var profileService
+    @Environment(OwnProfileService.self) private var ownProfileService
 
     @State private var isEditing = false
     @State private var newDisplayName = ""
@@ -20,7 +20,7 @@ struct EditProfileView: View {
 
     var body: some View {
         ZStack {
-            if let profile = profileService.ownProfile {
+            if let profile = ownProfileService.ownProfile {
                 profileView(for: profile)
             } else {
                 ProgressView()
@@ -28,7 +28,7 @@ struct EditProfileView: View {
         }
         .onAppear {
             Task {
-                try? await profileService.loadOwnProfile()
+                try? await ownProfileService.refreshOwnProfile()
             }
         }
     }
@@ -79,7 +79,7 @@ struct EditProfileView: View {
                                 return
                             }
 
-                            try? await profileService.updateProfilePicture(with: resizedData)
+                            try? await ownProfileService.updateProfilePicture(with: resizedData)
                         }
                     }
                 }
@@ -106,7 +106,8 @@ struct EditProfileView: View {
                                     let displayName = newDisplayName.isEmpty ? nil : newDisplayName
                                     Task {
                                         do {
-                                            try await profileService.updateDisplayName(displayName)
+                                            try await ownProfileService.updateDisplayName(
+                                                displayName)
                                             isEditing = false
                                         } catch {
                                             // Nothing to be done, isEditing stays true

@@ -350,6 +350,37 @@ class RestClient {
         return responseData
     }
 
+    /// Downloads binary data from a specified path or URL
+    /// - Parameters:
+    ///   - url: The URL to fetch the data from
+    ///   - accessLevel: The access level for authentication
+    ///   - contentType: The Content-Type header value for the data
+    /// - Returns: The downloaded binary data
+    /// - Throws: RestClientError if the download fails
+    func getBinaryData(from url: String, contentType: String) async throws -> Data {
+        guard let url = URL(string: url) else {
+            throw RestClientError.invalidURL
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+
+        log.debug(
+            "\(request.httpMethod!) \(url): \(String(describing: request.allHTTPHeaderFields))"
+        )
+
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw RestClientError.unknown
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw RestClientError.httpError(httpResponse.statusCode)
+        }
+
+        return data
+    }
+
     /// Uploads binary data to a specified URL with the given content type using PUT method
     /// - Parameters:
     ///   - data: The binary data to upload

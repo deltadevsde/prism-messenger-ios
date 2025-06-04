@@ -1,5 +1,5 @@
 //
-//  ProfileService.swift
+//  OwnProfileService.swift
 //  PrismMessenger
 //
 //  Copyright © 2025 prism. All rights reserved.
@@ -19,78 +19,41 @@ enum ProfileServiceError: Error {
 }
 
 @Observable @MainActor
-class ProfileService {
-    private let profileRepository: ProfileRepository
+class OwnProfileService {
     private let profileGateway: ProfileGateway
     private let profilePictureGateway: ProfilePictureGateway
+    private let profileCacheService: ProfileCacheService
+    private let profilePictureCacheService: ProfilePictureCacheService
     private let userService: UserService
 
-    var ownProfile: Profile?
+    var ownProfile: Profile? {
+        guard let ownAccountId = userService.currentUser?.id else {
+            return nil
+        }
+        return profileCacheService.profiles[ownAccountId]
+    }
 
     init(
-        profileRepository: ProfileRepository,
         profileGateway: ProfileGateway,
         profilePictureGateway: ProfilePictureGateway,
+        profileCacheService: ProfileCacheService,
+        profilePictureCacheService: ProfilePictureCacheService,
         userService: UserService
     ) {
-        self.profileRepository = profileRepository
         self.profileGateway = profileGateway
         self.profilePictureGateway = profilePictureGateway
+        self.profileCacheService = profileCacheService
+        self.profilePictureCacheService = profilePictureCacheService
         self.userService = userService
     }
 
-    // MARK: - Profile Loading
+    // MARK: - Own Profile Loading
 
-    func loadOwnProfile() async throws {
+    func refreshOwnProfile() async throws {
         guard let currentUser = userService.currentUser else {
             throw ProfileServiceError.notAuthenticated
         }
-
-        let fetchedProfile = try await fetchProfile(byAccountId: currentUser.id)
-        ownProfile = fetchedProfile
-    }
-
-    func fetchProfile(
-        byAccountId accountId: UUID,
-        usingLocalCache shouldUseLocalCache: Bool = true
-    ) async throws -> Profile? {
-        // First check if there is a local entry for the profile
-        if shouldUseLocalCache,
-            let localProfile = try await profileRepository.getProfile(byAccountId: accountId)
-        {
-            return localProfile
-        }
-
-        // If no local entry exists, fetch from remote
-        guard let remoteProfile = try await profileGateway.fetchProfile(byAccountId: accountId)
-        else {
-            return nil
-        }
-
-        // Save the fetched profile locally
-        try await profileRepository.saveProfile(remoteProfile)
-        return remoteProfile
-    }
-
-    func fetchProfile(
-        byUsername username: String,
-        usingLocalCache shouldUseLocalCache: Bool = true
-    ) async throws -> Profile? {
-        // First check if there is a local entry for the profile
-        if shouldUseLocalCache,
-            let localProfile = try await profileRepository.getProfile(byUsername: username)
-        {
-            return localProfile
-        }
-
-        // If no local entry exists, fetch from remote
-        guard let remoteProfile = try await profileGateway.fetchProfile(byUsername: username) else {
-            return nil
-        }
-
-        // Save the fetched profile locally
-        try await profileRepository.saveProfile(remoteProfile)
-        return remoteProfile
+        try await profileCacheService.refreshProfile(byAccountId: currentUser.id)
     }
 
     // MARK: - Profile Updates
@@ -105,10 +68,10 @@ class ProfileService {
         // Update remote profile
         _ = try await profileGateway.updateProfile(request)
 
-        // Update local profile
+        // Update profile cache
         if let profile = ownProfile {
             profile.displayName = newDisplayName
-            try await profileRepository.saveProfile(profile)
+            try await profileCacheService.saveProfile(profile)
         }
     }
 
@@ -122,10 +85,10 @@ class ProfileService {
         // Update remote profile
         _ = try await profileGateway.updateProfile(request)
 
-        // Update local profile
+        // Update profile cache
         if let profile = ownProfile {
             profile.picture = nil
-            try await profileRepository.saveProfile(profile)
+            try await profileCacheService.saveProfile(profile)
         }
     }
 
@@ -147,14 +110,17 @@ class ProfileService {
             throw ProfileServiceError.profileUpdateFailed
         }
 
+        let picture = ProfilePicture(path: uploadResponse.pictureUrl, data: imageData)
+
         do {
             // Upload the image using the picture gateway
-            try await profilePictureGateway.uploadPicture(imageData, to: uploadResponse.uploadUrl)
+            try await profilePictureGateway.uploadPicture(picture, to: uploadResponse.uploadUrl)
+            try? await profilePictureCacheService.saveProfilePicture(picture)
         } catch {
             throw ProfileServiceError.pictureUploadFailed
         }
 
         profile.picture = uploadResponse.pictureUrl
-        try await profileRepository.saveProfile(profile)
+        try await profileCacheService.saveProfile(profile)
     }
 }

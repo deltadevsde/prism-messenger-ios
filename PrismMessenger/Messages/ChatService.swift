@@ -26,7 +26,7 @@ enum ChatServiceError: Error {
 class ChatService: ObservableObject {
     private let chatRepository: ChatRepository
     private let userService: UserService
-    private let profileService: ProfileService
+    private let profileCacheService: ProfileCacheService
     private let messageGateway: MessageGateway
     private let keyGateway: KeyGateway
     private let x3dh: X3DH
@@ -34,14 +34,14 @@ class ChatService: ObservableObject {
     init(
         chatRepository: ChatRepository,
         userService: UserService,
-        profileService: ProfileService,
+        profileCacheService: ProfileCacheService,
         messageGateway: MessageGateway,
         keyGateway: KeyGateway,
         x3dh: X3DH
     ) {
         self.chatRepository = chatRepository
         self.userService = userService
-        self.profileService = profileService
+        self.profileCacheService = profileCacheService
         self.messageGateway = messageGateway
         self.keyGateway = keyGateway
         self.x3dh = x3dh
@@ -51,7 +51,7 @@ class ChatService: ObservableObject {
         do {
             // Check if there's a profile for this username
             guard
-                let profile = try await profileService.fetchProfile(
+                let profile = try await profileCacheService.fetchProfile(
                     byUsername: otherUsername)
             else {
                 throw ChatServiceError.otherUserNotFound
@@ -240,8 +240,7 @@ class ChatService: ObservableObject {
         log.debug("sessionData from recv: \(jsonStr)")
 
         // 6. Query the senders profile to populate the chat
-        let profile = try? await profileService.fetchProfile(
-            byAccountId: senderId)
+        let profile = try? await profileCacheService.refreshProfile(byAccountId: senderId)
 
         // 7. Create and save the chat
         let chat = Chat(

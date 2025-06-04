@@ -1,5 +1,5 @@
 //
-//  ContentView.swift
+//  MainView.swift
 //  PrismMessenger
 //
 //  Copyright © 2025 prism. All rights reserved.
@@ -32,7 +32,9 @@ struct MainView: View {
         .modelContext(appContext.modelContext)
         .environmentObject(appContext.chatService)
         .environmentObject(appContext.messageService)
-        .environment(appContext.profileService)
+        .environment(appContext.ownProfileService)
+        .environment(appContext.profileCacheService)
+        .environment(appContext.profilePictureCacheService)
         .environmentObject(appContext.registrationService)
         .environmentObject(appContext.userService)
         .environmentObject(appContext.updatePushTokenService)
@@ -63,7 +65,7 @@ struct MainView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                SmallProfilePictureView(imageURL: appContext.profileService.ownProfile?.picture) {
+                SmallProfilePictureView(for: appContext.ownProfileService.ownProfile) {
                     // TODO: Open something like settings in the future
                 }
             }
