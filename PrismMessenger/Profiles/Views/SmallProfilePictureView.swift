@@ -8,32 +8,29 @@
 import SwiftUI
 
 struct SmallProfilePictureView: View {
-    var uiImage: UIImage?
-    let size: CGFloat
-    let action: () -> Void
+    @Environment(ProfilePictureCacheService.self) private var profilePictureCacheService
 
-    init(uiImage: UIImage?, size: CGFloat = 40, action: @escaping () -> Void) {
-        self.uiImage = uiImage
-        self.size = size
-        self.action = action
+    private let profile: Profile?
+    private let action: () -> Void
+
+    private var displayedImage: UIImage? {
+        guard
+            let profilePicturePath = profile?.picture,
+            let profilePicture = profilePictureCacheService.profilePictures[
+                profilePicturePath],
+            let image = UIImage(data: profilePicture.data)
+        else {
+            return nil
+        }
+        return image
     }
 
+     init(for profile: Profile?, action: @escaping () -> Void) {
+         self.profile = profile
+         self.action = action
+     }
+
     var body: some View {
-        Button(action: action) {
-            if let uiImage = uiImage {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: size, height: size)
-                    .clipShape(Circle())
-            } else {
-                Image(systemName: "person.circle.fill")
-                    .resizable()
-                    .foregroundStyle(.gray)
-                    .frame(width: size, height: size)
-                    .clipShape(Circle())
-            }
-        }
-        .buttonStyle(.plain)
+        RoundImageButton(uiImage: displayedImage, action: action)
     }
 }

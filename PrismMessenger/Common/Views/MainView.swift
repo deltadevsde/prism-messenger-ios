@@ -1,5 +1,5 @@
 //
-//  ContentView.swift
+//  MainView.swift
 //  PrismMessenger
 //
 //  Copyright © 2025 prism. All rights reserved.
@@ -65,20 +65,7 @@ struct MainView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                let uiImage: UIImage? = {
-                    guard
-                        let ownProfilePicturePath = appContext.ownProfileService.ownProfile?
-                            .picture,
-                        let ownProfilePicture = appContext.profilePictureCacheService
-                            .profilePictures[ownProfilePicturePath],
-                        let image = UIImage(data: ownProfilePicture.data)
-                    else {
-                        return nil
-                    }
-                    return image
-                }()
-
-                SmallProfilePictureView(uiImage: uiImage) {
+                SmallProfilePictureView(for: appContext.ownProfileService.ownProfile) {
                     // TODO: Open something like settings in the future
                 }
             }

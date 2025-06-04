@@ -21,8 +21,9 @@ struct ChatImageView: View {
 
     private var displayedImage: UIImage? {
         if let profile = profileCacheService.profiles[chat.participantId],
-           let picturePath = profile.picture,
-           let profilePicture = profilePictureCacheService.profilePictures[picturePath] {
+            let picturePath = profile.picture,
+            let profilePicture = profilePictureCacheService.profilePictures[picturePath]
+        {
             return UIImage(data: profilePicture.data)
         }
 
@@ -31,7 +32,7 @@ struct ChatImageView: View {
     }
 
     var body: some View {
-        SmallProfilePictureView(uiImage: displayedImage) {
+        RoundImageButton(uiImage: displayedImage) {
             router.openProfile(chat.participantId)
         }
     }
