@@ -34,6 +34,7 @@ class ProfileCacheService {
         }
 
         if let profile = try await profileRepository.getProfile(byAccountId: accountId) {
+            profiles[accountId] = profile
             return profile
         }
 
@@ -41,14 +42,12 @@ class ProfileCacheService {
     }
 
     func fetchProfile(byUsername username: String) async throws -> Profile? {
-        // Check if profile exists in memory cache by iterating through profiles
-        for profile in profiles.values {
-            if profile.username == username {
-                return profile
-            }
+        if let profile = (profiles.values.first { $0.username == username }) {
+            return profile
         }
 
         if let profile = try await profileRepository.getProfile(byUsername: username) {
+            profiles[profile.accountId] = profile
             return profile
         }
 
@@ -76,12 +75,13 @@ class ProfileCacheService {
     }
 
     @discardableResult
-    func refreshProfile(
-        byUsername username: String,
-        viaBackend shouldUseBackend: Bool = true
-    ) async throws -> Profile? {
+    func refreshProfile(byUsername username: String) async throws -> Profile? {
         guard let profile = try await profileGateway.fetchProfile(byUsername: username) else {
             return nil
+        }
+
+        if let profilePicturePath = profile.picture {
+            try await profilePictureCacheService.refreshProfilePicture(byPath: profilePicturePath)
         }
 
         log.debug("Profile fetched from server: \(profile.accountId)")

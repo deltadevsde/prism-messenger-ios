@@ -34,6 +34,7 @@ class ProfilePictureCacheService {
         }
 
         if let profilePicture = try await profilePictureRepository.getProfilePicture(byPath: path) {
+            profilePictures[path] = profilePicture
             return profilePicture
         }
 
