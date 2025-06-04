@@ -16,7 +16,7 @@ extension RestClient: ProfilePictureGateway {
             let data = try await getBinaryData(from: url, contentType: "image/jpeg")
             return ProfilePicture(path: url, data: data)
         } catch {
-            log.error("Error uploading to \(url): \(error)")
+            log.error("Error fetching from \(url): \(error)")
             throw ProfilePictureGatewayError.downloadFailed
         }
     }
