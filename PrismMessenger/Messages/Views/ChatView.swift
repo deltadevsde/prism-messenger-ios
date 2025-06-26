@@ -13,6 +13,7 @@ struct ChatView: View {
     @EnvironmentObject private var chatService: ChatService
     @EnvironmentObject private var messageService: MessageService
     @Environment(PresenceService.self) private var presenceService
+    @Environment(TypingService.self) private var typingService
 
     @Bindable var chat: Chat
     @State private var messageText: String = ""
@@ -23,6 +24,11 @@ struct ChatView: View {
     var body: some View {
         VStack(spacing: 0) {
             messagesList
+
+            // Typing indicator
+            if typingService.typingAccounts.contains(chat.participantId) {
+                typingIndicatorView
+            }
 
             // Error message display
             if let error = error {
@@ -135,6 +141,16 @@ struct ChatView: View {
                     .focused($isTextFieldFocused)
                     .lineLimit(5)
                     .disabled(isLoading)
+                    .onChange(of: messageText) { _, newValue in
+                        Task {
+                            let isTyping = !newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                                .isEmpty
+                            await typingService.handleUserTyping(
+                                for: chat.participantId,
+                                isTyping: isTyping
+                            )
+                        }
+                    }
 
                 if isLoading {
                     ProgressView()
@@ -162,12 +178,55 @@ struct ChatView: View {
         .background(Color(.systemBackground))
     }
 
+    private var typingIndicatorView: some View {
+        HStack {
+            HStack(spacing: 4) {
+                Text(chat.displayName ?? "User")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Text("is typing")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                // Animated dots
+                HStack(spacing: 2) {
+                    ForEach(0..<3, id: \.self) { index in
+                        Circle()
+                            .fill(Color.secondary)
+                            .frame(width: 4, height: 4)
+                            .scaleEffect(animationScale)
+                            .animation(
+                                Animation.easeInOut(duration: 0.6)
+                                    .repeatForever()
+                                    .delay(Double(index) * 0.2),
+                                value: animationScale
+                            )
+                    }
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+
+            Spacer()
+        }
+        .onAppear {
+            animationScale = 1.2
+        }
+    }
+
+    @State private var animationScale: CGFloat = 1.0
+
     private func sendMessage() {
         let trimmedMessage = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedMessage.isEmpty else { return }
 
         isLoading = true
         error = nil
+
+        // Set typing status to false when sending message
+        Task { @MainActor in
+            await typingService.handleUserTyping(for: chat.participantId, isTyping: false)
+        }
 
         // Clear the text field immediately for a better user experience
         let messageToSend = trimmedMessage
