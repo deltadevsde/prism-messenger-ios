@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 import os
 
-private let log = Log.messages
+private let log = Log.presence
 
 @Observable @MainActor
 class PresenceService {
@@ -62,7 +62,7 @@ class PresenceService {
     /// - Parameter accountId: The account ID to fetch presence for
     func loadPresenceStatus(for accountId: UUID) async {
         // Check if we have cached data that's still valid
-        if let _ = presenceStatuses[accountId],
+        if presenceStatuses[accountId] != nil,
             let lastFetch = lastFetchTimestamps[accountId],
             Date().timeIntervalSince(lastFetch) < cacheTimeout
         {
