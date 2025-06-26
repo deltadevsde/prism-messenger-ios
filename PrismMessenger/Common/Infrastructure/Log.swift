@@ -19,6 +19,7 @@ public enum Log {
     public static let common = forCategory("common")
     public static let crypto = forCategory("crypto")
     public static let messages = forCategory("messages")
+    public static let presence = forCategory("presence")
     public static let profiles = forCategory("profiles")
     public static let registration = forCategory("registration")
     public static let notifications = forCategory("notifications")
