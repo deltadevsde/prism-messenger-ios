@@ -27,7 +27,7 @@ class ChatService: ObservableObject {
     private let chatRepository: ChatRepository
     private let userService: UserService
     private let profileCacheService: ProfileCacheService
-    private let messageGateway: MessageGateway
+    private let messageSenderGateway: MessageSenderGateway
     private let keyGateway: KeyGateway
     private let x3dh: X3DH
 
@@ -35,14 +35,14 @@ class ChatService: ObservableObject {
         chatRepository: ChatRepository,
         userService: UserService,
         profileCacheService: ProfileCacheService,
-        messageGateway: MessageGateway,
+        messageSenderGateway: MessageSenderGateway,
         keyGateway: KeyGateway,
         x3dh: X3DH
     ) {
         self.chatRepository = chatRepository
         self.userService = userService
         self.profileCacheService = profileCacheService
-        self.messageGateway = messageGateway
+        self.messageSenderGateway = messageSenderGateway
         self.keyGateway = keyGateway
         self.x3dh = x3dh
     }
@@ -288,7 +288,7 @@ class ChatService: ObservableObject {
         // 5. Send the encrypted message to the server
         do {
             // Send message to server using the MessageGateway
-            let response = try await messageGateway.sendMessage(
+            let response = try await messageSenderGateway.sendMessage(
                 encryptedMessage,
                 to: chat.participantId
             )
