@@ -12,6 +12,7 @@ struct ChatView: View {
     @EnvironmentObject private var router: NavigationRouter
     @EnvironmentObject private var chatService: ChatService
     @EnvironmentObject private var messageService: MessageService
+    @Environment(PresenceService.self) private var presenceService
 
     @Bindable var chat: Chat
     @State private var messageText: String = ""
@@ -54,10 +55,31 @@ struct ChatView: View {
             Text(chat.displayName ?? chat.participantId.uuidString)
                 .font(.headline)
 
-            // TODO: Link with real API
-            Text("Online")
-                .font(.caption)
-                .foregroundColor(.green)
+            if let status = presenceService.presenceStatuses[chat.participantId] {
+                Text(status.displayText)
+                    .font(.caption)
+                    .foregroundColor(colorForStatus(status))
+            } else {
+                Text("Unknown")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            }
+        }
+        .onAppear {
+            Task {
+                await presenceService.loadPresenceStatus(for: chat.participantId)
+            }
+        }
+    }
+
+    private func colorForStatus(_ status: PresenceStatus) -> Color {
+        switch status {
+        case .online:
+            return .green
+        case .away:
+            return .orange
+        case .offline:
+            return .gray
         }
     }
 
