@@ -22,9 +22,20 @@ private struct MessageResponse: ReceivedMessage, Identifiable {
     let timestamp = UInt64(Date.now.timeIntervalSince1970 * 1000)
 }
 
-extension FakeClient: MessageGateway {
+private struct MessageHandler: Identifiable {
+    var id: UUID { recipientId }
+
+    var recipientId: UUID
+    var onMessageReceived: ((any ReceivedMessage) async throws -> Void)
+}
+
+extension FakeClient: MessageSenderGateway, MessageReceiverGateway {
 
     private var messageStore: InMemoryStore<MessageResponse> {
+        storeProvider.provideTypedStore()
+    }
+
+    private var messageHandlerStore: InMemoryStore<MessageHandler> {
         storeProvider.provideTypedStore()
     }
 
@@ -32,31 +43,33 @@ extension FakeClient: MessageGateway {
     func sendMessage(_ message: DoubleRatchetMessage, to recipientId: UUID)
         async throws -> MessageReceipt
     {
-        guard let currentUser = userService.currentUser else {
-            throw FakeClientError.authenticationRequired
-        }
-
         let storedMessage = MessageResponse(
-            senderId: currentUser.id,
+            senderId: currentAccountId!,
             recipientId: recipientId,
             message: message
         )
         messageStore.save(storedMessage)
-        return SendMessageResponse(messageId: storedMessage.messageId)
-    }
 
-    @MainActor
-    func fetchMessages() async throws -> [ReceivedMessage] {
-        guard let currentUser = userService.currentUser else {
-            throw FakeClientError.authenticationRequired
+        // Simulate backend sending message to recipient
+        if let handler = messageHandlerStore.get(byId: recipientId) {
+            try await handler.onMessageReceived(storedMessage)
         }
 
-        return messageStore.filter { $0.recipientId == currentUser.id }
+        return SendMessageResponse(messageId: storedMessage.messageId)
     }
 
     func markMessagesAsDelivered(messageIds: [UUID]) async throws {
         messageStore.remove {
             messageIds.contains($0.messageId)
+        }
+    }
+
+    func handleIncomingMessages(_ handler: @escaping (any ReceivedMessage) async throws -> Void) {
+        Task {
+            print("FakeClient: Setting up message handler for \(await currentAccountId!)")
+            messageHandlerStore.save(
+                MessageHandler(recipientId: await currentAccountId!, onMessageReceived: handler)
+            )
         }
     }
 }

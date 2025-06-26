@@ -4,5 +4,7 @@
 <dict>
 	<key>SERVER_URL</key>
 	<string>$(SERVER_URL)</string>
+	<key>WEBSOCKET_URL</key>
+	<string>$(WEBSOCKET_URL)</string>
 </dict>
 </plist>

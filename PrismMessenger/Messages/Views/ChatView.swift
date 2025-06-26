@@ -5,8 +5,8 @@
 //  Copyright © 2025 prism. All rights reserved.
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct ChatView: View {
     @EnvironmentObject private var router: NavigationRouter
@@ -47,12 +47,6 @@ struct ChatView: View {
             // Mark chat as read when view appears
             chat.markAsRead()
         }
-        .refreshable {
-            // Force refresh when user pulls down
-            Task {
-                try? await messageService.fetchAndProcessMessages()
-            }
-        }
     }
 
     private var onlineView: some View {
@@ -66,8 +60,6 @@ struct ChatView: View {
                 .foregroundColor(.green)
         }
     }
-
-
 
     private var messagesList: some View {
         ScrollViewReader { scrollProxy in
@@ -83,14 +75,16 @@ struct ChatView: View {
                 .padding(.bottom, 10)
             }
             .onChange(of: chat.messages.count) { _, _ in
-                if let lastMessage = chat.messages.sorted(by: { $0.timestamp < $1.timestamp }).last {
+                if let lastMessage = chat.messages.sorted(by: { $0.timestamp < $1.timestamp }).last
+                {
                     withAnimation {
                         scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
                     }
                 }
             }
             .onAppear {
-                if let lastMessage = chat.messages.sorted(by: { $0.timestamp < $1.timestamp }).last {
+                if let lastMessage = chat.messages.sorted(by: { $0.timestamp < $1.timestamp }).last
+                {
                     scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
                 }
             }
@@ -132,9 +126,14 @@ struct ChatView: View {
             } label: {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 32))
-                    .foregroundColor(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .gray : .blue)
+                    .foregroundColor(
+                        messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                            ? .gray : .blue
+                    )
             }
-            .disabled(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
+            .disabled(
+                messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading
+            )
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
@@ -253,7 +252,6 @@ struct MessageBubble: View {
     }
 }
 
-
 #Preview {
     let chat = Chat(
         participantId: UUID(),
@@ -266,16 +264,25 @@ struct MessageBubble: View {
     message1.chat = chat
     chat.addMessage(message1)
 
-    let message2 = Message(content: "Not bad! Just working on this app. How about you?", isFromMe: true)
+    let message2 = Message(
+        content: "Not bad! Just working on this app. How about you?",
+        isFromMe: true
+    )
     message2.chat = chat
     chat.addMessage(message2)
 
-    let message3 = Message(content: "That's cool! I've been exploring some new hiking trails nearby.", isFromMe: false)
+    let message3 = Message(
+        content: "That's cool! I've been exploring some new hiking trails nearby.",
+        isFromMe: false
+    )
     message3.chat = chat
     chat.addMessage(message3)
 
     let message4 = Message(
-        content: "That sounds awesome! Which trails did you check out?", isFromMe: true, status: .delivered)
+        content: "That sounds awesome! Which trails did you check out?",
+        isFromMe: true,
+        status: .delivered
+    )
     message4.chat = chat
     chat.addMessage(message4)
 

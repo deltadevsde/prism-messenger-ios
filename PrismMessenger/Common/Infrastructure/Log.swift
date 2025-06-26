@@ -2,7 +2,6 @@
 //  Logger.swift
 //  PrismMessenger
 //
-//  Created by Jonas Pusch on 24.03.25.
 //  Copyright © 2025 prism. All rights reserved.
 //
 

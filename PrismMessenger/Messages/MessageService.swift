@@ -18,57 +18,60 @@ enum MessageError: Error {
 /// Concrete implementation of the MessageServiceProtocol
 @MainActor
 class MessageService: ObservableObject {
-    private let messageGateway: MessageGateway
+    private let messageSenderGateway: MessageSenderGateway
+    private let messageReceiverGateway: MessageReceiverGateway
     private let keyGateway: KeyGateway
     private let userService: UserService
     private let chatService: ChatService
     private let messageNotificationService: MessageNotificationService
 
     init(
-        messageGateway: MessageGateway,
+        messageSenderGateway: MessageSenderGateway,
+        messageReceiverGateway: MessageReceiverGateway,
         keyGateway: KeyGateway,
         userService: UserService,
         chatService: ChatService,
         messageNotificationService: MessageNotificationService
     ) {
-        self.messageGateway = messageGateway
+        self.messageSenderGateway = messageSenderGateway
+        self.messageReceiverGateway = messageReceiverGateway
         self.keyGateway = keyGateway
         self.userService = userService
         self.chatService = chatService
         self.messageNotificationService = messageNotificationService
     }
 
-    /// Fetches new messages from the server and processes them
-    /// - Returns: The number of new messages processed
-    @discardableResult
-    func fetchAndProcessMessages() async throws -> Int {
-        guard let currentUser = userService.currentUser else {
-            return 0
+    /// Set up real-time message handling via WebSocket
+    func setupMessageHandling() {
+        messageReceiverGateway.handleIncomingMessages { [weak self] receivedMessage in
+            Task {
+                await self?.handleIncomingMessage(receivedMessage)
+            }
         }
+    }
+
+    /// Handle a single incoming message received via WebSocket
+    /// - Parameter receivedMessage: The message received in real-time
+    private func handleIncomingMessage(_ receivedMessage: ReceivedMessage) async {
+        log.debug(
+            "Received real-time message ID: \(receivedMessage.messageId) from \(receivedMessage.senderId)"
+        )
 
         do {
-            let messages = try await messageGateway.fetchMessages()
-
-            log.debug("Processing \(messages.count) fetched messages ...")
-            if messages.isEmpty {
-                return 0
-            }
+            // Process the single received message
             let processedMessages = try await processReceivedMessages(
-                receivedMessages: messages,
+                receivedMessages: [receivedMessage]
             )
 
-            let processedIds = processedMessages.compactMap { $0.serverId }
-            if !processedIds.isEmpty {
-                log.debug("Marking \(processedIds.count) messages as delivered on the server ...")
-                try await messageGateway.markMessagesAsDelivered(
-                    messageIds: processedIds
-                )
+            // Mark the message as delivered if it was processed successfully
+            if let processedMessage = processedMessages.first,
+               let serverId = processedMessage.serverId
+            {
+                log.debug("Marking real-time message as delivered: \(serverId)")
+                try await messageSenderGateway.markMessagesAsDelivered(messageIds: [serverId])
             }
-
-            return processedMessages.count
         } catch {
-            log.warning("Error processing messages: \(error)")
-            return 0
+            log.error("Failed to process real-time message \(receivedMessage.messageId): \(error)")
         }
     }
 
@@ -76,7 +79,8 @@ class MessageService: ObservableObject {
     /// - Parameters:
     ///   - messages: Array of received messages from the API
     /// - Returns: Array of processed messages that were successfully handled
-    func processReceivedMessages(receivedMessages: [ReceivedMessage],
+    func processReceivedMessages(
+        receivedMessages: [ReceivedMessage],
     ) async throws -> [Message] {
         var processedMessages: [Message] = []
 

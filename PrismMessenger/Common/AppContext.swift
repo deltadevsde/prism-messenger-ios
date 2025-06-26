@@ -16,6 +16,7 @@ class AppContext: ObservableObject {
     let chatService: ChatService
     let messageService: MessageService
     let messageNotificationService: MessageNotificationService
+    let connectionService: ConnectionService
     let ownProfileService: OwnProfileService
     let profileCacheService: ProfileCacheService
     let profilePictureCacheService: ProfilePictureCacheService
@@ -33,6 +34,7 @@ class AppContext: ObservableObject {
         chatService: ChatService,
         messageService: MessageService,
         messageNotificationService: MessageNotificationService,
+        connectionService: ConnectionService,
         ownProfileService: OwnProfileService,
         profileCacheService: ProfileCacheService,
         profilePictureCacheService: ProfilePictureCacheService,
@@ -41,7 +43,7 @@ class AppContext: ObservableObject {
         pushNotificationDelegate: PushNotificationDelegate?,
         updatePushTokenService: UpdatePushTokenService,
         userService: UserService,
-        registrationService: RegistrationService
+        registrationService: RegistrationService,
     ) {
         self.modelContext = modelContext
         self.scenePhaseRepository = scenePhaseRepository
@@ -49,6 +51,7 @@ class AppContext: ObservableObject {
         self.chatService = chatService
         self.messageService = messageService
         self.messageNotificationService = messageNotificationService
+        self.connectionService = connectionService
         self.ownProfileService = ownProfileService
         self.profileCacheService = profileCacheService
         self.profilePictureCacheService = profilePictureCacheService
@@ -62,6 +65,8 @@ class AppContext: ObservableObject {
 
     func connectAppDelegate(_ appDelegate: AppDelegate) {
         appDelegate.setServices(
-            pushNotificationDelegate: pushNotificationDelegate, messageService: messageService)
+            pushNotificationDelegate: pushNotificationDelegate,
+            messageService: messageService,
+            connectionService: connectionService)
     }
 }

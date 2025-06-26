@@ -22,12 +22,19 @@ class AppContextFactory {
 
         #if targetEnvironment(simulator)
             let serverUrl = "http://127.0.0.1:48080"
+            let webSocketUrl = "ws://127.0.0.1:48080"
         #else
             let serverUrl = BuildSettings.serverURL
+            let webSocketUrl = BuildSettings.webSocketURL
         #endif
 
         let restClient = try! RestClient(
             baseURLStr: serverUrl,
+            userService: userService
+        )
+
+        let webSocketClient = try! WebSocketClient(
+            baseURLStr: webSocketUrl,
             userService: userService
         )
 
@@ -69,7 +76,7 @@ class AppContextFactory {
             chatRepository: chatRepository,
             userService: userService,
             profileCacheService: profileCacheService,
-            messageGateway: restClient,
+            messageSenderGateway: restClient,
             keyGateway: restClient,
             x3dh: x3dh
         )
@@ -84,11 +91,18 @@ class AppContextFactory {
         notificationCenter.setResponseHandler(messageNotificationService, for: .message)
 
         let messageService = MessageService(
-            messageGateway: restClient,
+            messageSenderGateway: restClient,
+            messageReceiverGateway: webSocketClient,
             keyGateway: restClient,
             userService: userService,
             chatService: chatService,
             messageNotificationService: messageNotificationService
+        )
+
+        // Initialize connection service
+        let connectionService = ConnectionService(
+            realTimeCommunication: webSocketClient,
+            scenePhaseRepository: scenePhaseRepository
         )
 
         // Initialize registration services
@@ -114,6 +128,7 @@ class AppContextFactory {
             chatService: chatService,
             messageService: messageService,
             messageNotificationService: messageNotificationService,
+            connectionService: connectionService,
             ownProfileService: ownProfileService,
             profileCacheService: profileCacheService,
             profilePictureCacheService: profilePictureCacheService,
@@ -177,7 +192,7 @@ class AppContextFactory {
             chatRepository: chatRepository,
             userService: userService,
             profileCacheService: profileCacheService,
-            messageGateway: simulatedBackend,
+            messageSenderGateway: simulatedBackend,
             keyGateway: simulatedBackend,
             x3dh: x3dh
         )
@@ -192,11 +207,18 @@ class AppContextFactory {
         notificationCenter.setResponseHandler(messageNotificationService, for: .message)
 
         let messageService = MessageService(
-            messageGateway: simulatedBackend,
+            messageSenderGateway: simulatedBackend,
+            messageReceiverGateway: simulatedBackend,
             keyGateway: simulatedBackend,
             userService: userService,
             chatService: chatService,
             messageNotificationService: messageNotificationService
+        )
+
+        // Initialize connection service for testing
+        let connectionService = ConnectionService(
+            realTimeCommunication: simulatedBackend,
+            scenePhaseRepository: scenePhaseRepository
         )
 
         // Initialize registration services
@@ -222,6 +244,7 @@ class AppContextFactory {
             chatService: chatService,
             messageService: messageService,
             messageNotificationService: messageNotificationService,
+            connectionService: connectionService,
             ownProfileService: ownProfileService,
             profileCacheService: profileCacheService,
             profilePictureCacheService: profilePictureCacheService,
