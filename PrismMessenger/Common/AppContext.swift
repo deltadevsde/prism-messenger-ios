@@ -17,6 +17,7 @@ class AppContext: ObservableObject {
     let messageService: MessageService
     let messageNotificationService: MessageNotificationService
     let connectionService: ConnectionService
+    let presenceService: PresenceService
     let ownProfileService: OwnProfileService
     let profileCacheService: ProfileCacheService
     let profilePictureCacheService: ProfilePictureCacheService
@@ -35,6 +36,7 @@ class AppContext: ObservableObject {
         messageService: MessageService,
         messageNotificationService: MessageNotificationService,
         connectionService: ConnectionService,
+        presenceService: PresenceService,
         ownProfileService: OwnProfileService,
         profileCacheService: ProfileCacheService,
         profilePictureCacheService: ProfilePictureCacheService,
@@ -52,6 +54,7 @@ class AppContext: ObservableObject {
         self.messageService = messageService
         self.messageNotificationService = messageNotificationService
         self.connectionService = connectionService
+        self.presenceService = presenceService
         self.ownProfileService = ownProfileService
         self.profileCacheService = profileCacheService
         self.profilePictureCacheService = profilePictureCacheService

@@ -105,6 +105,12 @@ class AppContextFactory {
             scenePhaseRepository: scenePhaseRepository
         )
 
+        // Initialize presence service
+        let presenceService = PresenceService(
+            presenceFetchGateway: restClient,
+            presenceRtcGateway: webSocketClient
+        )
+
         // Initialize registration services
         let registrationService = RegistrationService(
             registrationGateway: restClient,
@@ -129,6 +135,7 @@ class AppContextFactory {
             messageService: messageService,
             messageNotificationService: messageNotificationService,
             connectionService: connectionService,
+            presenceService: presenceService,
             ownProfileService: ownProfileService,
             profileCacheService: profileCacheService,
             profilePictureCacheService: profilePictureCacheService,
@@ -221,6 +228,12 @@ class AppContextFactory {
             scenePhaseRepository: scenePhaseRepository
         )
 
+        // Initialize presence services
+        let presenceService = PresenceService(
+            presenceFetchGateway: simulatedBackend,
+            presenceRtcGateway: simulatedBackend
+        )
+
         // Initialize registration services
         let registrationService = RegistrationService(
             registrationGateway: simulatedBackend,
@@ -245,6 +258,7 @@ class AppContextFactory {
             messageService: messageService,
             messageNotificationService: messageNotificationService,
             connectionService: connectionService,
+            presenceService: presenceService,
             ownProfileService: ownProfileService,
             profileCacheService: profileCacheService,
             profilePictureCacheService: profilePictureCacheService,
