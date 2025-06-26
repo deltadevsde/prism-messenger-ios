@@ -16,7 +16,7 @@ private enum TestError: Error {
 
 /// Mock implementation of ProfileRepository for testing
 @MainActor
-class MockProfileRepository: ProfileRepository {
+private class MockProfileRepository: ProfileRepository {
     var getAllProfilesReturnValue: [Profile] = []
     var getAllProfilesError: Error? = nil
     var getAllProfilesCallCount = 0
@@ -46,7 +46,7 @@ class MockProfileRepository: ProfileRepository {
 
 /// Mock implementation of ProfilePictureRepository for testing
 @MainActor
-class MockProfilePictureRepository: ProfilePictureRepository {
+private class MockProfilePictureRepository: ProfilePictureRepository {
     var deleteProfilePicturesCallCount = 0
     var deleteProfilePicturesLastCalledWithPaths: [String] = []
     var deleteProfilePicturesError: Error? = nil
