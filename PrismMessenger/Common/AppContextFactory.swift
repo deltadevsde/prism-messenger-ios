@@ -111,6 +111,11 @@ class AppContextFactory {
             presenceRtcGateway: webSocketClient
         )
 
+        // Initialize typing service
+        let typingService = TypingService(
+            typingGateway: webSocketClient
+        )
+
         // Initialize registration services
         let registrationService = RegistrationService(
             registrationGateway: restClient,
@@ -136,6 +141,7 @@ class AppContextFactory {
             messageNotificationService: messageNotificationService,
             connectionService: connectionService,
             presenceService: presenceService,
+            typingService: typingService,
             ownProfileService: ownProfileService,
             profileCacheService: profileCacheService,
             profilePictureCacheService: profilePictureCacheService,
@@ -234,6 +240,11 @@ class AppContextFactory {
             presenceRtcGateway: simulatedBackend
         )
 
+        // Initialize typing services
+        let typingService = TypingService(
+            typingGateway: simulatedBackend
+        )
+
         // Initialize registration services
         let registrationService = RegistrationService(
             registrationGateway: simulatedBackend,
@@ -259,6 +270,7 @@ class AppContextFactory {
             messageNotificationService: messageNotificationService,
             connectionService: connectionService,
             presenceService: presenceService,
+            typingService: typingService,
             ownProfileService: ownProfileService,
             profileCacheService: profileCacheService,
             profilePictureCacheService: profilePictureCacheService,
