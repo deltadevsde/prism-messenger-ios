@@ -33,6 +33,7 @@ struct MainView: View {
         .environmentObject(appContext.chatService)
         .environmentObject(appContext.messageService)
         .environment(appContext.presenceService)
+        .environment(appContext.typingService)
         .environment(appContext.ownProfileService)
         .environment(appContext.profileCacheService)
         .environment(appContext.profilePictureCacheService)
