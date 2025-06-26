@@ -23,6 +23,7 @@ func startApp(appContext: AppContext) async {
             await appContext.profilePictureCacheService.populateCacheFromDisk()
             appContext.messageService.setupMessageHandling()
             appContext.presenceService.setupPresenceHandler()
+            appContext.typingService.setupTypingStatusHandler()
             await appContext.connectionService.connect()
 
             router.setLaunchState(.registered)
