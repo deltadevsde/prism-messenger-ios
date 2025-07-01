@@ -112,7 +112,7 @@ class ConnectionService: ObservableObject {
 
         case .inactive, .background:
             // App went to background - disconnect to save resources
-//            disconnect()
+            disconnect()
             break
 
         @unknown default:
