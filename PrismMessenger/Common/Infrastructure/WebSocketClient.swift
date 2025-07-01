@@ -125,7 +125,7 @@ class WebSocketClient {
     func sendMessage(_ message: any WebSocketMessage) async throws {
         guard let webSocketTask = webSocketTask else {
             log.warning("WebSocket not connected, cannot send message")
-            return
+            throw WebSocketError.connectionClosed
         }
 
         do {
@@ -161,7 +161,7 @@ class WebSocketClient {
             log.warning("Received invalid websocket message type 'String'")
             break
         case .data(let data):
-                log.trace("Received websocket message (\(data.count) bytes))")
+            log.trace("Received websocket message (\(data.count) bytes))")
             guard let envelope = try? decoder.decode(TypeEnvelope.self, from: data) else {
                 log.warning("Failed to decode message envelope")
                 return
