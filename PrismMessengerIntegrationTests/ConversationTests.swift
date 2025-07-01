@@ -5,9 +5,10 @@
 //  Copyright © 2025 prism. All rights reserved.
 //
 
-import Testing
-@testable import PrismMessenger
 import Foundation
+import Testing
+
+@testable import PrismMessenger
 
 @MainActor
 final class ConversationTests {
@@ -16,50 +17,128 @@ final class ConversationTests {
     var appContextBob: AppContext!
 
     init() async {
-        (appContextAlice, appContextBob) = await AppContextFactory.twoForTest()
-    }
-
-    @Test func twoPeopleChattingWithEachOther() async throws {
         // Simulate two registered users
+        (appContextAlice, appContextBob) = await AppContextFactory.twoForTest()
+
         try! await appContextAlice.registrationService.registerNewUser(username: "Alice")
         try! await appContextBob.registrationService.registerNewUser(username: "Bob")
 
-        let aliceId = appContextAlice.userService.currentUser!.id
+        await startApp(appContext: appContextAlice)
+        await startApp(appContext: appContextBob)
+    }
 
+    @Test func twoPeopleChattingWithEachOther() async throws {
+        let aliceId = appContextAlice.userService.currentUser!.id
 
         // Alice starts a chat with Bob
         let chatAlice = try await appContextAlice.chatService.startChat(with: "Bob")
-        try await appContextAlice.chatService.sendMessage(content: "Hello Bob", in: chatAlice)
+        let message1 = try await appContextAlice.chatService.sendMessage(
+            content: "Hello Bob",
+            in: chatAlice
+        )
 
         // Bob receives the message and answers
-        try await appContextBob.messageService.fetchAndProcessMessages()
-        let chatBob = try await appContextBob.chatService.getChat(with: aliceId)!
-        try await appContextBob.chatService.sendMessage(content: "Hello Alice", in: chatBob)
+        let chatBob = try await expectEventuallyNonNil {
+            try await self.appContextBob.chatService.getChat(with: aliceId)
+        }
+        let message2 = try await appContextBob.chatService.sendMessage(
+            content: "Hello Alice",
+            in: chatBob
+        )
 
-        // Alice receives Bob's answer
-        try await appContextAlice.messageService.fetchAndProcessMessages()
+        // Wait for Alice to receive Bobs answer
+        try await expectEventually(toEqual: 2) {
+            chatAlice.messages.count
+        }
 
         // repeat multiple times
         for i in 0..<5 {
             // Alice sends message to Bob
-            try await appContextAlice.chatService.sendMessage(content: "What up Bob? \(i)", in: chatAlice)
-            try await Task.sleep(for: .milliseconds(100))
+            let alicesMessage = try await appContextAlice.chatService.sendMessage(
+                content: "What up Bob? \(i)",
+                in: chatAlice
+            )
 
             // Bob receives and answers
-            try await appContextBob.messageService.fetchAndProcessMessages()
-            try await appContextBob.chatService.sendMessage(content: "What up Alice? \(i)", in: chatBob)
-            try await Task.sleep(for: .milliseconds(100))
+            let bobsMessage = try await appContextBob.chatService.sendMessage(
+                content: "What up Alice? \(i)",
+                in: chatBob
+            )
 
-            // Alice receives
-            try await appContextAlice.messageService.fetchAndProcessMessages()
+            // Ensure both chats have correct number of messages:
+            // 2 msgs (1 each participant) to start conversation "Hello ..."
+            // another 2 msgs for each round of back and forth "What up ..."
+            let expectedMessageCount = (i + 1) * 2 + 2
+            try await expectEventually(toEqual: expectedMessageCount) {
+                chatAlice.messages.count
+            }
+            try await expectEventually(toEqual: expectedMessageCount) {
+                chatBob.messages.count
+            }
         }
-
-        // Ensure both chats have 12 messages:
-        // 2 msgs (1 each participant) to start conversation "Hello ..."
-        // 10 msgs (5 each participant) back and forth "What up ..."
-        #expect(chatAlice.messages.count == 12)
-        #expect(chatBob.messages.count == 12)
     }
 
-    
+    func expectEventually<T>(
+        toEqual expectedValue: T,
+        timeout: TimeInterval = 5.0,
+        pollInterval: TimeInterval = 0.1,
+        condition: @escaping () async throws -> T
+    ) async throws where T: Equatable {
+        let deadline = Date().addingTimeInterval(timeout)
+        var lastError: Error?
+
+        while Date() < deadline {
+            do {
+                let value = try await condition()
+                if value == expectedValue {
+                    return  // Success
+                }
+            } catch {
+                lastError = error
+            }
+
+            try await Task.sleep(nanoseconds: UInt64(pollInterval * 1_000_000_000))
+        }
+
+        // Timeout reached
+        if let error = lastError {
+            throw error
+        } else {
+            throw TestError.timeout(
+                "Expected value \(expectedValue) not reached within \(timeout) seconds"
+            )
+        }
+    }
+
+    func expectEventuallyNonNil<T>(
+        timeout: TimeInterval = 5.0,
+        pollInterval: TimeInterval = 0.1,
+        condition: @escaping () async throws -> T?
+    ) async throws -> T {
+        let deadline = Date().addingTimeInterval(timeout)
+        var lastError: Error?
+
+        while Date() < deadline {
+            do {
+                if let value = try await condition() {
+                    return value  // Success - return the unwrapped value
+                }
+            } catch {
+                lastError = error
+            }
+
+            try await Task.sleep(nanoseconds: UInt64(pollInterval * 1_000_000_000))
+        }
+
+        // Timeout reached
+        if let error = lastError {
+            throw error
+        } else {
+            throw TestError.timeout("Expected non-nil value not received within \(timeout) seconds")
+        }
+    }
+}
+
+enum TestError: Error {
+    case timeout(String)
 }

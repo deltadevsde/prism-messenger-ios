@@ -8,7 +8,7 @@
 @MainActor
 func startApp(appContext: AppContext) async {
     let router = appContext.router
-    
+
     router.setLaunchState(.loading)
     do {
         ModelContextProvider.resetSwiftDataStoreIfNeeded()
@@ -21,6 +21,8 @@ func startApp(appContext: AppContext) async {
             try await appContext.profilePictureCleanupService.cleanupOrphanedProfilePictures()
             await appContext.profileCacheService.populateCacheFromDisk()
             await appContext.profilePictureCacheService.populateCacheFromDisk()
+            appContext.messageService.setupMessageHandling()
+            await appContext.connectionService.connect()
 
             router.setLaunchState(.registered)
 

@@ -2,7 +2,6 @@
 //  ChatImageView.swift
 //  PrismMessenger
 //
-//  Created by Jonas Pusch on 27.05.25.
 //  Copyright © 2025 prism. All rights reserved.
 //
 
