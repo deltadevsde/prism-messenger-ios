@@ -233,6 +233,7 @@ class AppContextFactory {
             presenceFetchGateway: simulatedBackend,
             presenceRtcGateway: simulatedBackend
         )
+        presenceService.setupPresenceHandler()
 
         // Initialize registration services
         let registrationService = RegistrationService(

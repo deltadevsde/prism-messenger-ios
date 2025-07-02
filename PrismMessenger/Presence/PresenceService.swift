@@ -35,7 +35,6 @@ class PresenceService {
     ) {
         self.presenceFetchGateway = presenceFetchGateway
         self.presenceRtcGateway = presenceRtcGateway
-        setupPresenceHandler()
     }
 
     // MARK: - Public Methods
