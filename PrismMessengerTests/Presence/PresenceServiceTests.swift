@@ -24,6 +24,7 @@ struct PresenceServiceTests {
             presenceFetchGateway: mockFetchGateway,
             presenceRtcGateway: mockRtcGateway
         )
+        service.setupPresenceHandler()
     }
 
     // MARK: - Fetch Tests
